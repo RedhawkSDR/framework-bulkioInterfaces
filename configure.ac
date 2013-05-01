@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(bulkioInterfaces, 1.8.3)
+AC_INIT(bulkioInterfaces, 1.8.4)
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [2:0:0])
 
 AC_PREFIX_DEFAULT(${OSSIEHOME})
@@ -49,39 +49,51 @@ AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable framework java s
 
 HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
-  # JAVA_HOME is required to locate the JNI headers
-  AC_ARG_VAR([JAVA_HOME], [Java Development Kit (JDK) location])
-  AC_MSG_CHECKING([for JAVA_HOME])
-  if test -z "$JAVA_HOME"; then
-    AC_MSG_RESULT([no])
-  else
-    AC_MSG_RESULT([$JAVA_HOME])
-    # Put JAVA_HOME at the front of the path to locate Java tools
-    export PATH="${JAVA_HOME}/bin:${PATH}"
-  fi
-  AC_SUBST(JAVA_HOME)
+  # configure was run with java enabled
 
-  AC_CHECK_PROG([IDLJ], [idlj], [idlj], [no])
-  AC_CHECK_PROG([JAVAC], [javac], [javac], [no])
-  AC_CHECK_PROG([JAR], [jar], [jar], [no])
-  if test "$IDLJ" = no -o "$JAVAC" = no -o "$JAR" = no; then
-    AC_MSG_WARN([Java support won't be built due to missing dependencies])
+  # Ensure JAVA_HOME is set
+  AC_ARG_VAR([JAVA_HOME], [Java Development Kit (JDK) location])
+  test -r /usr/share/java-utils/java-functions && \
+    . /usr/share/java-utils/java-functions && \
+    set_jvm
+  AC_MSG_CHECKING([for a valid JAVA_HOME])
+  if test -n "$JAVA_HOME" -a -d "$JAVA_HOME"; then
+    AC_MSG_RESULT([$JAVA_HOME])
   else
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([try setting the JAVA_HOME variable to the base of a valid Java install])
+    AC_SUBST([JAVA_HOME], [no])
+  fi
+
+  # Locate tools we need based on JAVA_HOME
+  java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
+  AC_PATH_PROG([JAVAC], [javac], [no], [$java_test_paths])
+  AC_PATH_PROG([JAR], [jar], [no], [$java_test_paths])
+  AC_PATH_PROG([IDLJ], [idlj], [no], [$java_test_paths])
+
+  if test "$JAVA_HOME" != "no" -a \
+          "$JAVAC" != "no" -a \
+          "$JAR" != "no" -a \
+          "$IDLJ" != "no"; then
     # Verify that we can include the JNI header; the platform-specific location is
     # assumed to be Linux.
     saved_CPPFLAGS="$CPPFLAGS"
     JNI_CPPFLAGS="-I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
     CPPFLAGS="$JNI_CPPFLAGS"
-    AC_CHECK_HEADER([jni.h], [HAVE_JNI_H="yes"])
+    AC_CHECK_HEADER([jni.h],
+    [
+      HAVE_JNI_H="yes"
+      AC_SUBST([JNI_CPPFLAGS])
+    ])
     CPPFLAGS="$saved_CPPFLAGS"
   fi
 
   if test -n "$HAVE_JNI_H"; then
     # The omnijni package must be available to generate JNI stubs and skeletons.
-    AC_CHECK_PYMODULE([ossie.omnijni], [have_omnijni="yes"])
+    AC_CHECK_PYMODULE([ossie.omnijni], [HAVE_OMNIJNI="yes"])
   fi
 
-  if test -n "$have_omnijni"; then
+  if test -n "$HAVE_OMNIJNI"; then
     # Verify that we can include the CF JNI headers.
     saved_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$JNI_CPPFLAGS $OSSIE_CFLAGS"
@@ -89,20 +101,19 @@ if test "x$enable_java" != "xno"; then
     CPPFLAGS="$saved_CPPFLAGS"
   fi
 
-  if test -n "HAVE_JNI_CF_H"; then
+  if test -n "$HAVE_JNI_CF_H"; then
     # Finally, check for the CF JNI module.
     AC_MSG_CHECKING([for ossiecfjni dynamic library])
     ossie_libdir=`pkg-config --variable=libdir ossie`
     if test -f "${ossie_libdir}/libossiecfjni.so"; then
       AC_MSG_RESULT([yes])
       JNI_LIBS="-L$ossie_libdir -lossiecfjni"
+      AC_SUBST([JNI_LIBS])
       HAVE_JAVASUPPORT="yes"
     else
       AC_MSG_RESULT([no])
     fi
   fi
-  AC_SUBST(JNI_LIBS)
-  AC_SUBST(JNI_CPPFLAGS)
 fi
 AC_MSG_CHECKING([for framework java support])
 AC_MSG_RESULT($HAVE_JAVASUPPORT)

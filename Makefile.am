@@ -137,6 +137,7 @@ build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_updateSRI.idl: $(IDL_SOURCE_PATH)/bi
 ###############################################################################
 .PHONY: all-local all-python install-python clean-python all-java install-java clean-java compile-java zip-src
 .INTERMEDIATE: build/java.files build/java.export setup.py 
+.NOTPARALLEL: $(PY_SRC_OUT_DIR)/__init__.py
 LOWER_CASE_IDL_MODULE :=$(shell echo $(IDL_MODULE) | tr A-Z a-z)
 
 idldir = $(datadir)/idl/$(LIBRARY_NAME)/$(IDL_MODULE)

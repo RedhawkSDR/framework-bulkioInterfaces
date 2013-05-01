@@ -22,39 +22,38 @@
 # You can override this at install time using --prefix /usr/local/redhawk/core when invoking rpm (preferred)
 %define _ossiehome /usr/local/redhawk/core
 %define _prefix %{_ossiehome}
-Prefix: %{_prefix}
+Prefix:         %{_prefix}
 
-# Point install paths to locations within our target OSSIE root
-%define _sysconfdir    %{_prefix}/etc
-%define _localstatedir %{_prefix}/var
-%define _mandir        %{_prefix}/man
-%define _infodir       %{_prefix}/info
+# Java libraries built by default; use '--without java' to disable
+%bcond_without java
 
-# Check for java support
-%define java_support_enabled %(test -e $OSSIEHOME/lib/ossie.jar && echo 1 || echo 0)
+Name:           bulkioInterfaces
+Version:        1.8.4
+Release:        1%{?dist}
+Summary:        The bulkio library for REDHAWK
 
-Name:		bulkioInterfaces
-Version:	__VERSION__
-Release:	__RELEASE__
-Summary:	The bulkio library for REDHAWK
+Group:          Applications/Engineering
+License:        LGPLv3+
+URL:            http://redhawksdr.org/
+Source:         %{name}-%{version}.tar.gz
 
-Group:		Applications/Engineering
-License:	LGPLv3+
-URL:		http://redhawksdr.org/
-Source:		%{name}-%{version}.tar.gz
+BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-
-Requires: redhawk >= 1.8
-BuildRequires: redhawk >= 1.8
-BuildRequires: autoconf automake libtool
-BuildRequires: omniORB
-BuildRequires: python omniORBpy omniORBpy-devel
-BuildRequires: apache-log4cxx-devel
+Requires: 	redhawk >= 1.8
+BuildRequires: 	redhawk >= 1.8
+BuildRequires: 	autoconf automake libtool
+BuildRequires: 	omniORB
+BuildRequires: 	python omniORBpy omniORBpy-devel
+BuildRequires: 	apache-log4cxx-devel
 %if "%{?rhel}" == "6"
-BuildRequires: libuuid-devel
+BuildRequires: 	libuuid-devel
 %else
-BuildRequires: e2fsprogs-devel
+BuildRequires: 	e2fsprogs-devel
+%endif
+%if %{with java}
+Requires:       java >= 1.6
+BuildRequires: 	java-devel >= 1.6
+BuildRequires:  jpackage-utils
 %endif
 
 
@@ -67,12 +66,13 @@ Libraries and interface definitions for bulkio interfaces.
 
 
 %build
-# Explicitly set JAVA_HOME and add to PATH (for idlj)
-export JAVA_HOME=/usr/java/default
-export PATH=${JAVA_HOME}/bin:${PATH}
 ./reconf
-%configure
-make
+%if %{with java}
+    %configure
+%else
+    %configure --disable-java
+%endif
+make %{?_smp_mflags}
 
 
 %install
@@ -91,7 +91,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %{_libdir}/libbulkioInterfaces.*
 %{_libdir}/pkgconfig/bulkioInterfaces.pc
 %{_prefix}/lib/python/bulkio
-%if %java_support_enabled
+%if %{with java}
 %{_prefix}/lib/BULKIOInterfaces.jar
 %{_prefix}/lib/BULKIOInterfaces.src.jar
 %{_prefix}/%{_lib}/libbulkiojni.*
@@ -109,6 +109,11 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Mar 29 2013 1.8.4
+- Re-work java use
+- Remove unneeded defines
+- Parallelize build
+
 * Tue Mar 12 2013 1.8.3-4
 - Update licensing information
 - Add URL for website
