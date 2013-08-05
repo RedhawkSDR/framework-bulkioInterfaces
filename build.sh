@@ -19,27 +19,22 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-config_ac='configure.ac'
-make_am='Makefile.am'
-makefile='Makefile'
-
-if [ "$1" == 'clean' ]; then
+if [ "$1" = "clean" ]; then
   make clean
-elif [ "$1" == 'rpm' ]; then
+elif [ "$1" = "rpm" ]; then
   # A very simplistic RPM build scenario
   mydir=`dirname $0`
   tmpdir=`mktemp -d`
-  cp -r ${mydir} ${tmpdir}/bulkioInterfaces-1.8.4
-  tar czf ${tmpdir}/bulkioInterfaces-1.8.4.tar.gz --exclude=".git" -C ${tmpdir} bulkioInterfaces-1.8.4
-  rpmbuild -ta ${tmpdir}/bulkioInterfaces-1.8.4.tar.gz
+  cp -r ${mydir} ${tmpdir}/bulkioInterfaces-1.9.0
+  tar czf ${tmpdir}/bulkioInterfaces-1.9.0.tar.gz --exclude=".git" -C ${tmpdir} bulkioInterfaces-1.9.0
+  rpmbuild -ta ${tmpdir}/bulkioInterfaces-1.9.0.tar.gz
   rm -rf $tmpdir
 else
   # Checks if build is newer than makefile (based on modification time)
-  if [[ $config_ac -nt $makefile || $make_am -nt $makefile ]]; then
+  if [ ! -e configure ] || [ ! -e Makefile ] || [ configure.ac -nt Makefile ] || [ Makefile.am -nt Makefile ]; then
     ./reconf
     ./configure
   fi
   make
-  exit 0
 fi
 

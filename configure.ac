@@ -18,10 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(bulkioInterfaces, 1.8.4)
+AC_INIT(bulkioInterfaces, 1.9.0)
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [2:0:0])
-
-AC_PREFIX_DEFAULT(${OSSIEHOME})
 
 AM_INIT_AUTOMAKE(nostdinc)
 AC_PROG_CC
@@ -40,9 +38,26 @@ AC_CHECK_PROG([IDL], [omniidl], [omniidl], [no])
 if test "$IDL" = no; then
   AC_MSG_ERROR([cannot find omniidl program])
 fi
-AC_LANG_PUSH([C++])
-PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.0.0])
-PKG_CHECK_MODULES(OSSIE, ossie >= 1.7.0,,exit)
+PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 1.8.0])
+
+# Optionally include BULKIO base class libraries
+AC_ARG_ENABLE([base-classes], AS_HELP_STRING([--disable-base-classes], [Disable BULKIO base class libraries]))
+AM_CONDITIONAL([BUILD_BASE_CLASSES], [test "$enable_base_classes" != "no"])
+
+if test "$enable_base_classes" != "no"; then
+  AC_SUBST([BULKIO_SO_VERSION], [0:0:0])
+  AC_SUBST([BULKIO_API_VERSION], [1.0])
+
+  AX_BOOST_BASE([1.41])
+  AX_BOOST_THREAD
+  OSSIE_ENABLE_LOG4CXX
+  CHECK_VECTOR_IMPL
+
+  AC_SUBST(BULKIO_INF_INCLUDES, "-I../src/cpp -I../src/cpp/ossie")
+  AC_SUBST(BULKIO_INF_CFLAGS, )
+  AC_SUBST(BULKIO_INF_LIBS, )
+fi
 
 # Optionally include java support
 AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable framework java support]))
@@ -77,6 +92,7 @@ if test "x$enable_java" != "xno"; then
           "$IDLJ" != "no"; then
     # Verify that we can include the JNI header; the platform-specific location is
     # assumed to be Linux.
+    AC_LANG_PUSH([C++])
     saved_CPPFLAGS="$CPPFLAGS"
     JNI_CPPFLAGS="-I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
     CPPFLAGS="$JNI_CPPFLAGS"
@@ -86,6 +102,7 @@ if test "x$enable_java" != "xno"; then
       AC_SUBST([JNI_CPPFLAGS])
     ])
     CPPFLAGS="$saved_CPPFLAGS"
+    AC_LANG_POP([C++])
   fi
 
   if test -n "$HAVE_JNI_H"; then
@@ -95,10 +112,12 @@ if test "x$enable_java" != "xno"; then
 
   if test -n "$HAVE_OMNIJNI"; then
     # Verify that we can include the CF JNI headers.
+    AC_LANG_PUSH([C++])
     saved_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$JNI_CPPFLAGS $OSSIE_CFLAGS"
     AC_CHECK_HEADER([CF/jni_cf.h], [HAVE_JNI_CF_H="yes"])
     CPPFLAGS="$saved_CPPFLAGS"
+    AC_LANG_POP([C++])
   fi
 
   if test -n "$HAVE_JNI_CF_H"; then
@@ -120,5 +139,12 @@ AC_MSG_RESULT($HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 # End optional java support
 
-AC_CONFIG_FILES(Makefile jni/Makefile)
+AC_CONFIG_FILES([Makefile jni/Makefile])
+if test "$enable_base_classes" != "no"; then
+  if test "$HAVE_JAVASUPPORT = yes"; then
+    AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF libsrc/java/META-INF/MANIFEST.MF.src])
+  fi
+  AC_CONFIG_FILES([libsrc/Makefile libsrc/bulkio.pc])
+fi
+
 AC_OUTPUT

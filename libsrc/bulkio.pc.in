@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: bulkio
+Description: BULKIO base class library
+Version: @BULKIO_API_VERSION@
+Libs: -L${libdir} -lbulkio-@BULKIO_API_VERSION@
+Cflags: -I${includedir}/bulkio -I${libdir}/bulkio/include

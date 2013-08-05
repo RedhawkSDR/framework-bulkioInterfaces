@@ -135,7 +135,7 @@ build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_updateSRI.idl: $(IDL_SOURCE_PATH)/bi
 ###############################################################################
 # DO NOT MODIFY ANY LINES BELOW HERE
 ###############################################################################
-.PHONY: all-local all-python install-python clean-python all-java install-java clean-java compile-java zip-src
+.PHONY: all-local all-python install-python clean-python all-java install-java clean-java compile-java zip-src 
 .INTERMEDIATE: build/java.files build/java.export setup.py 
 .NOTPARALLEL: $(PY_SRC_OUT_DIR)/__init__.py
 LOWER_CASE_IDL_MODULE :=$(shell echo $(IDL_MODULE) | tr A-Z a-z)
@@ -153,6 +153,14 @@ clean-local: clean-python clean-java clean-cpp
 build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl: $(IDL_SOURCE_PATH)/%.idl
 	mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
 	cp $< $@
+
+# Always build the current directory first (this is hack-ish, but the
+# alternative is to combine the Makefile.am's)
+SUBDIRS = .
+
+if BUILD_BASE_CLASSES
+SUBDIRS += libsrc
+endif
 
 ###############################################################################
 # C++ (via automake and libtool)
@@ -232,12 +240,13 @@ setup.py: Makefile.am
 	@echo "" >> $@
 	@echo "setup(" >> $@
 	@echo "      name='$(PYTHON_MODULE_NAME)'," >> $@
+	@echo "      version='$(PACKAGE_VERSION)'," >> $@
 	@echo "      package_dir = {'': 'src/python'}," >> $@
 	@echo "      packages=_packages" >> $@
 	@echo ")" >> $@
 
 $(PY_BUILD_OUT_DIR): $(PY_SRCS) setup.py
-	python setup.py build
+	python setup.py build --build-lib build/lib
 	touch $(PY_BUILD_OUT_DIR)
 
 all-python: $(PY_BUILD_OUT_DIR)
@@ -370,8 +379,8 @@ install-java: $(JAVA_OUTPUT_JAR)
 install-java-src: $(JAVA_SRC_JAR)
 	cp $< $(DESTDIR)$(prefix)/lib
 
-# Build JNI library after the current directory.
-SUBDIRS = . jni
+# JNI library must be built after the current directory (see SUBDIRS above)
+SUBDIRS += jni
 
 ###############################################################################
 # No Java - stubs

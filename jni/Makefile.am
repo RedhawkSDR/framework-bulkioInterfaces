@@ -31,7 +31,7 @@ ossie/BULKIO :
 ossie/BULKIO/jni_%.cpp ossie/BULKIO/jni_%.h: $(BULKIO_IDLDIR)/ossie/BULKIO/%.idl | ossie/BULKIO
 	$(IDL) -bossie.omnijni.idljni -I $(BULKIO_IDLDIR) -I $(OSSIE_IDLDIR) -Wbincprefix=BULKIO -C ossie/BULKIO $<
 
-libbulkiojni_la_CPPFLAGS = -Iossie/BULKIO -I. $(JNI_CPPFLAGS) $(OSSIE_CFLAGS) $(BULKIO_CFLAGS)
+libbulkiojni_la_CPPFLAGS = -Iossie/BULKIO -I. $(BULKIO_CFLAGS) $(JNI_CPPFLAGS) $(OSSIE_CFLAGS)
 libbulkiojni_la_CXXFLAGS = -Wall
 libbulkiojni_la_LIBADD = $(JNI_LIBS) $(BULKIO_LIBS)
 
