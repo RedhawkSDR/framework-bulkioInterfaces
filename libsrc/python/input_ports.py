@@ -21,7 +21,7 @@ class InPort:
     SRI_CHG=5
     QUEUE_FLUSH=6
     _TYPE_ = 'c'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None, PortTransferType=_TYPE_ ):
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None,  maxsize=100, PortTransferType=_TYPE_ ):
         self.name = name
         self.logger = logger
         self.queue = Queue.Queue(maxsize)
@@ -43,6 +43,11 @@ class InPort:
             self.logger.debug( "bulkio::InPort CTOR port:" + str(name) + 
                           " Blocking/MaxInputQueueSize " + str(self.blocking) + "/"  + str(maxsize) + 
                           " SriCompare/NewStreamCallback " +  _cmpMsg + "/" + _sriMsg );
+
+    def setNewStreamListener(self, newStreamCallback):
+        self.port_lock.acquire()
+        self.newStreamCallback = newStreamCallback
+        self.port_lock.release()
 
     def enableStats(self, enabled):
         self.stats.setEnabled(enabled)
@@ -206,63 +211,63 @@ class InPort:
 
 class InCharPort(InPort, BULKIO__POA.dataChar):
     _TYPE_ = 'c'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InCharPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InCharPort._TYPE_ )
 
 class InOctetPort(InPort, BULKIO__POA.dataOctet):
     _TYPE_ = 'B'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InOctetPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InOctetPort._TYPE_ )
 
 class InShortPort(InPort, BULKIO__POA.dataShort):
     _TYPE_ = 'h'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InShortPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InShortPort._TYPE_ )
 
 class InUShortPort(InPort, BULKIO__POA.dataUshort):
     _TYPE_ = 'H'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InUShortPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InUShortPort._TYPE_ )
 
 class InLongPort(InPort, BULKIO__POA.dataLong):
     _TYPE_ = 'i'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InLongPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InLongPort._TYPE_ )
 
 class InULongPort(InPort, BULKIO__POA.dataUlong):
     _TYPE_ = 'I'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InULongPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InULongPort._TYPE_ )
 
 class InLongLongPort(InPort, BULKIO__POA.dataLongLong):
     _TYPE_ = 'q'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InLongLongPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InLongLongPort._TYPE_ )
 
 
 class InULongLongPort(InPort, BULKIO__POA.dataUlongLong):
     _TYPE_ = 'Q'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InULongLongPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InULongLongPort._TYPE_ )
 
 
 class InFloatPort(InPort, BULKIO__POA.dataFloat):
     _TYPE_ = 'f'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InFloatPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InFloatPort._TYPE_ )
 
 
 class InDoublePort(InPort, BULKIO__POA.dataDouble):
     _TYPE_ = 'd'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InDoublePort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InDoublePort._TYPE_ )
 
 
 
 class InFilePort(InPort, BULKIO__POA.dataFile):
     _TYPE_ = 'd'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InFilePort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InFilePort._TYPE_ )
 
 
     def pushPacket(self, URL, T, EOS, streamID):
@@ -326,8 +331,8 @@ class InFilePort(InPort, BULKIO__POA.dataFile):
 
 class InXMLPort(InPort, BULKIO__POA.dataXML):
     _TYPE_ = 'd'
-    def __init__(self, name, logger=None, maxsize=10, sriCompare=sri.compare, newStreamCallback=None ):
-        InPort.__init__(self, name, logger, maxsize, sriCompare, newStreamCallback, InXMLPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InXMLPort._TYPE_ )
 
 
     def pushPacket(self, xml_string, EOS, streamID):

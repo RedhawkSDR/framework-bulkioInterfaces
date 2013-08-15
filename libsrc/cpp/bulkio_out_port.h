@@ -137,6 +137,10 @@ namespace bulkio {
     //
     typedef typename Traits::DataBufferType   DataBufferType;
 
+    //
+    // ConnectionList Definition
+    //
+    typedef typename  bulkio::Connections< PortVarType >::List        ConnectionsList;
 
   public:
 
@@ -294,10 +298,38 @@ namespace bulkio {
     //
     virtual void enableStats(bool enable);
 
-  protected:
+    //
+    // Return list of SRI received by this port via pushSRI method
+    //
+    virtual SriMap getCurrentSRI();
 
-    // ConnectionList Definition
-    typedef typename  bulkio::Connections< PortVarType >::List                    _ConnectionsList;
+    //
+    // Return a ConnectionsList for the current ports and connections ids establish via connectPort method
+    //
+    virtual ConnectionsList getConnections();
+
+    //
+    // Deprecation Warning
+    //
+    // The _getConnections and currentSRIs access will be deprecated in the next release of the 
+    // the bulkio library class, in favor of getCurrentSRI and getConnections.
+    //
+
+    //
+    // Allow access to the port's connection list
+    //
+    virtual ConnectionsList __attribute__ ((deprecated)) _getConnections() {
+      return outConnections;
+    }
+
+
+    //
+    // List of SRIs sent out by this port
+    //
+    SriMap                                   currentSRIs __attribute__ ((deprecated));
+
+
+  protected:
 
     // Map of stream ids and statistic object
     typedef typename  std::map<std::string, linkStatistics  >    _StatsMap;
@@ -305,13 +337,7 @@ namespace bulkio {
     //
     // List of Port connections and connection identifiers
     //
-    _ConnectionsList                         outConnections;
-
-    //
-    // List of SRIs sent out by this port
-    //
-    SriMap                                   currentSRIs;
-
+    ConnectionsList                          outConnections;
 
     //
     // List of connections returned by connections() method.  Used to increase efficiency when there a large amount
@@ -406,6 +432,8 @@ namespace bulkio {
     virtual ~OutInt8Port() {};
 
     void pushPacket( std::vector< Int8 >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+
+    void pushPacket( std::vector< Char >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
   };
 

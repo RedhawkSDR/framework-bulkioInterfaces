@@ -163,6 +163,15 @@ public class InUInt8Port extends BULKIO.jni.dataOctetPOA {
     /**
      * 
      */
+    public void setNewStreamListener( bulkio.SriListener streamCB ) {
+        synchronized(this.sriUpdateLock) {
+	    this.streamCB = streamCB;
+	}
+    }
+
+    /**
+     * 
+     */
     public String getName() {
         return this.name;
     }

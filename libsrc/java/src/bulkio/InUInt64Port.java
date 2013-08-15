@@ -160,6 +160,15 @@ public class InUInt64Port extends BULKIO.jni.dataUlongLongPOA {
     /**
      * 
      */
+    public void setNewStreamListener( bulkio.SriListener streamCB ) {
+        synchronized(this.sriUpdateLock) {
+	    this.streamCB = streamCB;
+	}
+    }
+
+    /**
+     * 
+     */
     public String getName() {
         return this.name;
     }

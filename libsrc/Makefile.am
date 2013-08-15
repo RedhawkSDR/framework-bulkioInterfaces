@@ -32,7 +32,8 @@ library_include_HEADERS = cpp/bulkio.h \
 	cpp/bulkio_traits.h \
 	cpp/bulkio_in_port.h \
 	cpp/bulkio_out_port.h \
-	cpp/bulkio_sdds.h
+	cpp/bulkio_sdds.h \
+	cpp/bulkio_compat.h
 
 ## The generated configuration header is installed in its own subdirectory of
 ## $(libdir).  The reason for this is that the configuration information put
@@ -58,7 +59,8 @@ build-python:
 	python setup.py build
 
 install-python:
-	python setup.py install --root=$(DESTDIR) --prefix=$(prefix) --install-purelib=$(prefix)/lib/python --force
+	test -n "$(DESTDIR)" && buildroot="--root=$(DESTDIR)"; \
+	  python setup.py install $$buildroot --prefix=$(prefix) --install-purelib=$(prefix)/lib/python --force
 
 clean-python:
 	python setup.py clean --all

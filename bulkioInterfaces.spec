@@ -29,13 +29,14 @@ Prefix:         %{_prefix}
 
 Name:           bulkioInterfaces
 Version:        1.9.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
 License:        LGPLv3+
 URL:            http://redhawksdr.org/
 Source:         %{name}-%{version}.tar.gz
+Vendor:         REDHAWK
 
 BuildRoot: 	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 

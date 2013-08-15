@@ -66,6 +66,10 @@ void CPP_Ports_base::construct()
   dataCharOut = new bulkio::OutCharPort("dataCharOut" );
   oid = ossie::corba::RootPOA()->activate_object(dataCharOut);
 
+   // testing for deprecated api...
+  bulkio::OutCharPort::ConnectionsList tt = dataCharOut->_getConnections();
+  dataCharOut->currentSRIs.count();
+
   registerInPort(dataCharIn);
   registerOutPort(dataCharOut, dataCharOut->_this());
 

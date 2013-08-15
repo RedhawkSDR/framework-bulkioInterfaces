@@ -101,7 +101,7 @@ namespace  bulkio {
     TRACE_ENTER(logger, "OutPort::pushSRI" );
 
 
-    typename _ConnectionsList::iterator i;
+    typename ConnectionsList::iterator i;
 
     SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
 
@@ -140,7 +140,7 @@ namespace  bulkio {
     // CORBA is allowed to delete the buffer when the sequence is destroyed.
     PortSequenceType seq = PortSequenceType(data.size(), data.size(), (TransportType *)&(data[0]), false);
     if (active) {
-      typename  _ConnectionsList::iterator port;
+      typename  ConnectionsList::iterator port;
       for (port = outConnections.begin(); port != outConnections.end(); port++) {
 	try {
 	  port->first->pushPacket(seq, T, EOS, streamID.c_str());
@@ -179,7 +179,7 @@ namespace  bulkio {
     // CORBA is allowed to delete the buffer when the sequence is destroyed.
     PortSequenceType seq = PortSequenceType(data.size(), data.size(), (TransportType *)&(data[0]), false);
     if (active) {
-      typename  _ConnectionsList::iterator port;
+      typename  ConnectionsList::iterator port;
       for (port = outConnections.begin(); port != outConnections.end(); port++) {
 	try {
 	  port->first->pushPacket(seq, T, EOS, streamID.c_str());
@@ -311,7 +311,19 @@ namespace  bulkio {
     TRACE_EXIT(logger, "OutPort::disconnectPort" );
   }
 
+  template < typename PortTraits >
+  SriMap  OutPort< PortTraits >::getCurrentSRI() 
+  {
+      SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
+      return currentSRIs;
+  }
 
+  template < typename PortTraits >
+  typename OutPort< PortTraits >::ConnectionsList  OutPort< PortTraits >::getConnections()
+  {
+      SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
+      return outConnections;
+  }
 
 
   template < typename PortTraits >
@@ -334,6 +346,7 @@ namespace  bulkio {
 
   }
 
+
   template <typename PortTraits>
   void OutInt8Port< PortTraits >::pushPacket( std::vector< Int8 >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
@@ -350,7 +363,50 @@ namespace  bulkio {
     // CORBA is allowed to delete the buffer when the sequence is destroyed.
     PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
     if (this->active) {
-      typename  OutInt8Port::_ConnectionsList::iterator port;
+      typename  OutInt8Port::ConnectionsList::iterator port;
+      for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+	try {
+	  port->first->pushPacket(seq, T, EOS, streamID.c_str());
+	  if ( this->stats.count((*port).second) == 0 ) {
+	    this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
+	  }
+
+	  this->stats[(*port).second].update(data.size(), 0, 0, streamID);
+	} catch(...) {
+	  LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+	}
+      }
+    }
+
+    // if we have end of stream removed old sri
+    try {
+      if ( EOS ) this->currentSRIs.erase(streamID);
+    }
+    catch(...){
+    }
+
+
+    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
+  }
+
+
+  template <typename PortTraits>
+  void OutInt8Port< PortTraits >::pushPacket( std::vector< Char >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
+
+    TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
+
+    if (  this->refreshSRI) {
+      if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
+	this->pushSRI(this->currentSRIs[streamID].first);
+      }
+    }
+    SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+    // Magic is below, make a new sequence using the data from the Iterator
+    // as the data for the sequence.  The 'false' at the end is whether or not
+    // CORBA is allowed to delete the buffer when the sequence is destroyed.
+    PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
+    if (this->active) {
+      typename  OutInt8Port::ConnectionsList::iterator port;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 	try {
 	  port->first->pushPacket(seq, T, EOS, streamID.c_str());
@@ -412,7 +468,7 @@ namespace  bulkio {
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     if (this->active) {
-      typename OutPort< PortTraits >::_ConnectionsList::iterator port;
+      typename OutPort< PortTraits >::ConnectionsList::iterator port;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 	try {
 	  port->first->pushPacket(data, T, EOS, streamID.c_str());
@@ -451,7 +507,7 @@ namespace  bulkio {
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     if (this->active) {
-      typename OutPort< PortTraits >::_ConnectionsList::iterator port;
+      typename OutPort< PortTraits >::ConnectionsList::iterator port;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 	try {
 	  BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
@@ -490,7 +546,7 @@ namespace  bulkio {
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     if (this->active) {
-      OutPort< XMLPortTraits >::_ConnectionsList::iterator port;
+      OutPort< XMLPortTraits >::ConnectionsList::iterator port;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 	try {
 	  port->first->pushPacket(data, EOS, streamID.c_str());
@@ -523,7 +579,7 @@ namespace  bulkio {
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     if (this->active) {
-      OutPort< XMLPortTraits >::_ConnectionsList::iterator port;
+      OutPort< XMLPortTraits >::ConnectionsList::iterator port;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 	try {
 	  port->first->pushPacket(data, EOS, streamID.c_str());

@@ -55,6 +55,12 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
   BULKIO::PortUsageType rt = port->state();
   CPPUNIT_ASSERT( rt == BULKIO::IDLE );
 
+
+ typename T::ConnectionsList cl =  port->_getConnections();
+  std::string sid="none";
+  int cnt= port->currentSRIs.count(sid);
+  CPPUNIT_ASSERT( cnt == 0 );
+
   port->enableStats( false );
 
 }
@@ -79,6 +85,9 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutCharPort *port  ) {
   BULKIO::PrecisionUTCTime TS;
   port->pushPacket( v, TS, false, "test_port_api" );
 
+
+  std::vector< bulkio::Char > v1;
+  port->pushPacket( v1, TS, false, "test_port_api" );
 
   BULKIO::UsesPortStatisticsSequence *stats = port->statistics();
   CPPUNIT_ASSERT( stats != NULL );

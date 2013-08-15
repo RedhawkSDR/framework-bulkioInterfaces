@@ -6,7 +6,7 @@ import time
 
 
 # remove when sandbox support for relative path works
-test_dir=''
+test_dir='../'
 
 def str_to_class(s):
     if s in globals() and isinstance(globals()[s], types.ClassType):
@@ -76,7 +76,7 @@ class BaseVectorPort(unittest.TestCase):
         dsink=sb.DataSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
 	print c_spd_xml
-        test_comp=sb.Component( c_spd_xml, execparams=self.execparams)
+        test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
         if self.seq:
             data=self.seq
 

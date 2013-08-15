@@ -158,10 +158,18 @@ public class InInt32Port extends BULKIO.jni.dataLongPOA {
     /**
      * 
      */
+    public void setNewStreamListener( bulkio.SriListener streamCB ) {
+        synchronized(this.sriUpdateLock) {
+	    this.streamCB = streamCB;
+	}
+    }
+
+    /**
+     * 
+     */
     public String getName() {
         return this.name;
     }
-     
 
 
     /**

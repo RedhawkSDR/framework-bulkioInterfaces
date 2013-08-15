@@ -157,6 +157,16 @@ public class InDoublePort extends BULKIO.jni.dataDoublePOA {
 
     }
 
+
+    /**
+     *
+     */
+    public void setNewStreamListener( bulkio.SriListener streamCB ) {
+        synchronized(this.sriUpdateLock) {
+	    this.streamCB = streamCB;
+	}
+    }
+
     /**
      * 
      */
@@ -164,8 +174,6 @@ public class InDoublePort extends BULKIO.jni.dataDoublePOA {
         return this.name;
     }
      
-
-
     /**
      * 
      */

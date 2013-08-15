@@ -163,11 +163,18 @@ public class InFilePort extends BULKIO.jni.dataFilePOA {
     /**
      * 
      */
+    public void setNewStreamListener( bulkio.SriListener streamCB ) {
+        synchronized(this.sriUpdateLock) {
+	    this.streamCB = streamCB;
+	}
+    }
+
+    /**
+     * 
+     */
     public String getName() {
         return this.name;
     }
-     
-
 
     /**
      * 
