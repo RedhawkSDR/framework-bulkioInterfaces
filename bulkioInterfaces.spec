@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           bulkioInterfaces
 Version:        1.9.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
@@ -67,7 +67,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %files
-%defattr(-,redhawk,redhawk)
+%defattr(-,root,root,-)
 %{_datadir}/idl/ossie/BULKIO
 %{_includedir}/bulkio
 %{_includedir}/ossie/BULKIO

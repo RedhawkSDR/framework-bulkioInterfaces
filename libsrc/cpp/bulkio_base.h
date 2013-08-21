@@ -9,8 +9,8 @@
 #include <boost/thread/locks.hpp>
 #include <boost/thread/locks.hpp>
 #include <log4cxx/logger.h>
-#include "BULKIO/bio_runtimeStats.h"
-#include "BULKIO/bulkioDataTypes.h"
+#include <ossie/BULKIO/bio_runtimeStats.h>
+#include <ossie/BULKIO/bulkioDataTypes.h>
 
 
 namespace bulkio {

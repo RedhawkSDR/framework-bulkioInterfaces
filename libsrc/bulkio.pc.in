@@ -7,4 +7,4 @@ Name: bulkio
 Description: BULKIO base class library
 Version: @BULKIO_API_VERSION@
 Libs: -L${libdir} -lbulkio-@BULKIO_API_VERSION@
-Cflags: -I${includedir}/bulkio -I${libdir}/bulkio/include
+Cflags: -I${includedir}/bulkio 

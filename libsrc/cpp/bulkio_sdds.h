@@ -8,8 +8,8 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 
-#include <bulkio_base.h>
-#include <bulkio_traits.h>
+#include "bulkio_base.h"
+#include "bulkio_traits.h"
 
 namespace bulkio {
 

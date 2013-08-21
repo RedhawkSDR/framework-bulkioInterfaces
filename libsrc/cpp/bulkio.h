@@ -21,26 +21,26 @@
 //
 // Base types and constants used by bulkio library classes
 //
-#include <bulkio_base.h>
+#include "bulkio_base.h"
 
 //
 // Port Trait definitions that define the Type Traits for Input and Output Bulkio Ports
 //
-#include <bulkio_traits.h>
+#include "bulkio_traits.h"
 
 //
 // Input (Provides) Port template definitions for Sequences and String types
 //
-#include <bulkio_in_port.h>
+#include "bulkio_in_port.h"
 
 //
 // Output (Uses) Port template definitions for Sequences and String types
 //
-#include <bulkio_out_port.h>
+#include "bulkio_out_port.h"
 
 //
 // Input/Output Port definitions for managing SDDS streams
 //
-#include <bulkio_sdds.h>
+#include "bulkio_sdds.h"
 
 #endif

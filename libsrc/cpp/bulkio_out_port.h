@@ -10,8 +10,8 @@
 #include <boost/make_shared.hpp>
 #include <boost/ref.hpp>
 
-#include <bulkio_base.h>
-#include <bulkio_traits.h>
+#include "bulkio_base.h"
+#include "bulkio_traits.h"
 
 namespace bulkio {
 

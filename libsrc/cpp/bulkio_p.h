@@ -9,9 +9,9 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <ossie/prop_helpers.h>
-#include <BULKIO/bio_runtimeStats.h>
+#include <ossie/BULKIO/bio_runtimeStats.h>
 
-#include <bulkio.h>
+#include "bulkio.h"
 #define CORBA_MAX_TRANSFER_BYTES omniORB::giopMaxMsgSize()
 
 #ifdef LOGGING
