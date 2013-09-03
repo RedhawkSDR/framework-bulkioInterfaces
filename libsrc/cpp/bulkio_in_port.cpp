@@ -208,7 +208,7 @@ namespace  bulkio {
     BULKIO::StreamSRI tmpH = H;
     SriMap::iterator currH = currentHs.find(std::string(H.streamID));
     if (currH == currentHs.end()) {
-      LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << H.streamID);
+      LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << H.streamID << " Mode:" << H.mode );
       if ( newStreamCallback ) (*newStreamCallback)(tmpH);
       currentHs[std::string(H.streamID)] = std::make_pair(tmpH, true);
       if (H.blocking) {
@@ -218,6 +218,7 @@ namespace  bulkio {
       }
     } else {
       if ( sri_cmp && !sri_cmp(tmpH, currH->second.first)) {
+	LOG_DEBUG(logger,"pushSRI  PORT:" << name << " SAME SRI:" << H.streamID << " Mode:" << H.mode );
 	currentHs[std::string(H.streamID)] = std::make_pair(tmpH, true);
 	if (H.blocking) {
 	  SCOPED_LOCK lock(dataBufferLock);

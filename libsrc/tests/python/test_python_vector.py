@@ -1,35 +1,36 @@
 
 from base_ports  import *
+from  bulkio import *
 
 
 class Test_Python_Int8(BaseVectorPort):
     def __init__(self, methodName='runTest', ptype='Int8', cname='Python_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname )
+        BaseVectorPort.__init__(self, methodName, ptype, cname  )
         pass
 
 class Test_Python_Int16(BaseVectorPort):
     def __init__(self, methodName='runTest', ptype='Int16', cname='Python_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname )
+        BaseVectorPort.__init__(self, methodName, ptype, cname,  bio_in_module=InShortPort, bio_out_module=OutShortPort )
         pass
 
 class Test_Python_Int32(BaseVectorPort):
     def __init__(self, methodName='runTest', ptype='Int32', cname='Python_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname )
+        BaseVectorPort.__init__(self, methodName, ptype, cname, bio_in_module=InLongPort, bio_out_module=OutLongPort )
         pass
 
 class Test_Python_Int64(BaseVectorPort):
     def __init__(self, methodName='runTest', ptype='Int64', cname='Python_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname )
+        BaseVectorPort.__init__(self, methodName, ptype, cname,  bio_in_module=InLongLongPort, bio_out_module=OutLongLongPort )
         pass
 
 class Test_Python_Float(BaseVectorPort):
     def __init__(self, methodName='runTest', ptype='Float', cname='Python_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname )
+        BaseVectorPort.__init__(self, methodName, ptype, cname,  bio_in_module=InFloatPort, bio_out_module=OutFloatPort )
         pass
 
 class Test_Python_Double(BaseVectorPort):
     def __init__(self, methodName='runTest', ptype='Double', cname='Python_Ports' ):
-        BaseVectorPort.__init__(self, methodName, ptype, cname )
+        BaseVectorPort.__init__(self, methodName, ptype, cname,  bio_in_module=InDoublePort, bio_out_module=OutDoublePort )
         pass
 
 

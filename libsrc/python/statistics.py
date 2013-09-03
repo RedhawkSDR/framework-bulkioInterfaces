@@ -4,6 +4,7 @@ import struct
 from ossie.cf import CF
 from omniORB import CORBA
 from bulkio.bulkioInterfaces.BULKIO import PortStatistics
+from bulkio.bulkioInterfaces.BULKIO import UsesPortStatistics
 
 class InStats:
     class statPoint:
@@ -144,7 +145,7 @@ class OutStats:
 
         retVal = []
         for entry in self.receivedStatistics:
-            runningStats = BULKIO.PortStatistics(portName=self.name,averageQueueDepth=-1,elementsPerSecond=-1,bitsPerSecond=-1,callsPerSecond=-1,streamIDs=[],timeSinceLastCall=-1,keywords=[])
+            runningStats = PortStatistics(portName=self.name,averageQueueDepth=-1,elementsPerSecond=-1,bitsPerSecond=-1,callsPerSecond=-1,streamIDs=[],timeSinceLastCall=-1,keywords=[])
 
             listPtr = (self.receivedStatistics_idx[entry] + 1) % self.historyWindow    # don't count the first set of data, since we're looking at change in time rather than absolute time
             frontTime = self.receivedStatistics[entry][(self.receivedStatistics_idx[entry] - 1) % self.historyWindow].secs
@@ -178,6 +179,6 @@ class OutStats:
             runningStats.callsPerSecond = float((receivedSize - 1)) / totalTime
             runningStats.streamIDs = streamIDs
             runningStats.timeSinceLastCall = currentTime - frontTime
-            usesPortStat = BULKIO.UsesPortStatistics(connectionId=entry, statistics=runningStats)
+            usesPortStat = UsesPortStatistics(connectionId=entry, statistics=runningStats)
             retVal.append(usesPortStat)
         return retVal

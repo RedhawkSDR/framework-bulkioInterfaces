@@ -54,6 +54,8 @@ void  Bulkio_InPort_Fixture::test_port_api( T *port  ) {
   CPPUNIT_ASSERT( pkt == NULL );
 
   BULKIO::StreamSRI sri;
+  sri = bulkio::sri::create();
+  sri.streamID = "test_port_api";
   port->pushSRI( sri );
 
   streams = port->activeSRIs();
@@ -68,6 +70,35 @@ void  Bulkio_InPort_Fixture::test_port_api( T *port  ) {
   // grab off packet
   pkt  = port->getPacket(bulkio::Const::NON_BLOCKING );
   CPPUNIT_ASSERT( pkt != NULL );
+  CPPUNIT_ASSERT( pkt->EOS == 0 ) ;
+  CPPUNIT_ASSERT( pkt->SRI.mode == 0 ) ;
+  delete pkt;
+
+  sri.mode = 1;
+  port->pushSRI(sri);
+
+  streams = port->activeSRIs();
+  CPPUNIT_ASSERT( streams != NULL );
+  CPPUNIT_ASSERT( streams->length() == 1 );
+  delete streams;
+
+  port->pushPacket( v, TS, false, "test_port_api" );
+
+  // grab off packet
+  pkt  = port->getPacket(bulkio::Const::NON_BLOCKING );
+  CPPUNIT_ASSERT( pkt != NULL );
+  CPPUNIT_ASSERT( pkt->EOS == 0 ) ;
+  CPPUNIT_ASSERT( pkt->SRI.mode == 1 ) ;
+  delete pkt;
+
+  // test for EOS..
+  port->pushPacket( v, TS, true, "test_port_api" );
+
+  // grab off packet
+  pkt  = port->getPacket(bulkio::Const::NON_BLOCKING );
+  CPPUNIT_ASSERT( pkt != NULL );
+  CPPUNIT_ASSERT( pkt->EOS == 1 ) ;
+  CPPUNIT_ASSERT( pkt->SRI.mode == 1 ) ;
   delete pkt;
 
   port->enableStats( false );

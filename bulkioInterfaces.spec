@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           bulkioInterfaces
 Version:        1.9.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
@@ -45,6 +45,8 @@ BuildRequires: 	redhawk-devel >= 1.9
 
 %description
 Libraries and interface definitions for bulkio interfaces.
+ * Commit: __REVISION__
+ * Source Date/Time: __DATETIME__
 
 
 %prep

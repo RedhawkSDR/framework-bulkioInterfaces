@@ -12,7 +12,7 @@
 
 #warning "This project uses deprecated interfaces; BULKIO class references should be updated to bulkio namespace"
 
-#include "bulkio_in_port.h"
+#include "bulkio.h"
 
 typedef bulkio::InCharPort      BULKIO_dataChar_In_i;
 typedef bulkio::InOctetPort     BULKIO_dataOctet_In_i;
@@ -26,9 +26,6 @@ typedef bulkio::InFloatPort     BULKIO_dataFloat_In_i;
 typedef bulkio::InDoublePort    BULKIO_dataDouble_In_i;
 typedef bulkio::InFilePort      BULKIO_dataFile_In_i;
 typedef bulkio::InXMLPort       BULKIO_dataXML_In_i;
-
-#include "bulkio_sdds.h"
-
 typedef bulkio::InSDDSPort      BULKIO_dataSDDS_In_i;
 
 #endif

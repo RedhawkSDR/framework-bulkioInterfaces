@@ -27,6 +27,8 @@ import timestamp
 
 import sri
 
+import const
+
 from  input_ports import *
 
 from  output_ports import *
