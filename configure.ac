@@ -18,10 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(bulkioInterfaces, 1.8.4)
+AC_INIT(bulkioInterfaces, 1.8.5)
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [2:0:0])
-
-AC_PREFIX_DEFAULT(${OSSIEHOME})
 
 AM_INIT_AUTOMAKE(nostdinc)
 AC_PROG_CC
@@ -35,13 +33,15 @@ OSSIE_CHECK_OSSIE
 OSSIE_OSSIEHOME_AS_PREFIX
 OSSIE_PYTHON_INSTALL_SCHEME
 
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 AC_CORBA_ORB
 AC_CHECK_PROG([IDL], [omniidl], [omniidl], [no])
 if test "$IDL" = no; then
   AC_MSG_ERROR([cannot find omniidl program])
 fi
 AC_LANG_PUSH([C++])
-PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.0.0])
+PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
 PKG_CHECK_MODULES(OSSIE, ossie >= 1.7.0,,exit)
 
 # Optionally include java support

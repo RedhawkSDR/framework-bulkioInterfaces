@@ -20,16 +20,16 @@
 
 # By default, the RPM will install to the standard REDHAWK OSSIE root location (/usr/local/redhawk/core)
 # You can override this at install time using --prefix /usr/local/redhawk/core when invoking rpm (preferred)
-%define _ossiehome /usr/local/redhawk/core
+%{!?_ossiehome: %global _ossiehome /usr/local/redhawk/core}
 %define _prefix %{_ossiehome}
 Prefix:         %{_prefix}
 
-# Java libraries built by default; use '--without java' to disable
+# Assume Java support by default. Use "rpmbuild --without java" to disable
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        1.8.4
-Release:        3%{?dist}
+Version:        1.8.5
+Release:        1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
@@ -67,11 +67,7 @@ Libraries and interface definitions for bulkio interfaces.
 
 %build
 ./reconf
-%if %{with java}
-    %configure
-%else
-    %configure --disable-java
-%endif
+%configure %{?_without_java: --disable-java}
 make %{?_smp_mflags}
 
 
@@ -91,13 +87,13 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %{_libdir}/libbulkioInterfaces.*
 %{_libdir}/pkgconfig/bulkioInterfaces.pc
 %{_prefix}/lib/python/bulkio
+%if 0%{?rhel} >= 6
+%{_prefix}/lib/python/bulkioInterfaces-%{version}-py%{python_version}.egg-info
+%endif
 %if %{with java}
 %{_prefix}/lib/BULKIOInterfaces.jar
 %{_prefix}/lib/BULKIOInterfaces.src.jar
 %{_prefix}/%{_lib}/libbulkiojni.*
-%endif
-%if "%{?rhel}" == "6"
-%{_prefix}/lib/python/bulkioInterfaces-0.0.0-py2.6.egg-info
 %endif
 
 
