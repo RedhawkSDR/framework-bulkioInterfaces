@@ -130,7 +130,7 @@ namespace  bulkio {
 
     if (refreshSRI) {
       if (currentSRIs.find(streamID) != currentSRIs.end()) {
-	pushSRI(currentSRIs[streamID].first);
+	this->pushSRI(currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(updatingPortsLock);   
@@ -170,7 +170,7 @@ namespace  bulkio {
 
     if (refreshSRI) {
       if (currentSRIs.find(streamID) != currentSRIs.end()) {
-	pushSRI(currentSRIs[streamID].first);
+	this->pushSRI(currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
@@ -463,7 +463,7 @@ namespace  bulkio {
 
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-	pushSRI(this->currentSRIs[streamID].first);
+	this->pushSRI(this->currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
@@ -502,7 +502,7 @@ namespace  bulkio {
 
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-	pushSRI(this->currentSRIs[streamID].first);
+	this->pushSRI(this->currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
@@ -541,7 +541,7 @@ namespace  bulkio {
     TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-	pushSRI(this->currentSRIs[streamID].first);
+	this->pushSRI(this->currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
@@ -574,7 +574,7 @@ namespace  bulkio {
     TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-	pushSRI(this->currentSRIs[streamID].first);
+	this->pushSRI(this->currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
