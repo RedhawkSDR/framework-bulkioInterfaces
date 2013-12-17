@@ -30,6 +30,7 @@ namespace  bulkio {
 	tstamp.toff = 0.0;
 	tstamp.twsec = wsec;
 	tstamp.tfsec = fsec;
+	return tstamp;
       }
 
       BULKIO::PrecisionUTCTime now() {

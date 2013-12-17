@@ -29,6 +29,7 @@ class Bulkio_OutPort_Fixture : public CppUnit::TestFixture
   CPPUNIT_TEST( test_xml );
   CPPUNIT_TEST( test_create_sdds );
   CPPUNIT_TEST( test_sdds );
+  CPPUNIT_TEST( test_subclass );
   CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -58,6 +59,7 @@ public:
   void test_xml();
   void test_create_sdds();
   void test_sdds();
+  void test_subclass();
 
   template < typename T > void test_port_api( T *port );
 

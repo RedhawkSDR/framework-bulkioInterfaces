@@ -219,10 +219,10 @@ namespace bulkio {
     //
     // Attach listener interfaces for connect and disconnect events
     //
-    void   setNewConnectListener( ConnectionEventListener *newListener );
-    void   setNewConnectListener( ConnectionEventCallbackFn  newListener );
-    void   setNewDisconnectListener( ConnectionEventListener *newListener );
-    void   setNewDisconnectListener( ConnectionEventCallbackFn  newListener );
+    virtual void   setNewConnectListener( ConnectionEventListener *newListener );
+    virtual void   setNewConnectListener( ConnectionEventCallbackFn  newListener );
+    virtual void   setNewDisconnectListener( ConnectionEventListener *newListener );
+    virtual void   setNewDisconnectListener( ConnectionEventCallbackFn  newListener );
 
 
     //
@@ -359,7 +359,7 @@ namespace bulkio {
     LOGGER_PTR                                logger;
 
   public:
-    void   setLogger( LOGGER_PTR newLogger );
+    virtual void   setLogger( LOGGER_PTR newLogger );
 
 
 
@@ -409,15 +409,15 @@ namespace bulkio {
     //
     typedef typename Traits::TransportType    TransportType;
 
-    // 
-    // Data type of the container for passing data into the pushPacket method
-    //
-    typedef char*                             NativeSequenceType;
-
     //
     // Data type of items passed into the pushPacket method
     //
     typedef typename Traits::NativeType       NativeType;
+
+    // 
+    // Data type of the container for passing data into the pushPacket method
+    //
+    typedef std::vector< NativeType >         NativeSequenceType;
 
     OutInt8Port(std::string port_name,
 		ConnectionEventListener *connectCB=NULL,

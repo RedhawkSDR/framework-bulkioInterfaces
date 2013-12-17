@@ -12,6 +12,29 @@
 CPPUNIT_TEST_SUITE_REGISTRATION( Bulkio_InPort_Fixture );
 
 
+class MyFloatPort : public bulkio::InFloatPort {
+
+public:
+
+  MyFloatPort( std::string pname, bulkio::LOGGER_PTR logger ) : 
+    bulkio::InFloatPort( pname, logger ) {};
+
+  //
+  // over ride default behavior for pushPacket and pushSRI
+  //
+  void pushPacket(const bulkio::InFloatPort::PortSequenceType & data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID) {
+      stats->update(10, (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, false);
+      queueSem->setCurrValue(workQueue.size());
+      bulkio::InFloatPort::pushPacket( data, T, EOS, streamID );
+  }
+
+  void pushSRI(const BULKIO::StreamSRI& H) {
+      queueSem->setCurrValue(workQueue.size());
+      bulkio::InFloatPort::pushSRI(H);
+  }
+};
+
+
 void 
 Bulkio_InPort_Fixture::setUp()
 {
@@ -27,6 +50,8 @@ Bulkio_InPort_Fixture::tearDown()
 
 template< typename T>
 void  Bulkio_InPort_Fixture::test_port_api( T *port  ) {
+
+ LOG4CXX_INFO(logger, "Running tests port:" << port->getName() );
 
   BULKIO::PortStatistics *stats = port->statistics();
   CPPUNIT_ASSERT( stats != NULL );
@@ -287,7 +312,7 @@ void  Bulkio_InPort_Fixture::test_port_api( bulkio::InSDDSPort *port  ) {
 void 
 Bulkio_InPort_Fixture::test_create_int8()
 {
-  bulkio::InInt8Port *port = new bulkio::InInt8Port("test", logger );
+  bulkio::InInt8Port *port = new bulkio::InInt8Port("test_ctor_int8", logger );
   CPPUNIT_ASSERT( port != NULL );
 
   CPPUNIT_ASSERT_NO_THROW( port );
@@ -297,7 +322,7 @@ Bulkio_InPort_Fixture::test_create_int8()
 void 
 Bulkio_InPort_Fixture::test_int8()
 {
-  bulkio::InInt8Port *port = new bulkio::InInt8Port("test", logger );
+  bulkio::InInt8Port *port = new bulkio::InInt8Port("test_api_int8", logger );
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -309,7 +334,7 @@ Bulkio_InPort_Fixture::test_int8()
 void 
 Bulkio_InPort_Fixture::test_create_int16()
 {
-  bulkio::InInt16Port *port = new bulkio::InInt16Port("test");
+  bulkio::InInt16Port *port = new bulkio::InInt16Port("test_ctor_int16");
   CPPUNIT_ASSERT( port != NULL );
 
   CPPUNIT_ASSERT_NO_THROW( port );
@@ -319,7 +344,7 @@ Bulkio_InPort_Fixture::test_create_int16()
 void 
 Bulkio_InPort_Fixture::test_int16()
 {
-  bulkio::InInt16Port *port = new bulkio::InInt16Port("test");
+  bulkio::InInt16Port *port = new bulkio::InInt16Port("test_api_int16");
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -331,14 +356,14 @@ Bulkio_InPort_Fixture::test_int16()
 void 
 Bulkio_InPort_Fixture::test_create_int32()
 {
-  bulkio::InInt32Port *port = new bulkio::InInt32Port("test");
+  bulkio::InInt32Port *port = new bulkio::InInt32Port("test_ctor_int32");
   CPPUNIT_ASSERT( port != NULL );
 }
 
 void 
 Bulkio_InPort_Fixture::test_int32()
 {
-  bulkio::InInt32Port *port = new bulkio::InInt32Port("test");
+  bulkio::InInt32Port *port = new bulkio::InInt32Port("test_api_int32");
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -351,7 +376,7 @@ Bulkio_InPort_Fixture::test_int32()
 void 
 Bulkio_InPort_Fixture::test_create_int64()
 {
-  bulkio::InInt64Port *port = new bulkio::InInt64Port("test");
+  bulkio::InInt64Port *port = new bulkio::InInt64Port("test_ctor_int64");
   CPPUNIT_ASSERT( port != NULL );
 }
 
@@ -359,7 +384,7 @@ Bulkio_InPort_Fixture::test_create_int64()
 void 
 Bulkio_InPort_Fixture::test_int64()
 {
-  bulkio::InInt64Port *port = new bulkio::InInt64Port("test");
+  bulkio::InInt64Port *port = new bulkio::InInt64Port("test_api_int64");
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -372,14 +397,14 @@ Bulkio_InPort_Fixture::test_int64()
 void 
 Bulkio_InPort_Fixture::test_create_uint8()
 {
-  bulkio::InUInt8Port *port = new bulkio::InUInt8Port("test");
+  bulkio::InUInt8Port *port = new bulkio::InUInt8Port("test_ctor_uint8");
   CPPUNIT_ASSERT( port != NULL );
 }
 
 void 
 Bulkio_InPort_Fixture::test_uint8()
 {
-  bulkio::InUInt8Port *port = new bulkio::InUInt8Port("test");
+  bulkio::InUInt8Port *port = new bulkio::InUInt8Port("test_api_uint8");
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -391,14 +416,14 @@ Bulkio_InPort_Fixture::test_uint8()
 void 
 Bulkio_InPort_Fixture::test_create_uint16()
 {
-  bulkio::InUInt16Port *port = new bulkio::InUInt16Port("test");
+  bulkio::InUInt16Port *port = new bulkio::InUInt16Port("test_ctor_uint16");
   CPPUNIT_ASSERT( port != NULL );
 }
 
 void 
 Bulkio_InPort_Fixture::test_uint16()
 {
-  bulkio::InUInt16Port *port = new bulkio::InUInt16Port("test");
+  bulkio::InUInt16Port *port = new bulkio::InUInt16Port("test_api_uint16");
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -411,14 +436,14 @@ Bulkio_InPort_Fixture::test_uint16()
 void 
 Bulkio_InPort_Fixture::test_create_uint32()
 {
-  bulkio::InUInt32Port *port = new bulkio::InUInt32Port("test");
+  bulkio::InUInt32Port *port = new bulkio::InUInt32Port("test_ctor_uint32");
   CPPUNIT_ASSERT( port != NULL );
 }
 
 void 
 Bulkio_InPort_Fixture::test_uint32()
 {
-  bulkio::InUInt32Port *port = new bulkio::InUInt32Port("test");
+  bulkio::InUInt32Port *port = new bulkio::InUInt32Port("test_api_uint32");
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -431,14 +456,14 @@ Bulkio_InPort_Fixture::test_uint32()
 void 
 Bulkio_InPort_Fixture::test_create_uint64()
 {
-  bulkio::InUInt64Port *port = new bulkio::InUInt64Port("test");
+  bulkio::InUInt64Port *port = new bulkio::InUInt64Port("test_ctor_uint64");
   CPPUNIT_ASSERT( port != NULL );
 }
 
 void 
 Bulkio_InPort_Fixture::test_uint64()
 {
-  bulkio::InUInt64Port *port = new bulkio::InUInt64Port("test");
+  bulkio::InUInt64Port *port = new bulkio::InUInt64Port("test_api_uint64");
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -452,7 +477,7 @@ Bulkio_InPort_Fixture::test_uint64()
 void 
 Bulkio_InPort_Fixture::test_create_float()
 {
-  bulkio::InFloatPort *port = new bulkio::InFloatPort("test");
+  bulkio::InFloatPort *port = new bulkio::InFloatPort("test_ctor_float");
   CPPUNIT_ASSERT( port != NULL );
 }
 
@@ -460,7 +485,7 @@ Bulkio_InPort_Fixture::test_create_float()
 void 
 Bulkio_InPort_Fixture::test_create_double()
 {
-  bulkio::InDoublePort *port = new bulkio::InDoublePort("test");
+  bulkio::InDoublePort *port = new bulkio::InDoublePort("test_ctor_float");
   CPPUNIT_ASSERT( port != NULL );
 }
 
@@ -469,7 +494,7 @@ Bulkio_InPort_Fixture::test_create_double()
 void 
 Bulkio_InPort_Fixture::test_create_file()
 {
-  bulkio::InFilePort *port = new bulkio::InFilePort("test", logger );
+  bulkio::InFilePort *port = new bulkio::InFilePort("test_ctor_file", logger );
   CPPUNIT_ASSERT( port != NULL );
 }
 
@@ -477,7 +502,7 @@ Bulkio_InPort_Fixture::test_create_file()
 void 
 Bulkio_InPort_Fixture::test_file()
 {
-  bulkio::InFilePort *port = new bulkio::InFilePort("test", logger );
+  bulkio::InFilePort *port = new bulkio::InFilePort("test_api_file", logger );
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -490,7 +515,7 @@ Bulkio_InPort_Fixture::test_file()
 void 
 Bulkio_InPort_Fixture::test_create_xml()
 {
-  bulkio::InXMLPort *port = new bulkio::InXMLPort("test", logger );
+  bulkio::InXMLPort *port = new bulkio::InXMLPort("test_ctor_xml", logger );
   CPPUNIT_ASSERT( port != NULL );
 }
 
@@ -499,7 +524,7 @@ Bulkio_InPort_Fixture::test_create_xml()
 void 
 Bulkio_InPort_Fixture::test_xml()
 {
-  bulkio::InXMLPort *port = new bulkio::InXMLPort("test", logger );
+  bulkio::InXMLPort *port = new bulkio::InXMLPort("test_api_xml", logger );
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
@@ -512,7 +537,7 @@ Bulkio_InPort_Fixture::test_xml()
 void 
 Bulkio_InPort_Fixture::test_create_sdds()
 {
-  bulkio::InSDDSPort *port = new bulkio::InSDDSPort("test", logger );
+  bulkio::InSDDSPort *port = new bulkio::InSDDSPort("test_ctor_sdds", logger );
   CPPUNIT_ASSERT( port != NULL );
 }
 
@@ -521,12 +546,25 @@ Bulkio_InPort_Fixture::test_create_sdds()
 void 
 Bulkio_InPort_Fixture::test_sdds()
 {
-  bulkio::InSDDSPort *port = new bulkio::InSDDSPort("test", logger );
+  bulkio::InSDDSPort *port = new bulkio::InSDDSPort("test_api_sdds", logger );
   CPPUNIT_ASSERT( port != NULL );
 
   test_port_api( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 
+}
+
+
+void 
+Bulkio_InPort_Fixture::test_subclass()
+{
+  bulkio::InFloatPort *port = new MyFloatPort("test_api_subclass", logger );
+  
+  CPPUNIT_ASSERT( port != NULL );
+
+  test_port_api( port );
+
+  CPPUNIT_ASSERT_NO_THROW( port );
 }
 

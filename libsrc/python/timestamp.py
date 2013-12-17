@@ -18,13 +18,13 @@ def now():
 def cpuTimeStamp():
     return now()
 
-def create( whole_secs=-1.0, fractionalSecs=-1.0, tsrc=BULKIO.TCM_CPU ):
+def create( whole_secs=-1.0, fractional_secs=-1.0, tsrc=BULKIO.TCM_CPU ):
     """
     Generates a BULKIO.PrecisionUTCTime object using the current 
     CPU time that you can use in the pushPacket call
     """
-    wsec = wholeSecs;
-    fsec = fractionalSecs;
+    wsec = whole_secs;
+    fsec = fractional_secs;
     if wsec < 0.0 and fsec < 0.0 :
         ts=time.time()
         wsec=int(ts)

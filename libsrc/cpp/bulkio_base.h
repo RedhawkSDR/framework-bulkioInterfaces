@@ -17,11 +17,6 @@ namespace bulkio {
 
 
   //
-  // helper class for port statistics 
-  //
-  class  linkStatistics;
-
-  //
   // helper class to manage queue depth and back pressure
   //
   class  queueSemaphore;
@@ -104,6 +99,77 @@ namespace bulkio {
   typedef uint64_t                    UInt64;
   typedef float                       Float;
   typedef double                      Double;
+
+
+  //
+  // helper class for port statistics
+  //
+  class linkStatistics
+  {
+  public:
+
+      linkStatistics( std::string &portName, const int nbytes=1 );
+
+      linkStatistics();
+
+      virtual ~linkStatistics() {};
+
+      virtual void setEnabled(bool enableStats);
+
+      virtual void setBitSize( double bitSize );
+
+      virtual void update(unsigned int elementsReceived, float queueSize, bool EOS, const std::string &streamID, bool flush = false);
+
+      virtual BULKIO::PortStatistics retrieve();
+
+     protected:
+
+      struct statPoint {
+        unsigned int elements;
+        float queueSize;
+        double secs;
+        double usecs;
+      };
+
+      std::string  portName;
+      bool enabled;
+      int  nbytes;
+      double bitSize;
+      BULKIO::PortStatistics runningStats;
+      std::vector< statPoint > receivedStatistics;
+      StreamIDList activeStreamIDs;
+      unsigned long historyWindow;
+      int receivedStatistics_idx;
+
+      double flush_sec;                   // track time since last queue flush happened
+      double flush_usec;                  // track time since last queue flush happened
+  };
+
+
+  class queueSemaphore {
+
+  public:
+    queueSemaphore(unsigned int initialMaxValue);
+
+    void release();
+
+    void setMaxValue(unsigned int newMaxValue);
+
+    unsigned int getMaxValue(void);
+
+    void setCurrValue(unsigned int newValue);
+
+    void incr();
+
+    void decr();
+
+  private:
+    unsigned int maxValue;
+    unsigned int currValue;
+    MUTEX mutex;
+    CONDITION condition;
+
+  };
 
   namespace Const {
 
