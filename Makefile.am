@@ -58,7 +58,8 @@ bio_dataUshort.idl \
 bio_dataLong.idl \
 bio_dataLongLong.idl \
 bio_dataUlongLong.idl \
-bio_dataSDDS.idl
+bio_dataSDDS.idl \
+bio_dataVITA49.idl
 
 # External IDL namespaces that your IDLs reference, comment this line
 # out if your IDL has no external references
@@ -115,8 +116,8 @@ libbulkioInterfaces_la_SOURCES = \
 	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLong.h \
 	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLong.h \
 	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLong.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDS.h
-
+	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDS.h \
+	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49SK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49DynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49.h
 ####################################################
 # IDL Build Dependencies to help with parallel build
 ####################################################

@@ -28,7 +28,7 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        1.8.5
+Version:        1.8.6
 Release:        1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
@@ -59,6 +59,9 @@ BuildRequires:  jpackage-utils
 
 %description
 Libraries and interface definitions for bulkio interfaces.
+ * Commit: __REVISION__
+ * Source Date/Time: __DATETIME__
+
 
 
 %prep

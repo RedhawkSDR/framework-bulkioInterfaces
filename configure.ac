@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(bulkioInterfaces, 1.8.5)
+AC_INIT(bulkioInterfaces, 1.8.6)
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [2:0:0])
 
 AM_INIT_AUTOMAKE(nostdinc)
@@ -42,7 +42,7 @@ if test "$IDL" = no; then
 fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES(OSSIE, ossie >= 1.7.0,,exit)
+PKG_CHECK_MODULES([OSSIE], [ossie >= 1.7.0])
 
 # Optionally include java support
 AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable framework java support]))
