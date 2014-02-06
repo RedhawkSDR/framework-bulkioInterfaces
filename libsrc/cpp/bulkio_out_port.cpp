@@ -6,6 +6,9 @@
 #include <bulkio_p.h>
 #include <uuid/uuid.h>
 
+// Suppress warnings for access to "deprecated" currentSRI member--it's the
+// public access that's deprecated, not the member itself
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 namespace  bulkio {
 
@@ -325,6 +328,11 @@ namespace  bulkio {
       return outConnections;
   }
 
+  template < typename PortTraits >
+  void OutPort< PortTraits >::setLogger( LOGGER_PTR newLogger ) {
+      logger = newLogger;
+  }
+
 
   template < typename PortTraits >
   OutInt8Port< PortTraits >::OutInt8Port( std::string name, 
@@ -463,7 +471,7 @@ namespace  bulkio {
 
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-	pushSRI(this->currentSRIs[streamID].first);
+	this->pushSRI(this->currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
@@ -502,7 +510,7 @@ namespace  bulkio {
 
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-	pushSRI(this->currentSRIs[streamID].first);
+	this->pushSRI(this->currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
@@ -622,6 +630,19 @@ namespace  bulkio {
   template class OutStringPort< FilePortTraits >;
   template class OutStringPort<  XMLPortTraits >;
 
+  // The base template for certain types cannot be fully instantiated, so explicitly
+  // instantiate any methods that are not directly referenced in the subclass (e.g.,
+  // setLogger).
+#define TEMPLATE_INSTANTIATE_BASE(x) \
+  template void OutPort<x>::setLogger(LOGGER_PTR); \
+  template void OutPort<x>::setNewConnectListener( ConnectionEventListener * ); \
+  template void OutPort<x>::setNewConnectListener( ConnectionEventCallbackFn ); \
+  template void OutPort<x>::setNewDisconnectListener( ConnectionEventListener * ); \
+  template void OutPort<x>::setNewDisconnectListener( ConnectionEventCallbackFn );
+
+  TEMPLATE_INSTANTIATE_BASE(CharPortTraits);
+  TEMPLATE_INSTANTIATE_BASE(FilePortTraits);
+  TEMPLATE_INSTANTIATE_BASE(XMLPortTraits);
 
 
 } // end of bulkio namespace

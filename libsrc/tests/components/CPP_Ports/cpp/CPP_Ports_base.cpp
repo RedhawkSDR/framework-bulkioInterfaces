@@ -68,7 +68,7 @@ void CPP_Ports_base::construct()
 
    // testing for deprecated api...
   bulkio::OutCharPort::ConnectionsList tt = dataCharOut->_getConnections();
-  dataCharOut->currentSRIs.count();
+  dataCharOut->currentSRIs.count("");
 
   registerInPort(dataCharIn);
   registerOutPort(dataCharOut, dataCharOut->_this());

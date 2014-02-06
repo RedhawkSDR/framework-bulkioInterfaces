@@ -30,10 +30,10 @@ namespace  bulkio {
 			 bulkio::sri::Compare  sriCmp,
 			 bulkio::time::Compare timeCmp):
     Port_Provides_base_impl(port_name),
-    attach_detach_callback(attach_detach_cb),
+    sriChanged(false),
     sri_cmp(sriCmp),
     time_cmp(timeCmp),
-    sriChanged(false)
+    attach_detach_callback(attach_detach_cb)
   {
     stats = new linkStatistics(port_name);
   }
@@ -45,10 +45,10 @@ namespace  bulkio {
 			 bulkio::sri::Compare  sriCmp,
 			 bulkio::time::Compare timeCmp):
     Port_Provides_base_impl(port_name),
-    attach_detach_callback(attach_detach_cb),
+    sriChanged(false),
     sri_cmp(sriCmp),
     time_cmp(timeCmp),
-    sriChanged(false),
+    attach_detach_callback(attach_detach_cb),
     logger(logger)
   {
     stats = new linkStatistics(port_name);
@@ -705,5 +705,24 @@ namespace  bulkio {
     return;
   }
 
+  void OutSDDSPort::setLogger(LOGGER_PTR newLogger) {
+    logger = newLogger;
+  }
+
+  void OutSDDSPort::setNewConnectListener( ConnectionEventListener *newListener ) {
+    _connectCB =  boost::shared_ptr< ConnectionEventListener >(newListener, null_deleter());
+  }
+
+  void OutSDDSPort::setNewConnectListener( ConnectionEventCallbackFn  newListener ) {
+    _connectCB =  boost::make_shared< StaticConnectionListener >( newListener );
+  }
+
+  void OutSDDSPort::setNewDisconnectListener( ConnectionEventListener *newListener ) {
+    _disconnectCB =  boost::shared_ptr< ConnectionEventListener >(newListener, null_deleter());
+  }
+
+  void OutSDDSPort::setNewDisconnectListener( ConnectionEventCallbackFn  newListener ) {
+    _disconnectCB =  boost::make_shared< StaticConnectionListener >( newListener );
+  }
 
 } // end of bulkio namespace

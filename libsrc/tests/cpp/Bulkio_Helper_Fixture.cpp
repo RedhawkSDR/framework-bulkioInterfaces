@@ -47,8 +47,12 @@ Bulkio_Helper_Fixture::test_time_now()
 void 
 Bulkio_Helper_Fixture::test_time_create()
 {
-  BULKIO::PrecisionUTCTime  T = bulkio::time::utils::create();
-
+  const double wsec = 100.0;
+  const double fsec = 0.125;
+  BULKIO::PrecisionUTCTime  T = bulkio::time::utils::create(100.0, 0.125);
+  
+  CPPUNIT_ASSERT( T.twsec == wsec );
+  CPPUNIT_ASSERT( T.tfsec == fsec );
 }
 
 void 
@@ -56,6 +60,8 @@ Bulkio_Helper_Fixture::test_time_compare()
 {
   BULKIO::PrecisionUTCTime  A = bulkio::time::utils::create();
   BULKIO::PrecisionUTCTime  B = A;
+  // Wait a brief time to ensure that "now" has changed
+  usleep(100);
   BULKIO::PrecisionUTCTime  C = bulkio::time::utils::create();
 
   CPPUNIT_ASSERT( bulkio::time::DefaultComparator(A , B) == true );

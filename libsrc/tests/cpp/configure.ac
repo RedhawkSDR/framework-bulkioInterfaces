@@ -13,8 +13,8 @@ OSSIE_CHECK_OSSIE
 OSSIE_OSSIEHOME_AS_PREFIX
 PKG_CHECK_MODULES([RH_DEPS], [ossie >= 1.7 omniORB4 >= 4.0.0])
 
-#export PKG_CONFIG_PATH="../../..:../.."
-#PKG_CHECK_MODULES([BIO], [ bulkio >= 1.0 bulkioInterfaces >= 1.8 ])
+export PKG_CONFIG_PATH="../../..:../.."
+PKG_CHECK_MODULES([BIO], [ bulkio >= 1.0 bulkioInterfaces >= 1.8 ])
 
 AC_CORBA_ORB
 AC_OUTPUT(Makefile)

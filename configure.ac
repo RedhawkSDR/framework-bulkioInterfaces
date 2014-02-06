@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(bulkioInterfaces, 1.9.0)
+AC_INIT(bulkioInterfaces, 1.9.1)
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [2:0:0])
 
 AM_INIT_AUTOMAKE(nostdinc)
@@ -32,6 +32,8 @@ AM_PATH_PYTHON([2.3])
 OSSIE_CHECK_OSSIE
 OSSIE_OSSIEHOME_AS_PREFIX
 OSSIE_PYTHON_INSTALL_SCHEME
+
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_CORBA_ORB
 AC_CHECK_PROG([IDL], [omniidl], [omniidl], [no])

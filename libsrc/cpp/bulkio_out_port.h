@@ -409,15 +409,15 @@ namespace bulkio {
     //
     typedef typename Traits::TransportType    TransportType;
 
-    // 
-    // Data type of the container for passing data into the pushPacket method
-    //
-    typedef char*                             NativeSequenceType;
-
     //
     // Data type of items passed into the pushPacket method
     //
     typedef typename Traits::NativeType       NativeType;
+
+    // 
+    // Data type of the container for passing data into the pushPacket method
+    //
+    typedef std::vector< NativeType >         NativeSequenceType;
 
     OutInt8Port(std::string port_name,
 		ConnectionEventListener *connectCB=NULL,
