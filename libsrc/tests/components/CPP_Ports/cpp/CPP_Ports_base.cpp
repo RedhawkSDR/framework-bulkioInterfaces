@@ -4,12 +4,12 @@
 /*******************************************************************************************
 
     AUTO-GENERATED CODE. DO NOT MODIFY
-    
- 	Source: CPP_Ports.spd.xml
- 	Generated on: Mon Dec 10 14:36:40 EST 2012
- 	Redhawk IDE
- 	Version:@buildLabel@
- 	Build id: @buildId@
+
+         Source: CPP_Ports.spd.xml
+         Generated on: Mon Dec 10 14:36:40 EST 2012
+         Redhawk IDE
+         Version:@buildLabel@
+         Build id: @buildId@
 
 *******************************************************************************************/
 
@@ -26,7 +26,7 @@ CPP_Ports_base::MySddsCallback::MySddsCallback( CPP_Ports_base &p ) :
 parent(p)
 {}
 
-char *CPP_Ports_base::MySddsCallback::attach( const BULKIO::SDDSStreamDefinition& stream, const char* userid ) 
+char *CPP_Ports_base::MySddsCallback::attach( const BULKIO::SDDSStreamDefinition& stream, const char* userid )
       throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError)
 {
 
@@ -38,12 +38,12 @@ char *CPP_Ports_base::MySddsCallback::attach( const BULKIO::SDDSStreamDefinition
 }
 
 void CPP_Ports_base::MySddsCallback::detach( const char* attachId) {
-  
+
   std::cout << "TestRCV::DETACH  ATTACH ID: " << attachId << std::endl;
 }
- 
+
 CPP_Ports_base::CPP_Ports_base(const char *uuid, const char *label) :
-  Resource_impl(uuid, label), 
+  Resource_impl(uuid, label),
   serviceThread(0),
   cb(*this)
 {
@@ -174,7 +174,7 @@ void CPP_Ports_base::construct()
   oid = ossie::corba::RootPOA()->activate_object(dataXMLOut);
 
   registerInPort(dataXMLIn);
-  registerOutPort(dataXMLOut, dataXMLOut->_this());    
+  registerOutPort(dataXMLOut, dataXMLOut->_this());
 
   dataSDDSIn = new bulkio::InSDDSPort("dataSDDSIn", &cb );
   oid = ossie::corba::RootPOA()->activate_object(dataSDDSIn);
@@ -182,7 +182,7 @@ void CPP_Ports_base::construct()
   oid = ossie::corba::RootPOA()->activate_object(dataSDDSOut);
 
   registerInPort(dataSDDSIn);
-  registerOutPort(dataSDDSOut, dataSDDSOut->_this());    
+  registerOutPort(dataSDDSOut, dataSDDSOut->_this());
 
 
 }
@@ -212,9 +212,9 @@ void CPP_Ports_base::start() throw (CORBA::SystemException, CF::Resource::StartE
         serviceThread = new ProcessThread<CPP_Ports_base>(this, 0.1);
         serviceThread->start();
     }
-    
+
     if (!Resource_impl::started()) {
-    	Resource_impl::start();
+            Resource_impl::start();
     }
 }
 
@@ -238,9 +238,9 @@ void CPP_Ports_base::stop() throw (CORBA::SystemException, CF::Resource::StopErr
         }
         serviceThread = 0;
     }
-    
+
     if (Resource_impl::started()) {
-    	Resource_impl::stop();
+            Resource_impl::stop();
     }
 }
 
@@ -250,72 +250,72 @@ CORBA::Object_ptr CPP_Ports_base::getPort(const char* _id) throw (CORBA::SystemE
     std::map<std::string, Port_Provides_base_impl *>::iterator p_in = inPorts.find(std::string(_id));
     if (p_in != inPorts.end()) {
         if (!strcmp(_id,"dataCharIn")) {
-	  bulkio::InCharPort *ptr = dynamic_cast< bulkio::InCharPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InCharPort *ptr = dynamic_cast< bulkio::InCharPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
         if (!strcmp(_id,"dataOctetIn")) {
-	  bulkio::InOctetPort *ptr = dynamic_cast< bulkio::InOctetPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InOctetPort *ptr = dynamic_cast< bulkio::InOctetPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataShortIn")) {
-	  bulkio::InShortPort *ptr = dynamic_cast< bulkio::InShortPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InShortPort *ptr = dynamic_cast< bulkio::InShortPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataUShortIn")) {
-	  bulkio::InUShortPort *ptr = dynamic_cast< bulkio::InUShortPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InUShortPort *ptr = dynamic_cast< bulkio::InUShortPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataLongIn")) {
-	  bulkio::InLongPort *ptr = dynamic_cast< bulkio::InLongPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InLongPort *ptr = dynamic_cast< bulkio::InLongPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataULongIn")) {
-	  bulkio::InULongPort *ptr = dynamic_cast< bulkio::InULongPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InULongPort *ptr = dynamic_cast< bulkio::InULongPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
 
         if (!strcmp(_id,"dataLongLongIn")) {
-	  bulkio::InLongLongPort *ptr = dynamic_cast< bulkio::InLongLongPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InLongLongPort *ptr = dynamic_cast< bulkio::InLongLongPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataULongLongIn")) {
-	  bulkio::InULongLongPort *ptr = dynamic_cast< bulkio::InULongLongPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InULongLongPort *ptr = dynamic_cast< bulkio::InULongLongPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataDoubleIn")) {
-	  bulkio::InDoublePort *ptr = dynamic_cast< bulkio::InDoublePort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InDoublePort *ptr = dynamic_cast< bulkio::InDoublePort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataFloatIn")) {
-	  bulkio::InFloatPort *ptr = dynamic_cast< bulkio::InFloatPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InFloatPort *ptr = dynamic_cast< bulkio::InFloatPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
         if (!strcmp(_id,"dataDoubleIn")) {
-	  bulkio::InDoublePort *ptr = dynamic_cast< bulkio::InDoublePort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InDoublePort *ptr = dynamic_cast< bulkio::InDoublePort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataFileIn")) {
-	  bulkio::InURLPort *ptr = dynamic_cast< bulkio::InURLPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InURLPort *ptr = dynamic_cast< bulkio::InURLPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataXMLIn")) {
-	  bulkio::InXMLPort *ptr = dynamic_cast< bulkio::InXMLPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InXMLPort *ptr = dynamic_cast< bulkio::InXMLPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
         if (!strcmp(_id,"dataSDDSIn")) {
-	  bulkio::InSDDSPort *ptr = dynamic_cast< bulkio::InSDDSPort * >(p_in->second);
-	  return ptr->_this()->_duplicate(ptr->_this());
+          bulkio::InSDDSPort *ptr = dynamic_cast< bulkio::InSDDSPort * >(p_in->second);
+          return ptr->_this()->_duplicate(ptr->_this());
         }
 
     }
@@ -367,7 +367,7 @@ void CPP_Ports_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycl
     delete(dataFileOut);
     delete(dataXMLOut);
     delete(dataSDDSOut);
- 
+
     Resource_impl::releaseObject();
 }
 

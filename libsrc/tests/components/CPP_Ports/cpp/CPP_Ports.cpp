@@ -6,11 +6,11 @@
     functionality to the base class can be extended here. Access to
     the ports can also be done from this class
 
- 	Source: CPP_Ports.spd.xml
- 	Generated on: Tue Nov 06 14:25:39 EST 2012
- 	Redhawk IDE
- 	Version:@buildLabel@
- 	Build id: @buildId@
+         Source: CPP_Ports.spd.xml
+         Generated on: Tue Nov 06 14:25:39 EST 2012
+         Redhawk IDE
+         Version:@buildLabel@
+         Build id: @buildId@
 
 **************************************************************************/
 
@@ -46,32 +46,32 @@ void CPP_Ports_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::Sys
         
     SRI:
         To create a StreamSRI object, use the following code:
-        	stream_id = "";
-	    	sri = BULKIO::StreamSRI();
-	    	sri.hversion = 1;
-	    	sri.xstart = 0.0;
-	    	sri.xdelta = 0.0;
-	    	sri.xunits = BULKIO::UNITS_TIME;
-	    	sri.subsize = 0;
-	    	sri.ystart = 0.0;
-	    	sri.ydelta = 0.0;
-	    	sri.yunits = BULKIO::UNITS_NONE;
-	    	sri.mode = 0;
-	    	sri.streamID = this->stream_id.c_str();
+                stream_id = "";
+                    sri = BULKIO::StreamSRI();
+                    sri.hversion = 1;
+                    sri.xstart = 0.0;
+                    sri.xdelta = 0.0;
+                    sri.xunits = BULKIO::UNITS_TIME;
+                    sri.subsize = 0;
+                    sri.ystart = 0.0;
+                    sri.ydelta = 0.0;
+                    sri.yunits = BULKIO::UNITS_NONE;
+                    sri.mode = 0;
+                    sri.streamID = this->stream_id.c_str();
 
-	Time:
-	    To create a PrecisionUTCTime object, use the following code:
-	        struct timeval tmp_time;
-	        struct timezone tmp_tz;
-	        gettimeofday(&tmp_time, &tmp_tz);
-	        double wsec = tmp_time.tv_sec;
-	        double fsec = tmp_time.tv_usec / 1e6;;
-	        BULKIO::PrecisionUTCTime tstamp = BULKIO::PrecisionUTCTime();
-	        tstamp.tcmode = BULKIO::TCM_CPU;
-	        tstamp.tcstatus = (short)1;
-	        tstamp.toff = 0.0;
-	        tstamp.twsec = wsec;
-	        tstamp.tfsec = fsec;
+        Time:
+            To create a PrecisionUTCTime object, use the following code:
+                struct timeval tmp_time;
+                struct timezone tmp_tz;
+                gettimeofday(&tmp_time, &tmp_tz);
+                double wsec = tmp_time.tv_sec;
+                double fsec = tmp_time.tv_usec / 1e6;;
+                BULKIO::PrecisionUTCTime tstamp = BULKIO::PrecisionUTCTime();
+                tstamp.tcmode = BULKIO::TCM_CPU;
+                tstamp.tcstatus = (short)1;
+                tstamp.toff = 0.0;
+                tstamp.twsec = wsec;
+                tstamp.tfsec = fsec;
         
     Ports:
 
@@ -182,11 +182,11 @@ void  DoPort( IPT *iport, OPT *oport, const char *tname ) {
       std::cout << "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  << std::endl;
       
       if ( oport ) {
-	//typename OPT::TransportSequence odata;
-	//std::copy( p1->dataBuffer.begin(), p1->dataBuffer.end(), std::back_inserter(odata) );
-	//oport->pushPacket( odata, p1->T, p1->EOS, p1->streamID );
-	oport->pushPacket( p1->dataBuffer, p1->T, p1->EOS, p1->streamID );
-	delete p1;
+        //typename OPT::TransportSequence odata;
+        //std::copy( p1->dataBuffer.begin(), p1->dataBuffer.end(), std::back_inserter(odata) );
+        //oport->pushPacket( odata, p1->T, p1->EOS, p1->streamID );
+        oport->pushPacket( p1->dataBuffer, p1->T, p1->EOS, p1->streamID );
+        delete p1;
       }
     }
 }
@@ -201,12 +201,12 @@ void  DoPort< bulkio::InCharPort, bulkio::OutCharPort >( bulkio::InCharPort *ipo
       std::cout << "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  << std::endl;
       
       if ( oport ) {
-	std::vector< bulkio::OutCharPort::NativeType > d;
-	int dlen = p1->dataBuffer.size();
-	d.resize( dlen );
-	std::copy( &p1->dataBuffer[0], &(p1->dataBuffer[0])+dlen, &(d[0]) );
-	oport->pushPacket( d, p1->T, p1->EOS, p1->streamID );
-	delete p1;
+        std::vector< bulkio::OutCharPort::NativeType > d;
+        int dlen = p1->dataBuffer.size();
+        d.resize( dlen );
+        std::copy( &p1->dataBuffer[0], &(p1->dataBuffer[0])+dlen, &(d[0]) );
+        oport->pushPacket( d, p1->T, p1->EOS, p1->streamID );
+        delete p1;
       }
     }
 }
@@ -221,12 +221,12 @@ void  DoPort< bulkio::InFilePort, bulkio::OutFilePort >( bulkio::InFilePort *ipo
       std::cout << "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  << std::endl;
       
       if ( oport ) {
-	std::string d;
-	int dlen = p1->dataBuffer.size();
-	d.resize( dlen );
-	std::copy( &p1->dataBuffer[0], &(p1->dataBuffer[0])+dlen, &(d[0]) );
-	oport->pushPacket( d.c_str(), p1->T, p1->EOS, p1->streamID );
-	delete p1;
+        std::string d;
+        int dlen = p1->dataBuffer.size();
+        d.resize( dlen );
+        std::copy( &p1->dataBuffer[0], &(p1->dataBuffer[0])+dlen, &(d[0]) );
+        oport->pushPacket( d.c_str(), p1->T, p1->EOS, p1->streamID );
+        delete p1;
       }
     }
 }
@@ -241,13 +241,13 @@ void  DoPort< bulkio::InXMLPort, bulkio::OutXMLPort >( bulkio::InXMLPort *iport,
       std::cout << "CPP_PORTS::SVC_FUN   TYPE:" << tname << " DATALEN:" << p1->dataBuffer.size()  << std::endl;
       
       if ( oport ) {
-	std::string d;
-	int dlen = p1->dataBuffer.size();
-	d.resize( dlen );
-	std::copy( &p1->dataBuffer[0], &(p1->dataBuffer[0])+dlen, &(d[0]) );
-	//oport->pushPacket( d.c_str(), p1->T, p1->EOS, p1->streamID );
-	oport->pushPacket( d.c_str(), p1->EOS, p1->streamID );
-	delete p1;
+        std::string d;
+        int dlen = p1->dataBuffer.size();
+        d.resize( dlen );
+        std::copy( &p1->dataBuffer[0], &(p1->dataBuffer[0])+dlen, &(d[0]) );
+        //oport->pushPacket( d.c_str(), p1->T, p1->EOS, p1->streamID );
+        oport->pushPacket( d.c_str(), p1->EOS, p1->streamID );
+        delete p1;
       }
     }
 }

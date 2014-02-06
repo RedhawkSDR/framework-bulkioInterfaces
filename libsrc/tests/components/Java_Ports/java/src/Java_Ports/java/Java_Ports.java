@@ -45,8 +45,8 @@ import org.ossie.events.*;
  * Generated on: Mon Mar 11 15:04:23 EDT 2013
  * Redhawk IDE
  * Version:N.1.8.3
- * Build id: v201302111216 
- 
+ * Build id: v201302111216
+
  * @generated
  */
 public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort.Callback  {
@@ -54,7 +54,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
     /**
      * @generated
      */
-    public final static Logger logger = Logger.getLogger(Java_Ports.class.getName()); 
+    public final static Logger logger = Logger.getLogger(Java_Ports.class.getName());
 
     public bulkio.InCharPort   port_dataCharIn;
     public bulkio.InOctetPort  port_dataOctetIn;
@@ -84,16 +84,16 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
     public bulkio.OutXMLPort  port_dataXMLOut;
     public bulkio.OutSDDSPort  port_dataSDDSOut;
 
-	/**
+        /**
      * @generated
      */
     public PropertyEventSupplier port_propEvent;
-	/**
+        /**
      * @generated
      */
-    public Java_Ports() 
+    public Java_Ports()
     {
-        super();  
+        super();
 
         // Provides/input
         this.port_dataCharIn = new bulkio.InCharPort("dataCharIn");
@@ -154,109 +154,109 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
         this.addPort("dataSDDSOut", this.port_dataSDDSOut);
     }
 
-    
+
     /**
      * @generated
      */
     public CF.Resource setup(final String compId, final String compName, final ORB orb, final POA poa) throws ServantNotActive, WrongPolicy
     {
-    	CF.Resource retval = super.setup(compId, compName, orb, poa);
+            CF.Resource retval = super.setup(compId, compName, orb, poa);
         this.registerPropertyChangePort(this.port_propEvent);
-    	return retval;
+            return retval;
     }
 
-	/**
+        /**
      * This method is used to handle the attach call and return an attachId for the connection.
      * The value of the attachId should be unique across attach calls within this component instance.
-     * 
+     *
      * @param stream the new stream definition
      * @param userId the userId for the stream
      * @return an id for this attach call that is unique across all calls within this component instance.
-	 * @throws AttachError
-	 * @throws StreamInputError
+         * @throws AttachError
+         * @throws StreamInputError
      * @generated
      */
     public String attach(SDDSStreamDefinition stream, String userId) throws AttachError, StreamInputError {
 
-	String attachID = java.util.UUID.randomUUID().toString();
-	logger.info( " ATTACH: " + attachID + " STREAM ID/ADDR/PORT:" + stream.id  + "/" + stream.multicastAddress + "/" + stream.port );
-	port_dataSDDSOut.attach( stream, userId );
-	return attachID;
+        String attachID = java.util.UUID.randomUUID().toString();
+        logger.info( " ATTACH: " + attachID + " STREAM ID/ADDR/PORT:" + stream.id  + "/" + stream.multicastAddress + "/" + stream.port );
+        port_dataSDDSOut.attach( stream, userId );
+        return attachID;
     }
 
 
     /**
      * This method is used to handle the detach call.
-	 * 
-	 * @param attachId the attachId from a previous call to attach
-	 * @throws DetachError
-	 * @throws StreamInputError
-	 * @generated
-	 */
+         *
+         * @param attachId the attachId from a previous call to attach
+         * @throws DetachError
+         * @throws StreamInputError
+         * @generated
+         */
     public void detach(String attachId) throws DetachError, StreamInputError {
-	logger.info( "DETACH ATTACH: " + attachId  );
+        logger.info( "DETACH ATTACH: " + attachId  );
     }
 
 
-	/**
+        /**
      *
      * Main processing thread
      *
      * <!-- begin-user-doc -->
-     * 
+     *
      * General functionality:
-     * 
-     *    This function is running as a separate thread from the component's main thread. 
-     *    
+     *
+     *    This function is running as a separate thread from the component's main thread.
+     *
      *    The IDE uses JMerge during the generation (and re-generation) process.  To keep
      *    customizations to this file from being over-written during subsequent generations,
      *    put your customization in between the following tags:
      *      - //begin-user-code
      *      - //end-user-code
-     *    or, alternatively, set the @generated flag located before the code you wish to 
+     *    or, alternatively, set the @generated flag located before the code you wish to
      *    modify, in the following way:
      *      - "@generated NOT"
-     * 
+     *
      * StreamSRI:
      *    To create a StreamSRI object, use the following code:
      *        this.stream_id = "stream";
-     * 		  StreamSRI sri = new StreamSRI();
-     * 		  sri.mode = 0;
-     * 		  sri.xdelta = 0.0;
-     * 		  sri.ydelta = 1.0;
-     * 		  sri.subsize = 0;
-     * 		  sri.xunits = 1; // TIME_S
-     * 		  sri.streamID = (this.stream_id.getValue() != null) ? this.stream_id.getValue() : "";
-     * 
+     *                   StreamSRI sri = new StreamSRI();
+     *                   sri.mode = 0;
+     *                   sri.xdelta = 0.0;
+     *                   sri.ydelta = 1.0;
+     *                   sri.subsize = 0;
+     *                   sri.xunits = 1; // TIME_S
+     *                   sri.streamID = (this.stream_id.getValue() != null) ? this.stream_id.getValue() : "";
+     *
      * PrecisionUTCTime:
      *    To create a PrecisionUTCTime object, use the following code:
-     * 		  long tmp_time = System.currentTimeMillis();
-     * 		  double wsec = tmp_time / 1000;
-     * 		  double fsec = tmp_time % 1000;
-     * 		  PrecisionUTCTime tstamp = new PrecisionUTCTime(BULKIO.TCM_CPU.value, (short)1, (short)0, wsec, fsec);
-     * 
+     *                   long tmp_time = System.currentTimeMillis();
+     *                   double wsec = tmp_time / 1000;
+     *                   double fsec = tmp_time % 1000;
+     *                   PrecisionUTCTime tstamp = new PrecisionUTCTime(BULKIO.TCM_CPU.value, (short)1, (short)0, wsec, fsec);
+     *
      * Ports:
-     * 
+     *
      *    Each port instance is accessed through members of the following form: this.port_<PORT NAME>
-     * 
+     *
      *    Data is obtained in the run function through the getPacket call (BULKIO only) on a
      *    provides port member instance. The getPacket function call is non-blocking; it takes
      *    one argument which is the time to wait on new data. If you pass 0, it will return
      *    immediately if no data available (won't wait).
-     *    
+     *
      *    To send data, call the appropriate function in the port directly. In the case of BULKIO,
      *    convenience functions have been added in the port classes that aid in output.
-     *    
+     *
      *    Interactions with non-BULKIO ports are left up to the component developer's discretion.
-     *    
+     *
      * Properties:
-     * 
-     *    Properties are accessed through members of the same name with helper functions. If the 
+     *
+     *    Properties are accessed through members of the same name with helper functions. If the
      *    property name is baudRate, then reading the value is achieved by: this.baudRate.getValue();
      *    and writing a new value is achieved by: this.baudRate.setValue(new_value);
-     *    
+     *
      * Example:
-     * 
+     *
      *    This example assumes that the component has two ports:
      *        - A provides (input) port of type BULKIO::dataShort called dataShort_in
      *        - A uses (output) port of type BULKIO::dataFloat called dataFloat_out
@@ -264,7 +264,7 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
      *    This example also makes use of the following Properties:
      *        - A float value called amplitude with a default value of 2.0
      *        - A boolean called increaseAmplitude with a default value of true
-     *    
+     *
      *    BULKIO_dataShortInPort.Packet<short[]> data = this.port_dataShort_in.getPacket(125);
      *
      *    if (data != null) {
@@ -283,44 +283,44 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
      *        }
      *        this.port_dataFloat_out.pushPacket(outData, data.getTime(), data.getEndOfStream(), data.getStreamID());
      *    }
-     *      
+     *
      * <!-- end-user-doc -->
-     * 
+     *
      * @generated
      */
-    public void run() 
+    public void run()
     {
         //begin-user-code
         //end-user-code
-        
+
         while(this.started())
         {
             //begin-user-code
             // Process data here
             try {
 
-		SF(port_dataFloatIn,port_dataFloatOut, "FLOAT" );
-		SF(port_dataDoubleIn,port_dataDoubleOut, "DOUBLE");
-		SF(port_dataCharIn,port_dataCharOut, "CHAR");
-		SF(port_dataOctetIn,port_dataOctetOut, "OCTET");
-		SF(port_dataShortIn,port_dataShortOut, "SHORT");
-		SF(port_dataUShortIn,port_dataUShortOut, "USHORT");
-		SF(port_dataLongIn,port_dataLongOut, "LONG");
-		SF(port_dataULongIn,port_dataULongOut, "ULONG");
-		SF(port_dataLongLongIn,port_dataLongLongOut, "LONGLONG");
-		SF(port_dataULongLongIn,port_dataULongLongOut, "ULONGLONG");
-		SF(port_dataFileIn,port_dataFileOut, "FILE");
-		SF(port_dataXMLIn,port_dataXMLOut, "XML");
+                SF(port_dataFloatIn,port_dataFloatOut, "FLOAT" );
+                SF(port_dataDoubleIn,port_dataDoubleOut, "DOUBLE");
+                SF(port_dataCharIn,port_dataCharOut, "CHAR");
+                SF(port_dataOctetIn,port_dataOctetOut, "OCTET");
+                SF(port_dataShortIn,port_dataShortOut, "SHORT");
+                SF(port_dataUShortIn,port_dataUShortOut, "USHORT");
+                SF(port_dataLongIn,port_dataLongOut, "LONG");
+                SF(port_dataULongIn,port_dataULongOut, "ULONG");
+                SF(port_dataLongLongIn,port_dataLongLongOut, "LONGLONG");
+                SF(port_dataULongLongIn,port_dataULongLongOut, "ULONGLONG");
+                SF(port_dataFileIn,port_dataFileOut, "FILE");
+                SF(port_dataXMLIn,port_dataXMLOut, "XML");
 
                 logger.debug("run() example log message");
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 break;
             }
-            
+
             //end-user-code
         }
-        
+
         //begin-user-code
         //end-user-code
     }
@@ -328,123 +328,123 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 
    void SF( bulkio.InFloatPort inPort, bulkio.OutFloatPort outPort, String portType ) {
 
-	bulkio.InFloatPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	if ( pkt != null ) {
-	    logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
-	    outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	}
+        bulkio.InFloatPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+
+        if ( pkt != null ) {
+            logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+            outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+        }
    }
 
    void SF( bulkio.InDoublePort inPort, bulkio.OutDoublePort outPort, String portType ) {
 
-	bulkio.InDoublePort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+        bulkio.InDoublePort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
+
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
    }
 
     public void SF( bulkio.InInt8Port inPort, bulkio.OutInt8Port outPort, String portType ) {
 
-	bulkio.InInt8Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+        bulkio.InInt8Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
     public void SF( bulkio.InInt16Port inPort, bulkio.OutInt16Port outPort, String portType ) {
 
-	bulkio.InInt16Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+        bulkio.InInt16Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
 
     public void SF( bulkio.InInt32Port inPort, bulkio.OutInt32Port outPort, String portType ) {
 
-	bulkio.InInt32Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+        bulkio.InInt32Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
     public void SF( bulkio.InInt64Port inPort, bulkio.OutInt64Port outPort, String portType ) {
 
-	bulkio.InInt64Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+        bulkio.InInt64Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
 
 
     public void SF( bulkio.InUInt8Port inPort, bulkio.OutUInt8Port outPort, String portType ) {
 
-	bulkio.InUInt8Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+        bulkio.InUInt8Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
     public void SF( bulkio.InUInt16Port inPort, bulkio.OutUInt16Port outPort, String portType ) {
 
-	bulkio.InUInt16Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+        bulkio.InUInt16Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
 
     public void SF( bulkio.InUInt32Port inPort, bulkio.OutUInt32Port outPort, String portType ) {
 
-	bulkio.InUInt32Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+        bulkio.InUInt32Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
     public void SF( bulkio.InUInt64Port inPort, bulkio.OutUInt64Port outPort, String portType ) {
 
-	bulkio.InUInt64Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+        bulkio.InUInt64Port.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
 
@@ -452,26 +452,26 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 
     public void SF( bulkio.InFilePort inPort, bulkio.OutFilePort outPort, String portType ) {
 
-	bulkio.InFilePort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
+        bulkio.InFilePort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.T, pkt.EOS, pkt.streamID );
+            }
+
     }
 
     public void SF( bulkio.InXMLPort inPort, bulkio.OutXMLPort outPort, String portType ) {
 
-	bulkio.InXMLPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
-	    
-	    if ( pkt != null ) {
-		logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
+        bulkio.InXMLPort.Packet pkt = inPort.getPacket( bulkio.Const.NON_BLOCKING );
 
-	        outPort.pushPacket( pkt.dataBuffer, pkt.EOS, pkt.streamID );
-	    }
-	    
+            if ( pkt != null ) {
+                logger.info( "SF  TYPE:" + portType + " DATALEN:" + pkt.dataBuffer.length() );
+
+                outPort.pushPacket( pkt.dataBuffer, pkt.EOS, pkt.streamID );
+            }
+
     }
 
     public void SF( bulkio.InSDDSPort inPort, bulkio.OutSDDSPort outPort, String portType ) {
@@ -485,11 +485,11 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
      * The main function of your component.  If no args are provided, then the
      * CORBA object is not bound to an SCA Domain or NamingService and can
      * be run as a standard Java application.
-     * 
+     *
      * @param args
      * @generated
      */
-    public static void main(String[] args) 
+    public static void main(String[] args)
     {
         final Properties orbProps = new Properties();
 

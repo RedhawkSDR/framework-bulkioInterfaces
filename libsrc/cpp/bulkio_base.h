@@ -294,7 +294,29 @@ namespace bulkio {
     // equivalency method of the REDHAWK framework compare_anys method.
     //
     bool           DefaultComparator( const BULKIO::StreamSRI &a, const BULKIO::StreamSRI &b);
-
+    
+    inline void zeroSRI(BULKIO::StreamSRI &sri) {
+        sri.hversion = 1;
+        sri.xstart = 0.0;
+        sri.xdelta = 1.0;
+        sri.xunits = 1;
+        sri.subsize = 1;
+        sri.ystart = 0.0;
+        sri.ydelta = 1.0;
+        sri.yunits = 1;
+        sri.mode = 0;
+        sri.streamID = "";
+        sri.keywords.length(0);
+    };
+    
+    inline void zeroTime(BULKIO::PrecisionUTCTime &timeTag) {
+        timeTag.tcmode = 1;
+        timeTag.tcstatus = 0;
+        timeTag.toff = 0.0;
+        timeTag.twsec = 0.0;
+        timeTag.tfsec = 0.0;
+    };
+    
     //
     // Create a SRI object with default parameters
     //

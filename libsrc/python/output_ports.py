@@ -2,6 +2,7 @@
 import threading
 import copy
 import time
+import sys
 
 from ossie.cf    import ExtendedCF
 from ossie.cf.CF    import Port
@@ -10,6 +11,7 @@ from bulkio.statistics import OutStats
 from bulkio import sri
 from bulkio import timestamp
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA 
+from bulkio.const import MAX_TRANSFER_BYTES
 
 
 class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
@@ -125,6 +127,60 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushSRI EXIT ')
 
+    def _pushOversizedPacket(self, data, T, EOS, streamID):
+
+        # If there is no data to break into smaller packets, skip
+        # straight to the pushPacket call and return.
+        if len(data) == 0:
+            self._pushPacket(data, T, EOS, streamID);
+            return
+
+        # Multiply by some number < 1 to leave some margin for the CORBA header
+        maxPayloadSize    = MAX_TRANSFER_BYTES * .9
+        if str(self.PortType).find("bulkio.bulkioInterfaces.BULKIO.dataOctet") != -1:
+            # data[0] for octet data is of type string at this point, so
+            # the sys.getsizeof() method will return the wrong value.
+            numSamplesPerPush = int(maxPayloadSize)
+        else:
+            numSamplesPerPush = int(maxPayloadSize/sys.getsizeof(data[0]))
+
+        # Determine how many sub-packets to send.
+        numFullPackets    = len(data)/numSamplesPerPush;
+        lenOfLastPacket   = len(data)%numSamplesPerPush;
+
+        # Send all of the sub-packets of length numSamplesPerPush.
+        # Always send EOS false, (the EOS of the parent packet will be sent
+        # with the last sub-packet).
+        intermediateEOS = False;
+        for rowNum in range(numFullPackets):
+            if rowNum == numFullPackets -1 and lenOfLastPacket == 0:
+                # This is the last sub-packet.
+                intermediateEOS = EOS
+
+            subPacket = data[rowNum*numSamplesPerPush:rowNum*numSamplesPerPush + numSamplesPerPush]
+
+            self._pushPacket(subPacket, T, intermediateEOS, streamID);
+
+        if lenOfLastPacket != 0:
+            # Send the last sub-packet, whose length is less than
+            # numSamplesPerPush.  Note that the EOS of the master packet is
+            # sent with the last sub-packet.
+            subPacket = data[numFullPackets*numSamplesPerPush:numFullPackets*numSamplesPerPush + lenOfLastPacket]
+            self._pushPacket(subPacket, T, EOS, streamID);
+
+    def _pushPacket(self, data, T, EOS, streamID):
+        for connId, port in self.outConnections.items():
+            try:
+                if port != None:
+                    port.pushPacket(data, T, EOS, streamID)
+                    self.stats.update(len(data), 0, EOS, streamID, connId)
+            except Exception, e:
+                if self.logger:
+                    self.logger.error("The call to pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+        if EOS==True:
+            if self.sriDict.has_key(streamID):
+                tmp = self.sriDict.pop(streamID)
+ 
     def pushPacket(self, data, T, EOS, streamID):
 
         if self.logger:
@@ -135,25 +191,13 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                 self.pushSRI(self.sriDict[streamID])
 
         self.port_lock.acquire()
-
-        try:    
-            for connId, port in self.outConnections.items():
-               try:
-                    if port != None:
-                        port.pushPacket(data, T, EOS, streamID)
-                        self.stats.update(len(data), 0, EOS, streamID, connId)
-               except Exception:
-                   if self.logger:
-                       self.logger.error("The call to pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
-            if EOS==True:
-                if self.sriDict.has_key(streamID):
-                    tmp = self.sriDict.pop(streamID)
+        try:
+            self._pushOversizedPacket(data, T, EOS, streamID)
         finally:
             self.port_lock.release()
- 
+
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushPacket EXIT ')
-
 
 
 class OutCharPort(OutPort):
@@ -310,7 +354,7 @@ class OutSDDSPort(OutPort):
         OutPort.connectPort( self, connection, connectionId )
         self.port_lock.acquire()
         try:
-	   try:
+           try:
                port = self.outConnections[str(connectionId)]
                if self.lastStreamData:
                    self.attachedGroup[str(connectionId)] = port.attach(self.lastStreamData, self.lastName)

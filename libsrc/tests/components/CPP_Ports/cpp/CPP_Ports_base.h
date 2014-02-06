@@ -58,7 +58,7 @@ class ProcessThread
                 delete _mythread;
                 _mythread = 0;
             }
-    
+
             return 1;
         };
 
@@ -94,7 +94,7 @@ class CPP_Ports_base : public Resource_impl
 
     void detach(const char* attachId);
 
-  private: 
+  private:
 
     MySddsCallback( CPP_Ports_base &p );
 
@@ -103,10 +103,10 @@ class CPP_Ports_base : public Resource_impl
   };
 
  private:
-  
+
   MySddsCallback    cb;
 
- public: 
+ public:
         CPP_Ports_base(const char *uuid, const char *label);
 
         void start() throw (CF::Resource::StartError, CORBA::SystemException);
@@ -124,48 +124,48 @@ class CPP_Ports_base : public Resource_impl
         virtual int serviceFunction() = 0;
 
     protected:
-        ProcessThread<CPP_Ports_base> *serviceThread; 
-        boost::mutex serviceThreadLock;  
+        ProcessThread<CPP_Ports_base> *serviceThread;
+        boost::mutex serviceThreadLock;
 
         // Ports
-	bulkio::InFloatPort    *dataFloatIn;
-	bulkio::OutFloatPort   *dataFloatOut;
-	bulkio::InDoublePort    *dataDoubleIn;
-	bulkio::OutDoublePort   *dataDoubleOut;
-    
-	bulkio::InCharPort      *dataCharIn;
-	bulkio::OutCharPort     *dataCharOut;
-	bulkio::InOctetPort      *dataOctetIn;
-	bulkio::OutOctetPort     *dataOctetOut;
-	bulkio::InShortPort      *dataShortIn;
-	bulkio::OutShortPort     *dataShortOut;
-	bulkio::InUShortPort      *dataUShortIn;
-	bulkio::OutUShortPort     *dataUShortOut;
+        bulkio::InFloatPort    *dataFloatIn;
+        bulkio::OutFloatPort   *dataFloatOut;
+        bulkio::InDoublePort    *dataDoubleIn;
+        bulkio::OutDoublePort   *dataDoubleOut;
 
-	bulkio::InLongPort      *dataLongIn;
-	bulkio::OutLongPort     *dataLongOut;
-	bulkio::InULongPort      *dataULongIn;
-	bulkio::OutULongPort     *dataULongOut;
+        bulkio::InCharPort      *dataCharIn;
+        bulkio::OutCharPort     *dataCharOut;
+        bulkio::InOctetPort      *dataOctetIn;
+        bulkio::OutOctetPort     *dataOctetOut;
+        bulkio::InShortPort      *dataShortIn;
+        bulkio::OutShortPort     *dataShortOut;
+        bulkio::InUShortPort      *dataUShortIn;
+        bulkio::OutUShortPort     *dataUShortOut;
 
-	bulkio::InLongLongPort      *dataLongLongIn;
-	bulkio::OutLongLongPort     *dataLongLongOut;
-	bulkio::InULongLongPort      *dataULongLongIn;
-	bulkio::OutULongLongPort     *dataULongLongOut;
+        bulkio::InLongPort      *dataLongIn;
+        bulkio::OutLongPort     *dataLongOut;
+        bulkio::InULongPort      *dataULongIn;
+        bulkio::OutULongPort     *dataULongOut;
+
+        bulkio::InLongLongPort      *dataLongLongIn;
+        bulkio::OutLongLongPort     *dataLongLongOut;
+        bulkio::InULongLongPort      *dataULongLongIn;
+        bulkio::OutULongLongPort     *dataULongLongOut;
 
 
-	bulkio::InURLPort      *dataFileIn;
-	bulkio::OutURLPort     *dataFileOut;
-	bulkio::InXMLPort      *dataXMLIn;
-	bulkio::OutXMLPort     *dataXMLOut;
+        bulkio::InURLPort      *dataFileIn;
+        bulkio::OutURLPort     *dataFileOut;
+        bulkio::InXMLPort      *dataXMLIn;
+        bulkio::OutXMLPort     *dataXMLOut;
 
-	bulkio::InSDDSPort      *dataSDDSIn;
-	bulkio::OutSDDSPort     *dataSDDSOut;
+        bulkio::InSDDSPort      *dataSDDSIn;
+        bulkio::OutSDDSPort     *dataSDDSOut;
 
     private:
         void construct();
 
 
-	ENABLE_LOGGING;
+        ENABLE_LOGGING;
 
 };
 #endif

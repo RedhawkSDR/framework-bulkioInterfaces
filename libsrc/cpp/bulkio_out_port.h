@@ -14,7 +14,21 @@
 #include "bulkio_traits.h"
 
 namespace bulkio {
-
+    
+    struct connection_descriptor_struct {
+        connection_descriptor_struct ()
+        {
+        };
+        
+        static std::string getId() {
+            return std::string("connection_descriptor");
+        };
+        
+        std::string connection_name;
+        std::string stream_id;
+        std::string port_name;
+    };
+    
   //
   // Callback interface used by BULKIO Ports when connect/disconnect event happens
   //
@@ -194,7 +208,11 @@ namespace bulkio {
     // @param connectionsId identifer for this connection, allows for external users to reference the connection association
     virtual void disconnectPort(const char* connectionId);
 
-
+    void updateConnectionFilter(const std::vector<connection_descriptor_struct> &_filterTable) {
+        SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
+        filterTable = _filterTable;
+    };
+    
 
     template< typename T > inline
       void setNewConnectListener(T &target, void (T::*func)( const char *connectionId )  ) {
@@ -365,8 +383,30 @@ namespace bulkio {
 
   private:
 
+    void _pushOversizedPacket(
+            NativeSequenceType &        data,
+            BULKIO::PrecisionUTCTime&   T,
+            bool                        EOS,
+            const std::string&          streamID);
+    void _pushOversizedPacket(
+            const DataBufferType &      data,
+            BULKIO::PrecisionUTCTime&   T,
+            bool                        EOS,
+            const std::string&          streamID);
+    void _pushPacket(
+            NativeSequenceType &        data,
+            BULKIO::PrecisionUTCTime&   T,
+            bool                        EOS,
+            const std::string&          streamID);
+    void _pushPacket(
+            const DataBufferType &      data,
+            BULKIO::PrecisionUTCTime&   T,
+            bool                        EOS,
+            const std::string&          streamID);
+
     boost::shared_ptr< ConnectionEventListener >    _connectCB;
     boost::shared_ptr< ConnectionEventListener >    _disconnectCB;
+    std::vector<connection_descriptor_struct> filterTable;
 
   };
 

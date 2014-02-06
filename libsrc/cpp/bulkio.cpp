@@ -38,7 +38,7 @@ namespace  bulkio {
       currValue = newValue;
 
       if (oldValue > newValue) {
-	condition.notify_one();
+        condition.notify_one();
       }
     }
   }
@@ -130,23 +130,23 @@ namespace  bulkio {
       StreamIDList::iterator p = activeStreamIDs.begin();
       bool foundStreamID = false;
       while (p != activeStreamIDs.end()) {
-	if (*p == streamID) {
-	  foundStreamID = true;
-	  break;
-	}
-	p++;
+        if (*p == streamID) {
+          foundStreamID = true;
+          break;
+        }
+        p++;
       }
       if (!foundStreamID) {
-	activeStreamIDs.push_back(streamID);
+        activeStreamIDs.push_back(streamID);
       }
     } else {
       StreamIDList::iterator p = activeStreamIDs.begin();
       while (p != activeStreamIDs.end()) {
-	if (*p == streamID) {
-	  activeStreamIDs.erase(p);
-	  break;
-	}
-	p++;
+        if (*p == streamID) {
+          activeStreamIDs.erase(p);
+          break;
+        }
+        p++;
       }
     }
   }
@@ -187,7 +187,7 @@ namespace  bulkio {
     runningStats.streamIDs.length(streamIDsize);
     for (unsigned int i = 0; i < streamIDsize; i++) {
       if (p == activeStreamIDs.end()) {
-	break;
+        break;
       }
       runningStats.streamIDs[i] = CORBA::string_dup((*p).c_str());
       p++;

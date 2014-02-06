@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           bulkioInterfaces
 Version:        1.10.0
-Release:        0.1%{?dist}
+Release:        0.1.1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
