@@ -63,13 +63,13 @@
 #endif
 
 #ifdef TRACE_ENABLE
-#define TRACE_ENTER(logger, method)						\
-    LOG_TRACE(logger, "ENTER bulkio::" << method << " [" << __FILE__ << ":" << __LINE__ << "]")
-#define TRACE_EXIT(logger, method)						\
-    LOG_TRACE(logger, "EXIT bulkio::" << method << " [" << __FILE__ << ":" << __LINE__ << "]")
+#define TRACE_ENTER(logger)						\
+    LOG_TRACE(logger, "ENTER bulkio::" << __PRETTY_FUNCTION__ << " [" << __FILE__ << ":" << __LINE__ << "]")
+#define TRACE_EXIT(logger)						\
+    LOG_TRACE(logger, "EXIT bulkio::" << __PRETTY_FUNCTION__ << " [" << __FILE__ << ":" << __LINE__ << "]")
 #else
-#define TRACE_ENTER(logger, method )
-#define TRACE_EXIT(logger, method )
+#define TRACE_ENTER(logger)
+#define TRACE_EXIT(logger)
 #endif
 
 

@@ -98,7 +98,7 @@ namespace  bulkio {
   void OutPort< PortTraits >::pushSRI(const BULKIO::StreamSRI& H) {
 
   
-    TRACE_ENTER(logger, "OutPort::pushSRI" );
+    TRACE_ENTER(logger );
 
 
     typename ConnectionsList::iterator i;
@@ -118,7 +118,7 @@ namespace  bulkio {
     currentSRIs[std::string(H.streamID)] = std::make_pair(H,false) ;
     refreshSRI = false;
 
-    TRACE_EXIT(logger, "OutPort::pushSRI" );
+    TRACE_EXIT(logger );
     return;
   }
 
@@ -126,7 +126,7 @@ namespace  bulkio {
   template < typename PortTraits >
   void OutPort< PortTraits >::pushPacket( NativeSequenceType & data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
-    TRACE_ENTER(logger, "OutPort::pushPacket" );
+    TRACE_ENTER(logger );
 
     if (refreshSRI) {
       if (currentSRIs.find(streamID) != currentSRIs.end()) {
@@ -159,14 +159,14 @@ namespace  bulkio {
     }
 
 
-    TRACE_EXIT(logger, "OutPort::pushPacket" );
+    TRACE_EXIT(logger );
   }
 
 
   template < typename PortTraits >
   void OutPort< PortTraits >::pushPacket( const DataBufferType & data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
-    TRACE_ENTER(logger, "OutPort::pushPacket" );
+    TRACE_ENTER(logger );
 
     if (refreshSRI) {
       if (currentSRIs.find(streamID) != currentSRIs.end()) {
@@ -201,7 +201,7 @@ namespace  bulkio {
     }
 
 
-    TRACE_EXIT(logger, "OutPort::pushPacket" );
+    TRACE_EXIT(logger );
   }
 
 
@@ -262,7 +262,7 @@ namespace  bulkio {
   template < typename PortTraits >
   void OutPort< PortTraits >::connectPort(CORBA::Object_ptr connection, const char* connectionId)
   {
-    TRACE_ENTER(logger, "OutPort::connectPort" );
+    TRACE_ENTER(logger );
     {
       SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
       PortVarType port;
@@ -282,14 +282,14 @@ namespace  bulkio {
     }
     if (_connectCB) (*_connectCB)(connectionId);
 
-    TRACE_EXIT(logger, "OutPort::connectPort" );
+    TRACE_EXIT(logger );
   }
 
 
   template < typename PortTraits >
   void OutPort< PortTraits >::disconnectPort(const char* connectionId)
   {
-    TRACE_ENTER(logger, "OutPort::disconnectPort" );
+    TRACE_ENTER(logger );
     {
       SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
       for (unsigned int i = 0; i < outConnections.size(); i++) {
@@ -308,7 +308,7 @@ namespace  bulkio {
     }
     if (_disconnectCB) (*_disconnectCB)(connectionId);
 
-    TRACE_EXIT(logger, "OutPort::disconnectPort" );
+    TRACE_EXIT(logger );
   }
 
   template < typename PortTraits >
@@ -350,7 +350,7 @@ namespace  bulkio {
   template <typename PortTraits>
   void OutInt8Port< PortTraits >::pushPacket( std::vector< Int8 >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
-    TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
+    TRACE_ENTER(this->logger );
 
     if (  this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
@@ -386,14 +386,14 @@ namespace  bulkio {
     }
 
 
-    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
+    TRACE_EXIT(this->logger );
   }
 
 
   template <typename PortTraits>
   void OutInt8Port< PortTraits >::pushPacket( std::vector< Char >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
-    TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
+    TRACE_ENTER(this->logger );
 
     if (  this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
@@ -429,7 +429,7 @@ namespace  bulkio {
     }
 
 
-    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
+    TRACE_EXIT(this->logger );
   }
 
 
@@ -459,7 +459,7 @@ namespace  bulkio {
   void OutStringPort< PortTraits >::pushPacket( const char *data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
 
-    TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
+    TRACE_ENTER(this->logger );
 
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
@@ -490,7 +490,7 @@ namespace  bulkio {
     }
 
 
-    TRACE_EXIT(this->logger, "OutStringPort::pushPacket" );
+    TRACE_EXIT(this->logger );
 
   }
 
@@ -498,7 +498,7 @@ namespace  bulkio {
   template <typename PortTraits>
   void OutStringPort< PortTraits >::pushPacket( const char *data, bool EOS, const std::string& streamID) {
 
-    TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
+    TRACE_ENTER(this->logger );
 
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
@@ -529,7 +529,7 @@ namespace  bulkio {
     catch(...){
     }
 
-    TRACE_EXIT(this->logger, "OutStringPort::pushPacket" );
+    TRACE_EXIT(this->logger );
 
   }
 
@@ -538,7 +538,7 @@ namespace  bulkio {
   template <>
   void OutStringPort< XMLPortTraits >::pushPacket( const char *data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
-    TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
+    TRACE_ENTER(this->logger );
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
 	pushSRI(this->currentSRIs[streamID].first);
@@ -564,14 +564,14 @@ namespace  bulkio {
     catch(...){
     }
 
-    TRACE_EXIT(this->logger, "OutStringPort::pushPacket" );
+    TRACE_EXIT(this->logger );
 
   }
 
   template <>
   void OutStringPort<  XMLPortTraits  >::pushPacket( const char *data, bool EOS, const std::string& streamID) {
 
-    TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
+    TRACE_ENTER(this->logger );
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
 	pushSRI(this->currentSRIs[streamID].first);
@@ -598,7 +598,7 @@ namespace  bulkio {
     }
 
 
-    TRACE_EXIT(this->logger, "OutStringPort::pushPacket" );
+    TRACE_EXIT(this->logger );
   }
 
 
