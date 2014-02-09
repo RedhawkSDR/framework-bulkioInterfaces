@@ -8,13 +8,18 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
+#include <ossie/debug.h>
 #include <ossie/prop_helpers.h>
 #include <ossie/BULKIO/bio_runtimeStats.h>
 
 #include "bulkio.h"
 #define CORBA_MAX_TRANSFER_BYTES omniORB::giopMaxMsgSize()
 
-#if LOGGING
+// undefine the logging statements provided by debug.h
+// because they operate on static class loggers and BULKIO
+// operates on class instance loggers.  As long as this
+// file remains private (i.e. not installed) we can safely
+// undef without breaking other code
 #undef LOG_INFO
 #undef LOG_ERROR
 #undef LOG_WARN
@@ -24,12 +29,38 @@
 #undef TRACE_ENTER
 #undef TRACE_EXIT
 
+#if LOGGING
+
+#if HAVE_LOG4CXX
+
 #define LOG_INFO(logger, expr )   if ( logger ) LOG4CXX_INFO(logger, expr );
 #define LOG_ERROR(logger, expr )  if ( logger ) LOG4CXX_ERROR(logger, expr );
 #define LOG_WARN(logger, expr )  if ( logger ) LOG4CXX_WARN(logger, expr );
 #define LOG_FATAL(logger, expr )  if ( logger ) LOG4CXX_FATAL(logger, expr );
 #define LOG_DEBUG(logger, expr )  if ( logger ) LOG4CXX_DEBUG(logger, expr );
 #define LOG_TRACE(logger, expr )  if ( logger ) LOG4CXX_TRACE(logger, expr );
+
+#else // !HAVE_LOG4CXX
+
+#define LOG_TRACE(logger, expr)  _LOG(5, TRACE, logger, expr)
+#define LOG_DEBUG(logger, expr)  _LOG(4, DEBUG, logger, expr)
+#define LOG_INFO(logger, expr)   _LOG(3, INFO,  logger, expr)
+#define LOG_WARN(logger, expr)   _LOG(2, WARN,  logger, expr)
+#define LOG_ERROR(logger, expr)  _LOG(1, ERROR, logger, expr)
+#define LOG_FATAL(logger, expr)  _LOG(0, FATAL, logger, expr)
+
+#endif
+
+#else // !LOGGING
+
+#define LOG_INFO(logger, expr )  
+#define LOG_ERROR(logger, expr ) 
+#define LOG_WARN(logger, expr )  
+#define LOG_FATAL(logger, expr ) 
+#define LOG_DEBUG(logger, expr ) 
+#define LOG_TRACE(logger, expr ) 
+
+#endif
 
 #ifdef TRACE_ENABLE
 #define TRACE_ENTER(logger, method)						\
@@ -39,18 +70,6 @@
 #else
 #define TRACE_ENTER(logger, method )
 #define TRACE_EXIT(logger, method )
-#endif
-
-#else
-#define LOG_INFO(logger, expr )  
-#define LOG_ERROR(logger, expr ) 
-#define LOG_WARN(logger, expr )  
-#define LOG_FATAL(logger, expr ) 
-#define LOG_DEBUG(logger, expr ) 
-#define LOG_TRACE(logger, expr ) 
-#define TRACE_ENTER(logger, method )
-#define TRACE_EXIT(logger, method )
-
 #endif
 
 

@@ -8,7 +8,7 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/locks.hpp>
-#include <log4cxx/logger.h>
+#include <ossie/debug.h>
 #include <ossie/BULKIO/bio_runtimeStats.h>
 #include <ossie/BULKIO/bulkioDataTypes.h>
 
@@ -85,8 +85,11 @@ namespace bulkio {
   //
   // Logging interface definition 
   //
+#if HAVE_LOG4CXX
   typedef log4cxx::LoggerPtr         LOGGER_PTR;
-
+#else
+  typedef std::string         LOGGER_PTR;
+#endif
 
   //
   //  Base Types used by Ports
