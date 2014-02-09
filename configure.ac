@@ -45,14 +45,22 @@ PKG_CHECK_MODULES([OSSIE], [ossie >= 1.8.0])
 AC_ARG_ENABLE([base-classes], AS_HELP_STRING([--disable-base-classes], [Disable BULKIO base class libraries]))
 AM_CONDITIONAL([BUILD_BASE_CLASSES], [test "$enable_base_classes" != "no"])
 
+AC_ARG_ENABLE(logging, AS_HELP_STRING([--disable-logging], [Disable bulkio base class logging]))
+AM_CONDITIONAL([DISABLE_LOGGING], [test "$disable_logging" != "no"])
+
 if test "$enable_base_classes" != "no"; then
   AC_SUBST([BULKIO_SO_VERSION], [0:0:0])
   AC_SUBST([BULKIO_API_VERSION], [1.0])
 
   AX_BOOST_BASE([1.41])
   AX_BOOST_THREAD
-  OSSIE_ENABLE_LOG4CXX
   CHECK_VECTOR_IMPL
+
+  if test "x$disable_logging" != "xno"; then
+    CPPFLAGS="${CPPFLAGS} -DLOGGING=1"
+  else
+    CPPFLAGS="${CPPFLAGS} -DLOGGING=0"
+  fi 
 
   AC_SUBST(BULKIO_INF_INCLUDES, "-I../src/cpp -I../src/cpp/ossie")
   AC_SUBST(BULKIO_INF_CFLAGS, )

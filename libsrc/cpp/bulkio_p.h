@@ -14,7 +14,7 @@
 #include "bulkio.h"
 #define CORBA_MAX_TRANSFER_BYTES omniORB::giopMaxMsgSize()
 
-#ifdef LOGGING
+#if LOGGING
 #undef LOG_INFO
 #undef LOG_ERROR
 #undef LOG_WARN

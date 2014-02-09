@@ -48,7 +48,7 @@ library_include_HEADERS = cpp/bulkio.h \
 ## shipped with the source tarball.
 #bulkio_libincludedir = $(libdir)/bulkio-$(BULKIO_API_VERSION)/include
 
-libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(BULKIO_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
+libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp $(BULKIO_INF_INCLUDES) $(BOOST_CPPFLAGS) $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 
 ###############################################################################
 # Python
