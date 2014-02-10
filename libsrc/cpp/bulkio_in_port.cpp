@@ -111,7 +111,7 @@ namespace  bulkio {
   template < typename PortTraits >
   InPort< PortTraits >::~InPort()
   {
-    TRACE_ENTER( logger, "InPort::DTOR" );
+    TRACE_ENTER( logger );
 
     // block any data coming out of getPacket.. 
     block();
@@ -130,7 +130,7 @@ namespace  bulkio {
 
     if ( stats ) delete stats;
 
-    TRACE_EXIT( logger, "InPort::DTOR"  );
+    TRACE_EXIT( logger );
   }
 
 
@@ -203,7 +203,7 @@ namespace  bulkio {
   template < typename PortTraits >
   void InPort< PortTraits >::pushSRI(const BULKIO::StreamSRI& H)
   {
-    TRACE_ENTER( logger, "InPort::pushSRI"  );
+    TRACE_ENTER( logger );
     SCOPED_LOCK lock(sriUpdateLock);
     BULKIO::StreamSRI tmpH = H;
     SriMap::iterator currH = currentHs.find(std::string(H.streamID));
@@ -227,7 +227,7 @@ namespace  bulkio {
 	}
       }
     }
-    TRACE_EXIT( logger, "InPort::pushSRI"  );
+    TRACE_EXIT( logger );
   }
 
 
@@ -235,9 +235,9 @@ namespace  bulkio {
   void  InPort< PortTraits >::pushPacket(const PortSequenceType & data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
 
-    TRACE_ENTER( logger, "InPort::pushPacket"  );
+    TRACE_ENTER( logger );
     if (queueSem->getMaxValue() == 0) {
-      TRACE_EXIT( logger, "InPort::pushPacket"  );
+      TRACE_EXIT( logger );
       return;
     }
     BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, false, 0};
@@ -294,7 +294,7 @@ namespace  bulkio {
       dataAvailable.notify_all();
     }
 
-    TRACE_EXIT( logger, "InPort::pushPacket"  );
+    TRACE_EXIT( logger );
   }
 
 
@@ -310,11 +310,11 @@ namespace  bulkio {
   template < typename PortTraits >
   void InPort< PortTraits >::block()
   {
-    TRACE_ENTER( logger, "InPort::block"  );
+    TRACE_ENTER( logger );
     breakBlock = true;
     queueSem->release();
     dataAvailable.notify_all();
-    TRACE_EXIT( logger, "InPort::block"  );
+    TRACE_EXIT( logger );
   }
 
   template < typename PortTraits >
@@ -339,14 +339,14 @@ namespace  bulkio {
   template < typename PortTraits >
   typename InPort< PortTraits >::DataTransferType * InPort< PortTraits >::getPacket(float timeout)
   {
-    TRACE_ENTER( logger, "InPort::getPacket"  );
+    TRACE_ENTER( logger );
     if (breakBlock) {
-      TRACE_EXIT( logger, "InPort::getPacket"  );
+      TRACE_EXIT( logger );
       return NULL;
     }
     if (workQueue.size() == 0) {
       if (timeout == 0.0) {
-	TRACE_EXIT( logger, "InPort::getPacket"  );
+	TRACE_EXIT( logger );
 	return NULL;
       } else if (timeout > 0){
 
@@ -357,12 +357,12 @@ namespace  bulkio {
 	LOG_DEBUG( logger, "bulkio.InPort getPacket PORT:" << name << " TIMED WAIT:" << timeout);
 	UNIQUE_LOCK lock(dataAvailableMutex);
 	if ( dataAvailable.timed_wait( lock, to_time) == false ) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
 
 	if (breakBlock) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
       } else {
@@ -370,7 +370,7 @@ namespace  bulkio {
 	UNIQUE_LOCK lock(dataAvailableMutex);
 	dataAvailable.wait(lock);
 	if (breakBlock) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
       }
@@ -407,7 +407,7 @@ namespace  bulkio {
       queueSem->decr();
     }
 
-    TRACE_EXIT( logger, "InPort::getPacket"  );
+    TRACE_EXIT( logger );
     return tmp;
   }
 
@@ -415,9 +415,9 @@ namespace  bulkio {
   template < typename PortTraits >
   typename InPort< PortTraits >::DataTransferType * InPort< PortTraits >::getPacket(float timeout, std::string &streamID )
   {
-    TRACE_ENTER( logger, "InPort::getPacket"  );
+    TRACE_ENTER( logger );
     if (breakBlock) {
-      TRACE_EXIT( logger, "InPort::getPacket"  );
+      TRACE_EXIT( logger );
       return NULL;
     }
 
@@ -425,7 +425,7 @@ namespace  bulkio {
 
       if (timeout == 0.0) {
 	lastQueueSize  = workQueue.size();
-	TRACE_EXIT( logger, "InPort::getPacket"  );
+	TRACE_EXIT( logger );
 	return NULL;
       } else if (timeout > 0){
 
@@ -435,7 +435,7 @@ namespace  bulkio {
 	boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
 	UNIQUE_LOCK lock(dataAvailableMutex);
 	if ( dataAvailable.timed_wait( lock, to_time) == false ) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
 
@@ -447,7 +447,7 @@ namespace  bulkio {
 	UNIQUE_LOCK lock(dataAvailableMutex);
 	dataAvailable.wait(lock);
 	if (breakBlock) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
       }
@@ -473,7 +473,7 @@ namespace  bulkio {
     LOG_TRACE( logger, "bulkio.InPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
 
     if ( tmp == NULL ) {
-      TRACE_EXIT( logger, "InPort::getPacket"  );
+      TRACE_EXIT( logger );
       lastQueueSize = workQueue.size();
       return NULL;
     }
@@ -506,7 +506,7 @@ namespace  bulkio {
       queueSem->decr();
     }
 
-    TRACE_EXIT( logger, "InPort::getPacket"  );
+    TRACE_EXIT( logger );
     lastQueueSize = 0;
     return tmp;
   }
@@ -608,7 +608,7 @@ namespace  bulkio {
   template < typename PortTraits >
   InStringPort< PortTraits >::~InStringPort()
   {
-    TRACE_ENTER( logger, "InStringPort::DTOR"  );
+    TRACE_ENTER( logger );
 
     // block any data coming out of getPacket.. we should be ok at this point but just incase
     block();
@@ -627,7 +627,7 @@ namespace  bulkio {
 
     if ( stats ) delete stats;
 
-    TRACE_EXIT( logger, "InStringPort::DTOR"  );
+    TRACE_EXIT( logger );
   }
 
 
@@ -700,7 +700,7 @@ namespace  bulkio {
   template < typename PortTraits >
   void InStringPort< PortTraits >::pushSRI(const BULKIO::StreamSRI& H)
   {
-    TRACE_ENTER( logger, "InStringPort::pushSRI"  );
+    TRACE_ENTER( logger );
 
     SCOPED_LOCK lock(sriUpdateLock);
     BULKIO::StreamSRI tmpH = H;
@@ -725,16 +725,16 @@ namespace  bulkio {
       }
     }
 
-    TRACE_EXIT( logger, "InStringPort::pushSRI"  );
+    TRACE_EXIT( logger );
   }
 
   template < typename PortTraits >
   void  InStringPort< PortTraits >::pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
-    TRACE_ENTER( logger, "InStringPort::pushPacket"  );
+    TRACE_ENTER( logger );
 
     if (queueSem->getMaxValue() == 0) {
-      TRACE_EXIT( logger, "InStringPort::pushPacket"  );
+      TRACE_EXIT( logger );
       return;
     }
     BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, false, 0};
@@ -789,17 +789,17 @@ namespace  bulkio {
       dataAvailable.notify_all();
     }
     
-    TRACE_EXIT( logger, "InStringPort::pushPacket"  );
+    TRACE_EXIT( logger );
   }
 
 
   template < typename PortTraits >
   void  InStringPort< PortTraits >::pushPacket(const char *data, CORBA::Boolean EOS, const char* streamID)
   {
-    TRACE_ENTER( logger, "InStringPort::pushPacket"  );
+    TRACE_ENTER( logger );
 
     if (queueSem->getMaxValue() == 0) {
-      TRACE_EXIT( logger, "InStringPort::pushPacket"  );
+      TRACE_EXIT( logger );
       return;
     }
     BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, false, 0};
@@ -854,7 +854,7 @@ namespace  bulkio {
       stats->update( _getElementLength(data), (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       dataAvailable.notify_all();
     }
-    TRACE_EXIT( logger, "InStringPort::pushPacket"  );
+    TRACE_EXIT( logger );
   }
 
 
@@ -911,15 +911,15 @@ namespace  bulkio {
   template < typename PortTraits >
   typename InStringPort< PortTraits >::DataTransferType * InStringPort< PortTraits >::getPacket(float timeout)
   {
-    TRACE_ENTER( logger, "InStringPort::getPacket"  );
+    TRACE_ENTER( logger );
 
     if (breakBlock) {
-      TRACE_EXIT( logger, "InStringPort::getPacket"  );
+      TRACE_EXIT( logger );
       return NULL;
     }
     if (workQueue.size() == 0) {
       if (timeout == 0.0) {
-	TRACE_EXIT( logger, "InStringPort::getPacket"  );
+	TRACE_EXIT( logger );
 	return NULL;
       } else if (timeout > 0){
 
@@ -929,19 +929,19 @@ namespace  bulkio {
 	boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
 	UNIQUE_LOCK lock(dataAvailableMutex);
 	if ( dataAvailable.timed_wait( lock, to_time) == false ) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
 
 	if (breakBlock) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
       } else {
 	UNIQUE_LOCK lock(dataAvailableMutex);
 	dataAvailable.wait(lock);
 	if (breakBlock) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
       }
@@ -979,7 +979,7 @@ namespace  bulkio {
       queueSem->decr();
     }
 
-    TRACE_EXIT( logger, "InStringPort::getPacket"  );
+    TRACE_EXIT( logger );
     return tmp;
   }
 
@@ -996,10 +996,10 @@ namespace  bulkio {
   template < typename PortTraits >
   typename InStringPort< PortTraits >::DataTransferType * InStringPort< PortTraits >::getPacket(float timeout, std::string &streamID )
   {
-    TRACE_ENTER( logger, "InStringPort::getPacket"  );
+    TRACE_ENTER( logger );
 
     if (breakBlock) {
-      TRACE_EXIT( logger, "InStringPort::getPacket"  );
+      TRACE_EXIT( logger );
       return NULL;
     }
 
@@ -1008,7 +1008,7 @@ namespace  bulkio {
 
       if (timeout == 0.0) {
 	lastQueueSize  = workQueue.size();
-	TRACE_EXIT( logger, "InStringPort::getPacket"  );
+	TRACE_EXIT( logger );
 	return NULL;
       } else if (timeout > 0){
 
@@ -1018,19 +1018,19 @@ namespace  bulkio {
 	boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
 	UNIQUE_LOCK lock(dataAvailableMutex);
 	if ( dataAvailable.timed_wait( lock, to_time) == false ) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
 
 	if (breakBlock) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
       } else {
 	UNIQUE_LOCK lock(dataAvailableMutex);
 	dataAvailable.wait(lock);
 	if (breakBlock) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
+	  TRACE_EXIT( logger );
 	  return NULL;
 	}
       }
@@ -1057,7 +1057,7 @@ namespace  bulkio {
     LOG_TRACE( logger, "bulkio.InStringPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
     if ( tmp == NULL ) {
       lastQueueSize = workQueue.size();
-      TRACE_EXIT( logger, "InStringPort::getPacket"  );
+      TRACE_EXIT( logger );
       return NULL;
     }
 
@@ -1089,7 +1089,7 @@ namespace  bulkio {
       queueSem->decr();
     }
 
-    TRACE_EXIT( logger, "InStringPort::getPacket"  );
+    TRACE_EXIT( logger );
     lastQueueSize = 0;
     return tmp;
   }

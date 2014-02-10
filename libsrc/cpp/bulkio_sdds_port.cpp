@@ -30,10 +30,10 @@ namespace  bulkio {
 			 bulkio::sri::Compare  sriCmp,
 			 bulkio::time::Compare timeCmp):
     Port_Provides_base_impl(port_name),
-    attach_detach_callback(attach_detach_cb),
+    sriChanged(false),
     sri_cmp(sriCmp),
     time_cmp(timeCmp),
-    sriChanged(false)
+    attach_detach_callback(attach_detach_cb)
   {
     stats = new linkStatistics(port_name);
   }
@@ -45,10 +45,10 @@ namespace  bulkio {
 			 bulkio::sri::Compare  sriCmp,
 			 bulkio::time::Compare timeCmp):
     Port_Provides_base_impl(port_name),
-    attach_detach_callback(attach_detach_cb),
+    sriChanged(false),
     sri_cmp(sriCmp),
     time_cmp(timeCmp),
-    sriChanged(false),
+    attach_detach_callback(attach_detach_cb),
     logger(logger)
   {
     stats = new linkStatistics(port_name);
@@ -134,7 +134,7 @@ namespace  bulkio {
 
   void InSDDSPort::pushSRI(const BULKIO::StreamSRI& H, const BULKIO::PrecisionUTCTime& T)
   {
-    TRACE_ENTER(logger, "InSDDSPort::pushSRI" );
+    TRACE_ENTER(logger );
 
     boost::mutex::scoped_lock lock(sriUpdateLock);
     bool foundSRI = false;
@@ -167,7 +167,7 @@ namespace  bulkio {
       (*sriIter).second = std::make_pair(H, T);
     }
 
-    TRACE_EXIT(logger, "InSDDSPort::pushSRI" );
+    TRACE_EXIT(logger );
   }
 
 
@@ -180,7 +180,7 @@ namespace  bulkio {
     throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError)
   {
 
-    TRACE_ENTER(logger, "InSDDSPort::attach" );
+    TRACE_ENTER(logger );
 
     LOG_DEBUG( logger, "SDDS PORT: ATTACH REQUEST, STREAM/USER: " << stream.id <<  "/" << userid );
 
@@ -206,14 +206,14 @@ namespace  bulkio {
     LOG_DEBUG( logger, "SDDS PORT, ATTACH COMPLETED, ID:" << attachId << 
 	       " STREAM/USER" << stream.id <<  "/" << userid );
 
-    TRACE_EXIT(logger, "InSDDSPort::attach" );
+    TRACE_EXIT(logger );
     return CORBA::string_dup(attachId.c_str());
   }
 
 
   void InSDDSPort::detach(const char* attachId)
   {
-    TRACE_ENTER(logger, "InSDDSPort::detach" );
+    TRACE_ENTER(logger );
     LOG_DEBUG( logger, "SDDS PORT: DETACH REQUESTED,  ID:" << attachId   );
     if ( attach_detach_callback )  {
 
@@ -244,7 +244,7 @@ namespace  bulkio {
 
     LOG_DEBUG( logger, "SDDS PORT: DETACH SUCCESS,  ID:" << attachId  );
 
-    TRACE_EXIT(logger, "InSDDSPort::detach" );
+    TRACE_EXIT(logger );
 
   }
 
@@ -432,7 +432,7 @@ namespace  bulkio {
 
   void  OutSDDSPort::connectPort(CORBA::Object_ptr connection, const char* connectionId)
   {
-    TRACE_ENTER(logger, "OutSDDSPort::connectPort" );
+    TRACE_ENTER(logger );
 
     {
       boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
@@ -459,7 +459,7 @@ namespace  bulkio {
 
     if ( _connectCB ) (*_connectCB)(connectionId);
 
-    TRACE_EXIT(logger, "OutSDDSPort::connectPort" );
+    TRACE_EXIT(logger );
   }
 
   void  OutSDDSPort::disconnectPort(const char* connectionId)
@@ -574,7 +574,7 @@ namespace  bulkio {
   char* OutSDDSPort::attach(const BULKIO::SDDSStreamDefinition& stream, const char* userid) 
     throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError)
   {
-    TRACE_ENTER(logger, "OutSDDSPort::attach" );
+    TRACE_ENTER(logger );
 
     boost::mutex::scoped_lock lock(updatingPortsLock);
     std::string attachId;
@@ -610,13 +610,13 @@ namespace  bulkio {
     LOG_DEBUG(logger, "SDDS PORT: ATTACH COMPLETD ID:" << attachId << " NAME(user-id):" << user_id );
     
 
-    TRACE_EXIT(logger, "OutSDDSPort::attach" );
+    TRACE_EXIT(logger );
     return CORBA::string_dup(attachId.c_str());
   }
 
   void OutSDDSPort::detach(const char* attachId, const char* connectionId)
   {
-    TRACE_ENTER(logger, "OutSDDSPort::detach" );
+    TRACE_ENTER(logger );
     boost::mutex::scoped_lock lock(updatingPortsLock);
     Connections::iterator portIter = outConnections.begin();
     AttachedPorts::iterator portIter2;
@@ -634,13 +634,13 @@ namespace  bulkio {
       }
       portIter++;
     }
-    TRACE_EXIT(logger, "OutSDDSPort::detach" );
+    TRACE_EXIT(logger );
   }
 
 
   void OutSDDSPort::detach(const char* attachId )
   {
-    TRACE_ENTER(logger, "OutSDDSPort::detach" );
+    TRACE_ENTER(logger );
     boost::mutex::scoped_lock lock(updatingPortsLock);
     AttachedPorts::iterator port = attachedPorts.begin();
 
@@ -654,7 +654,7 @@ namespace  bulkio {
       }
       port++;
     }
-    TRACE_EXIT(logger, "OutSDDSPort::detach" );
+    TRACE_EXIT(logger );
   }
 
   /*
@@ -683,7 +683,7 @@ namespace  bulkio {
    */
   void OutSDDSPort::pushSRI(const BULKIO::StreamSRI& H, const BULKIO::PrecisionUTCTime& T)
   {
-    TRACE_ENTER(logger, "OutSDDSPort::pushSRI" );
+    TRACE_ENTER(logger );
 
     boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
 
@@ -701,7 +701,7 @@ namespace  bulkio {
     currentSRIs[std::string(H.streamID)] = std::make_pair(H, T);
     refreshSRI = false;
 
-    TRACE_EXIT(logger, "OutSDDSPort::pushSRI" );
+    TRACE_EXIT(logger );
     return;
   }
 
