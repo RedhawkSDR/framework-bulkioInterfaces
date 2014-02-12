@@ -19,7 +19,7 @@
 #
 
 AC_INIT(bulkioInterfaces, 1.10.0)
-AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [2:0:0])
+AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [3:0:1])
 
 AM_INIT_AUTOMAKE(nostdinc)
 AC_PROG_CC
@@ -41,7 +41,7 @@ if test "$IDL" = no; then
   AC_MSG_ERROR([cannot find omniidl program])
 fi
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([OSSIE], [ossie >= 1.8.0])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 1.9.0])
 
 # Optionally include BULKIO base class libraries
 AC_ARG_ENABLE([base-classes], AS_HELP_STRING([--disable-base-classes], [Disable BULKIO base class libraries]))
@@ -49,7 +49,7 @@ AM_CONDITIONAL([BUILD_BASE_CLASSES], [test "$enable_base_classes" != "no"])
 
 if test "$enable_base_classes" != "no"; then
   AC_SUBST([BULKIO_SO_VERSION], [0:0:0])
-  AC_SUBST([BULKIO_API_VERSION], [1.0])
+  AC_SUBST([BULKIO_API_VERSION], [1.10])
 
   AX_BOOST_BASE([1.41])
   AX_BOOST_THREAD

@@ -73,12 +73,12 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %{_includedir}/bulkio
 %{_includedir}/ossie/BULKIO
 %{_libdir}/libbulkioInterfaces.*
-%{_libdir}/libbulkio-1.0.*
+%{_libdir}/libbulkio-*
 %{_libdir}/pkgconfig/bulkio.pc
 %{_libdir}/pkgconfig/bulkioInterfaces.pc
 %{_prefix}/lib/python/bulkio
 %if 0%{?rhel} >= 6
-%{_prefix}/lib/python/bulkio-1.0.0-py%{python_version}.egg-info
+%{_prefix}/lib/python/bulkio-%{version}-py%{python_version}.egg-info
 %{_prefix}/lib/python/bulkioInterfaces-%{version}-py%{python_version}.egg-info
 %endif
 %if %{with java}
