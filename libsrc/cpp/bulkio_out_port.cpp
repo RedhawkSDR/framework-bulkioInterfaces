@@ -122,14 +122,14 @@ namespace  bulkio {
         }
       }
       for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-        bool connectionListed = false;
+        bool portListed = false;
         for (ftPtr=filterTable.begin(); ftPtr!= filterTable.end(); ftPtr++) {
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == i->second)) {
-            connectionListed = true;
+            portListed = true;
             break;
           }
         }
-        if (!connectionListed) {
+        if (!portListed) {
           try {
             i->first->pushSRI(H);
           } catch(...) {
@@ -227,7 +227,7 @@ namespace  bulkio {
         for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
             if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
             try {
-              port->first->pushPacket(seq, T, EOS, streamID.c_str());
+                port->first->pushPacket(seq, T, EOS, streamID.c_str());
               stats[(*port).second].update(data.size(), 0, EOS, streamID);
             } catch(...) {
               LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
@@ -236,13 +236,13 @@ namespace  bulkio {
         }
       }
       for (port = outConnections.begin(); port != outConnections.end(); port++) {
-        bool connectionListed = false;
+        bool portListed = false;
         for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second)) {
-            connectionListed = true;
+          if (ftPtr->port_name == this->name) {
+              portListed = true;
           }
         }
-        if (!connectionListed) {
+        if (!portListed) {
           try {
               port->first->pushPacket(seq, T, EOS, streamID.c_str());
           } catch(...) {
@@ -371,13 +371,13 @@ namespace  bulkio {
           }
         }
         for (port = outConnections.begin(); port != outConnections.end(); port++) {
-          bool connectionListed = false;
+          bool portListed = false;
           for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
-            if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second)) {
-                connectionListed = true;
+            if (ftPtr->port_name == this->name) {
+                portListed = true;
             }
           }
-          if (!connectionListed) {
+          if (!portListed) {
             try {
                 port->first->pushPacket(seq, T, EOS, streamID.c_str());
             } catch(...) {
