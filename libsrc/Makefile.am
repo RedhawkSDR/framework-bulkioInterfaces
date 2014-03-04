@@ -122,13 +122,16 @@ OutULongLongPort.java \
 OutULongPort.java \
 OutUShortPort.java \
 OutXMLPort.java \
+connection_descriptor_struct.java \
 queueSemaphore.java \
 SizeOf.java \
 SriListener.java \
 ConnectionEventListener.java \
 sriState.java \
+utils.java \
 sri/Comparator.java \
 sri/DefaultComparator.java \
+sri/utils.java \
 time/Comparator.java \
 time/DefaultComparator.java \
 time/utils.java

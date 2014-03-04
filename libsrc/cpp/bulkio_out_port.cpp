@@ -40,6 +40,7 @@ namespace  bulkio {
 
 
     recConnectionsRefresh = false;
+    refreshSRI = true;
     recConnections.length(0);
 
     LOG_DEBUG( logger, "bulkio::OutPort::CTOR port:" << name );
@@ -109,10 +110,17 @@ namespace  bulkio {
     SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
 
     if (active) {
+      bool portListed = false;
       std::vector<connection_descriptor_struct >::iterator ftPtr;
       for (i = outConnections.begin(); i != outConnections.end(); ++i) {
         for (ftPtr=filterTable.begin(); ftPtr!= filterTable.end(); ftPtr++) {
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == i->second) and (strcmp(ftPtr->stream_id.c_str(),H.streamID))){
+
+          if (ftPtr->port_name == this->name) portListed=true;
+
+          if ( (ftPtr->port_name == this->name) and 
+	       (ftPtr->connection_name == i->second) and 
+	       (strcmp(ftPtr->stream_id.c_str(),H.streamID) == 0 ) ){
+	    LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << ftPtr->connection_name << " SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
             try {
               i->first->pushSRI(H);
             } catch(...) {
@@ -121,21 +129,16 @@ namespace  bulkio {
           }
         }
       }
-      for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-        bool portListed = false;
-        for (ftPtr=filterTable.begin(); ftPtr!= filterTable.end(); ftPtr++) {
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == i->second)) {
-            portListed = true;
-            break;
-          }
-        }
-        if (!portListed) {
-          try {
-            i->first->pushSRI(H);
-          } catch(...) {
-            LOG_ERROR( logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << i->second );
-          }
-        }
+
+      if (!portListed) {
+	for (i = outConnections.begin(); i != outConnections.end(); ++i) {
+	  LOG_DEBUG(logger,"pushSRI -2- PORT:" << name << " CONNECTION:" << ftPtr->connection_name << " SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
+	  try {
+	    i->first->pushSRI(H);
+	  } catch(...) {
+	    LOG_ERROR( logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << i->second );
+	  }
+	}
       }
     }
 
@@ -154,112 +157,46 @@ namespace  bulkio {
    */
   template < typename PortTraits >
   void OutPort< PortTraits>::_pushOversizedPacket(
-          NativeSequenceType &      data,
+          const DataBufferType &      data,
           BULKIO::PrecisionUTCTime& T,
           bool                      EOS,
-          const std::string&        streamID){
-
-      // If there is no data to break into smaller packets, skip
-      // straight to the pushPacket call and return.
-      if (data.size() == 0) {
-          _pushPacket(data, T, EOS, streamID);
-          return;
-      }
-
+          const std::string&        streamID)
+  {
       // Multiply by some number < 1 to leave some margin for the CORBA header
-      size_t maxPayloadSize    = (size_t) (bulkio::Const::MAX_TRANSFER_BYTES * .9);
+      const size_t maxPayloadSize    = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
 
-      size_t numSamplesPerPush = maxPayloadSize/sizeof(data.front());
+      const size_t maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
+      
+      // Use const alias to point to the start of the current sub-packet's data
+      const TransportType* buffer = static_cast<const TransportType*>(&data[0]);
 
-      // Determine how many sub-packets to send.
-      size_t numFullPackets    = data.size()/numSamplesPerPush;
-      size_t lenOfLastPacket   = data.size()%numSamplesPerPush;
+      // Always do at least one push (may be empty), ensuring that all samples
+      // are pushed
+      size_t samplesRemaining = data.size();
+      do {
+          // Don't send more samples than are remaining
+          const size_t pushSize = std::min(samplesRemaining, maxSamplesPerPush);
+          samplesRemaining -= pushSize;
 
-      // Send all of the sub-packets of length numSamplesPerPush.
-      // Always send EOS false, (the EOS of the parent packet will be sent
-      // with the last sub-packet).
-      bool intermediateEOS = false;
-      unsigned int rowNum;
-      for (rowNum = 0; rowNum < numFullPackets; rowNum++) {
-          if ( (rowNum == numFullPackets -1) && (lenOfLastPacket == 0)) {
-              // This is the last sub-packet.
-              intermediateEOS = EOS;
+          // Send end-of-stream as false for all sub-packets except for the
+          // last one (when there are no samples remaining after this push),
+          // which gets the input EOS.
+          bool packetEOS = false;
+          if (samplesRemaining == 0) {
+              packetEOS = EOS;
           }
 
-          NativeSequenceType  subPacket(
-              data.begin() + rowNum*numSamplesPerPush,
-              data.begin() + rowNum*numSamplesPerPush + numSamplesPerPush);
+          // Wrap a non-owning CORBA sequence (last argument is whether to free
+          // the buffer on destruction) around this sub-packet's data
+          const PortSequenceType subPacket(pushSize, pushSize, const_cast<TransportType*>(buffer), false);
+          _pushPacket(subPacket, T, packetEOS, streamID);
 
-          _pushPacket(subPacket, T, intermediateEOS, streamID);
-      }
-
-      if (lenOfLastPacket != 0) {
-          // Send the last sub-packet, whose length is less than
-          // numSamplesPerPush.  Note that the EOS of the master packet is
-          // sent with the last sub-packet.
-          NativeSequenceType subPacket(
-              data.begin() + numFullPackets*numSamplesPerPush,
-              data.begin() + numFullPackets*numSamplesPerPush + lenOfLastPacket);
-          _pushPacket(subPacket, T, EOS, streamID);
-      }
+          // Advance buffer to next sub-packet boundary
+          buffer += pushSize;
+      } while (samplesRemaining > 0);
   }
 
 
-  template < typename PortTraits >
-    void OutPort< PortTraits >::_pushPacket(
-            NativeSequenceType &      data,
-            BULKIO::PrecisionUTCTime& T,
-            bool                      EOS,
-            const std::string&        streamID) {
-
-      // Make a new sequence using the data from the Iterator
-      // as the data for the sequence.  The 'false' at the end is whether or not
-      // CORBA is allowed to delete the buffer when the sequence is destroyed.
-      PortSequenceType seq = PortSequenceType(
-              data.size(),
-              data.size(),
-              (TransportType *)&(data[0]),
-              false);
-      if (active) {
-      typename  ConnectionsList::iterator port;
-      std::vector<connection_descriptor_struct >::iterator ftPtr;
-      for (port = outConnections.begin(); port != outConnections.end(); port++) {
-        for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
-            if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
-            try {
-                port->first->pushPacket(seq, T, EOS, streamID.c_str());
-              stats[(*port).second].update(data.size(), 0, EOS, streamID);
-            } catch(...) {
-              LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
-            }
-          }
-        }
-      }
-      for (port = outConnections.begin(); port != outConnections.end(); port++) {
-        bool portListed = false;
-        for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
-          if (ftPtr->port_name == this->name) {
-              portListed = true;
-          }
-        }
-        if (!portListed) {
-          try {
-              port->first->pushPacket(seq, T, EOS, streamID.c_str());
-          } catch(...) {
-              LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
-          }
-        }
-      }
-
-
-      // if we have end of stream removed old sri
-      try {
-        if ( EOS ) currentSRIs.erase(streamID);
-      }
-      catch(...){
-      }
-    }
-  }
   template < typename PortTraits >
   void OutPort< PortTraits >::pushPacket(
           NativeSequenceType &      data,
@@ -271,7 +208,11 @@ namespace  bulkio {
 
     if (refreshSRI) {
       if (currentSRIs.find(streamID) != currentSRIs.end()) {
-        pushSRI(currentSRIs[streamID].first);
+          pushSRI(currentSRIs[streamID].first);
+      } else {
+          BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
+          currentSRIs[std::string(tmpH.streamID)] = std::make_pair(tmpH,false) ;
+          pushSRI(currentSRIs[streamID].first);
       }
     }
 
@@ -282,106 +223,40 @@ namespace  bulkio {
     TRACE_EXIT(logger, "OutPort::pushPacket" );
   }
 
-  /**
-   * Push a packet whose payload cannot fit within the CORBA limit.
-   * The packet is broken down into sub-packets and sent via multiple pushPacket
-   * calls.  The EOS is set to false for all of the sub-packets, except for
-   * the last sub-packet, who uses the input EOS argument.
-   */
-  template < typename PortTraits >
-  void OutPort< PortTraits>::_pushOversizedPacket(
-          const DataBufferType &    data,
-          BULKIO::PrecisionUTCTime& T,
-          bool                      EOS,
-          const std::string&        streamID){
-
-      // If there is no data to break into smaller packets, skip
-      // straight to the pushPacket call and return.
-      if (data.size() == 0) {
-          _pushPacket(data, T, EOS, streamID);
-          return;
-
-      // Multiply by some number < 1 to leave some margin for the CORBA header
-      size_t maxPayloadSize    = (size_t) (bulkio::Const::MAX_TRANSFER_BYTES * .9);
-      size_t numSamplesPerPush = maxPayloadSize/sizeof(data.front());
-
-      // Determine how many sub-packets to send.
-      size_t numFullPackets    = data.size()/numSamplesPerPush;
-      size_t lenOfLastPacket   = data.size()%numSamplesPerPush;
-
-      // Send all of the sub-packets of length numSamplesPerPush.
-      // Always send EOS false, (the EOS of the parent packet will be sent
-      // with the last sub-packet).
-      bool intermediateEOS = false;
-      unsigned int rowNum;
-      for (rowNum = 0; rowNum < numFullPackets; rowNum++) {
-          if ( (rowNum == numFullPackets -1) && (lenOfLastPacket == 0)) {
-              // This is the last sub-packet.
-              intermediateEOS = EOS;
-          }
-
-          DataBufferType  subPacket(
-              data.begin() + rowNum*numSamplesPerPush,
-              data.begin() + rowNum*numSamplesPerPush + numSamplesPerPush);
-
-          _pushPacket(subPacket, T, intermediateEOS, streamID);
-      }
-
-      if (lenOfLastPacket != 0) {
-          // Send the last sub-packet, whose length is less than
-          // numSamplesPerPush.  Note that the EOS of the master packet is
-          // sent with the last sub-packet.
-          DataBufferType subPacket(
-              data.begin() + numFullPackets*numSamplesPerPush,
-              data.begin() + numFullPackets*numSamplesPerPush + lenOfLastPacket);
-
-          _pushPacket(subPacket, T, EOS, streamID);
-      }
-    }
-  }
-
-
   template < typename PortTraits >
   void OutPort< PortTraits >::_pushPacket(
-          const DataBufferType &    data,
+          const PortSequenceType &    data,
           BULKIO::PrecisionUTCTime& T,
           bool                      EOS,
           const std::string&        streamID) {
-      // Make a new sequence using the data from the Iterator
-      // as the data for the sequence.  The 'false' at the end is whether or not
-      // CORBA is allowed to delete the buffer when the sequence is destroyed.
-      PortSequenceType seq = PortSequenceType(
-              data.size(),
-              data.size(),
-              (TransportType *)&(data[0]),
-              false);
       typename  ConnectionsList::iterator port;
       if (active) {
+	bool portListed = false;
         std::vector<connection_descriptor_struct >::iterator ftPtr;
         for (port = outConnections.begin(); port != outConnections.end(); port++) {
           for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
-            if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+
+	    if  (ftPtr->port_name == this->name) portListed = true;
+
+	    if ( (ftPtr->port_name == this->name) and 
+		 (ftPtr->connection_name == port->second) and 
+		 (ftPtr->stream_id == streamID) ){
               try {
-                port->first->pushPacket(seq, T, EOS, streamID.c_str());
-                stats[(*port).second].update(data.size(), 0, EOS, streamID);
+		port->first->pushPacket(data, T, EOS, streamID.c_str());
+                stats[port->second].update(data.length(), 0, EOS, streamID);
               } catch(...) {
                 LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
               }
             }
           }
         }
-        for (port = outConnections.begin(); port != outConnections.end(); port++) {
-          bool portListed = false;
-          for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
-            if (ftPtr->port_name == this->name) {
-                portListed = true;
-            }
-          }
-          if (!portListed) {
+	if (!portListed) {
+	  for (port = outConnections.begin(); port != outConnections.end(); port++) {
             try {
-                port->first->pushPacket(seq, T, EOS, streamID.c_str());
+	      port->first->pushPacket(data, T, EOS, streamID.c_str());
+	      stats[port->second].update(data.length(), 0, EOS, streamID);
             } catch(...) {
-                LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
+	      LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
             }
           }
         }
@@ -407,6 +282,10 @@ namespace  bulkio {
     if (refreshSRI) {
       if (currentSRIs.find(streamID) != currentSRIs.end()) {
         pushSRI(currentSRIs[streamID].first);
+      } else {
+          BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
+          currentSRIs[std::string(tmpH.streamID)] = std::make_pair(tmpH,false) ;
+          pushSRI(currentSRIs[streamID].first);
       }
     }
 
@@ -505,8 +384,39 @@ namespace  bulkio {
     TRACE_ENTER(logger, "OutPort::disconnectPort" );
     {
       SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
+      bool portListed = false;
+      std::vector<connection_descriptor_struct >::iterator ftPtr;
+      for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+        if (ftPtr->port_name == this->name) {
+          portListed = true;
+          break;
+        }
+      }
       for (unsigned int i = 0; i < outConnections.size(); i++) {
         if (outConnections[i].second == connectionId) {
+          PortSequenceType seq;
+          SriMap::iterator cSRIs = currentSRIs.begin();
+          BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
+          // send an EOS for every connection that's listed on the connection table
+          for (SriMap::iterator cSRIs=currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
+            std::string cSriSid = ossie::corba::returnString(cSRIs->second.first.streamID);
+            StreamIDList aSIDs = stats[outConnections[i].second].getActiveStreamIDs();
+            for (StreamIDList::iterator aSID=aSIDs.begin(); aSID!=aSIDs.end(); aSID++) {
+              if (cSriSid == (*aSID)) {
+                if (portListed) {
+                  for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
+                      try {
+                        outConnections[i].first->pushPacket(seq, tstamp, true, cSriSid.c_str());
+                      } catch(...) {}
+                    }
+                  }
+                } else {
+                  outConnections[i].first->pushPacket(seq, tstamp, true, cSriSid.c_str());
+                }
+              }
+            }
+          }
           LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
           outConnections.erase(outConnections.begin() + i);
           stats.erase( outConnections[i].second );
@@ -564,7 +474,6 @@ namespace  bulkio {
 
   }
 
-
   template <typename PortTraits>
   void OutInt8Port< PortTraits >::pushPacket( std::vector< Int8 >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
@@ -581,17 +490,38 @@ namespace  bulkio {
     // CORBA is allowed to delete the buffer when the sequence is destroyed.
     PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
     if (this->active) {
+      bool portListed = false;
       typename  OutInt8Port::ConnectionsList::iterator port;
+      std::vector<connection_descriptor_struct >::iterator ftPtr;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
-        try {
-          port->first->pushPacket(seq, T, EOS, streamID.c_str());
-          if ( this->stats.count((*port).second) == 0 ) {
-            this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
-          }
+        for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
 
-          this->stats[(*port).second].update(data.size(), 0, 0, streamID);
-        } catch(...) {
-          LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+          if (ftPtr->port_name == this->name)  portListed = true;
+
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+            try {
+              port->first->pushPacket(seq, T, EOS, streamID.c_str());
+              if ( this->stats.count((*port).second) == 0 ) {
+                this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
+              }
+              this->stats[(*port).second].update(data.size(), 0, 0, streamID);
+            } catch(...) {
+              LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+            }
+          }
+        }
+      }
+      if (!portListed) {
+	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+          try {
+            port->first->pushPacket(seq, T, EOS, streamID.c_str());
+            if ( this->stats.count((*port).second) == 0 ) {
+              this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
+            }
+            this->stats[(*port).second].update(data.size(), 0, 0, streamID);
+          } catch(...) {
+            LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+          }
         }
       }
     }
@@ -624,17 +554,38 @@ namespace  bulkio {
     // CORBA is allowed to delete the buffer when the sequence is destroyed.
     PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
     if (this->active) {
+      bool portListed = false;
       typename  OutInt8Port::ConnectionsList::iterator port;
+      std::vector<connection_descriptor_struct >::iterator ftPtr;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
-        try {
-          port->first->pushPacket(seq, T, EOS, streamID.c_str());
-          if ( this->stats.count((*port).second) == 0 ) {
-            this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
-          }
+        for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
 
-          this->stats[(*port).second].update(data.size(), 0, 0, streamID);
-        } catch(...) {
-          LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+          if (ftPtr->port_name == this->name) portListed = true;
+
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+            try {
+              port->first->pushPacket(seq, T, EOS, streamID.c_str());
+              if ( this->stats.count((*port).second) == 0 ) {
+                this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
+              }
+              this->stats[(*port).second].update(data.size(), 0, 0, streamID);
+            } catch(...) {
+              LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+            }
+          }
+        }
+      }
+      if (!portListed) {
+	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+          try {
+            port->first->pushPacket(seq, T, EOS, streamID.c_str());
+            if ( this->stats.count((*port).second) == 0 ) {
+              this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
+            }
+            this->stats[(*port).second].update(data.size(), 0, 0, streamID);
+          } catch(...) {
+            LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+          }
         }
       }
     }
@@ -673,6 +624,64 @@ namespace  bulkio {
   }
 
 
+  template < typename PortTraits >
+  void OutStringPort< PortTraits >::disconnectPort(const char* connectionId)
+  {
+    TRACE_ENTER(this->logger, "OutStringPort::disconnectPort" );
+    {
+        SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+        std::vector<connection_descriptor_struct >::iterator ftPtr;
+        bool portListed = false;
+        for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+            if (ftPtr->port_name == this->name) {
+                portListed = true;
+                break;
+            }
+        }
+        for (unsigned int i = 0; i < this->outConnections.size(); i++) {
+            if (this->outConnections[i].second == connectionId) {
+                std::string data("");
+                SriMap::iterator cSRIs = this->currentSRIs.begin();
+                BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
+                // send an EOS for every connection that's listed on the connection table
+                for (SriMap::iterator cSRIs=this->currentSRIs.begin(); cSRIs!=this->currentSRIs.end(); cSRIs++) {
+                    std::string cSriSid = ossie::corba::returnString(cSRIs->second.first.streamID);
+                    StreamIDList aSIDs = this->stats[this->outConnections[i].second].getActiveStreamIDs();
+                    for (StreamIDList::iterator aSID=aSIDs.begin(); aSID!=aSIDs.end(); aSID++) {
+                        if (cSriSid == (*aSID)) {
+                            if (portListed) {
+                                for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+                                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == this->outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
+                                        try {
+                                            this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
+                                        } catch(...) {}
+                                    }
+                                }
+                            } else {
+                                try {
+                                    this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
+                                } catch(...) {}
+                            }
+                        }
+                    }
+                }
+                LOG_DEBUG( this->logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
+                this->outConnections.erase(this->outConnections.begin() + i);
+                this->stats.erase( this->outConnections[i].second );
+                break;
+            }
+        }
+
+        if (this->outConnections.size() == 0) {
+            this->active = false;
+        }
+        this->recConnectionsRefresh = true;
+    }
+    if (this->_disconnectCB) (*this->_disconnectCB)(connectionId);
+
+    TRACE_EXIT(this->logger, "OutStringPort::disconnectPort" );
+  }
+
   template <typename PortTraits>
   void OutStringPort< PortTraits >::pushPacket( const char *data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
@@ -686,16 +695,38 @@ namespace  bulkio {
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     if (this->active) {
+      bool portListed = false;
       typename OutPort< PortTraits >::ConnectionsList::iterator port;
+      std::vector<connection_descriptor_struct >::iterator ftPtr;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
-        try {
-          port->first->pushPacket(data, T, EOS, streamID.c_str());
-          if ( this->stats.count((*port).second) == 0 ) {
-            this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(char) ) ) );
+        for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+
+          if (ftPtr->port_name == this->name) portListed=true;
+
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+            try {
+              port->first->pushPacket(data, T, EOS, streamID.c_str());
+              if ( this->stats.count((*port).second) == 0 ) {
+                this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(char) ) ) );
+              }
+              this->stats[(*port).second].update(1, 0, EOS, streamID);
+            } catch(...) {
+              LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+            }
           }
-          this->stats[(*port).second].update(1, 0, EOS, streamID);
-        } catch(...) {
-          LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+        }
+      }
+      if (!portListed) {
+	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+          try {
+            port->first->pushPacket(data, T, EOS, streamID.c_str());
+            if ( this->stats.count((*port).second) == 0 ) {
+              this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(char) ) ) );
+            }
+            this->stats[(*port).second].update(1, 0, EOS, streamID);
+          } catch(...) {
+            LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+          }
         }
       }
     }
@@ -725,17 +756,40 @@ namespace  bulkio {
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     if (this->active) {
+      bool portListed = false;
       typename OutPort< PortTraits >::ConnectionsList::iterator port;
+      std::vector<connection_descriptor_struct >::iterator ftPtr;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
-        try {
-          BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
-          port->first->pushPacket(data, tstamp, EOS, streamID.c_str());
-          if ( this->stats.count((*port).second) == 0 ) {
-            this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(char) ) ) );
+        for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+
+          if (ftPtr->port_name == this->name) portListed = true;
+
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+            try {
+              BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
+              port->first->pushPacket(data, tstamp, EOS, streamID.c_str());
+              if ( this->stats.count((*port).second) == 0 ) {
+                this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(char) ) ) );
+              }
+              this->stats[(*port).second].update(1, 0, EOS, streamID);
+            } catch(...) {
+              LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+            }
           }
-          this->stats[(*port).second].update(1, 0, EOS, streamID);
-        } catch(...) {
-          LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+        }
+      }
+      if (!portListed) {
+	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+          try {
+            BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
+            port->first->pushPacket(data, tstamp, EOS, streamID.c_str());
+            if ( this->stats.count((*port).second) == 0 ) {
+              this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(char) ) ) );
+            }
+            this->stats[(*port).second].update(1, 0, EOS, streamID);
+          } catch(...) {
+            LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+          }
         }
       }
     }
@@ -752,7 +806,111 @@ namespace  bulkio {
   }
 
 
-
+  template <>
+  void OutPort< XMLPortTraits >::disconnectPort(const char* connectionId) {
+      TRACE_ENTER(this->logger, "OutPort::disconnectPort" );
+    {
+        SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+        std::vector<connection_descriptor_struct >::iterator ftPtr;
+        bool portListed = false;
+        for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+            if (ftPtr->port_name == this->name) {
+                portListed = true;
+                break;
+            }
+        }
+        for (unsigned int i = 0; i < this->outConnections.size(); i++) {
+            if (this->outConnections[i].second == connectionId) {
+                std::string data("");
+                SriMap::iterator cSRIs = this->currentSRIs.begin();
+                // send an EOS for every connection that's listed on the connection table
+                for (SriMap::iterator cSRIs=this->currentSRIs.begin(); cSRIs!=this->currentSRIs.end(); cSRIs++) {
+                    std::string cSriSid = ossie::corba::returnString(cSRIs->second.first.streamID);
+                    StreamIDList aSIDs = this->stats[this->outConnections[i].second].getActiveStreamIDs();
+                    for (StreamIDList::iterator aSID=aSIDs.begin(); aSID!=aSIDs.end(); aSID++) {
+                        if (cSriSid == (*aSID)) {
+                            if (portListed) {
+                                for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+                                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
+                                        try {
+                                            outConnections[i].first->pushPacket(data.c_str(), true, cSriSid.c_str());
+                                        } catch(...) {}
+                                    }
+                                }
+                            } else {
+                                try {
+                                    outConnections[i].first->pushPacket(data.c_str(), true, cSriSid.c_str());
+                                } catch(...) {}
+                            }
+                        }
+                    }
+                }
+                LOG_DEBUG( this->logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
+                this->outConnections.erase(this->outConnections.begin() + i);
+                this->stats.erase( this->outConnections[i].second );
+                break;
+            }
+        }
+        
+        if (this->outConnections.size() == 0) {
+            this->active = false;
+        }
+        this->recConnectionsRefresh = true;
+    }
+    if (this->_disconnectCB) (*this->_disconnectCB)(connectionId);
+    
+    TRACE_EXIT(this->logger, "OutStringPort::disconnectPort" );
+  }
+  
+  template <>
+  void OutStringPort< XMLPortTraits >::disconnectPort(const char* connectionId) {
+      OutPort< XMLPortTraits >::disconnectPort(connectionId);
+  }
+  
+  template <>
+  void OutPort< FilePortTraits >::disconnectPort(const char* connectionId) {
+      TRACE_ENTER(this->logger, "OutPort::disconnectPort" );
+      {
+          SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+          BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
+          for (unsigned int i = 0; i < this->outConnections.size(); i++) {
+              if (this->outConnections[i].second == connectionId) {
+                  std::string data("");
+                  SriMap::iterator cSRIs = this->currentSRIs.begin();
+                  // send an EOS for every connection that's listed on the connection table
+                  for (SriMap::iterator cSRIs=this->currentSRIs.begin(); cSRIs!=this->currentSRIs.end(); cSRIs++) {
+                      std::string cSriSid = ossie::corba::returnString(cSRIs->second.first.streamID);
+                      StreamIDList aSIDs = this->stats[this->outConnections[i].second].getActiveStreamIDs();
+                      for (StreamIDList::iterator aSID=aSIDs.begin(); aSID!=aSIDs.end(); aSID++) {
+                          if (cSriSid == (*aSID)) {
+                              try {
+                                  this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
+                              } catch(...) {}
+                          }
+                      }
+                  }
+                  LOG_DEBUG( this->logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
+                  this->outConnections.erase(this->outConnections.begin() + i);
+                  this->stats.erase( this->outConnections[i].second );
+                  break;
+              }
+          }
+          
+          if (this->outConnections.size() == 0) {
+              this->active = false;
+          }
+          this->recConnectionsRefresh = true;
+      }
+      if (this->_disconnectCB) (*this->_disconnectCB)(connectionId);
+      
+      TRACE_EXIT(this->logger, "OutStringPort::disconnectPort" );
+  }
+  
+  template <>
+  void OutStringPort< FilePortTraits >::disconnectPort(const char* connectionId) {
+      OutPort< FilePortTraits >::disconnectPort(connectionId);
+  }
+  
   template <>
   void OutStringPort< XMLPortTraits >::pushPacket( const char *data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
@@ -764,13 +922,33 @@ namespace  bulkio {
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     if (this->active) {
+      bool portListed = false;
       OutPort< XMLPortTraits >::ConnectionsList::iterator port;
+      std::vector<connection_descriptor_struct >::iterator ftPtr;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
-        try {
-          port->first->pushPacket(data, EOS, streamID.c_str());
-          this->stats[(*port).second].update(1, 0, EOS, streamID);
-        } catch(...) {
-          LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+        for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
+
+	  if (ftPtr->port_name == this->name)  portListed = true;
+
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+            try {
+              port->first->pushPacket(data, EOS, streamID.c_str());
+              this->stats[(*port).second].update(1, 0, EOS, streamID);
+            } catch(...) {
+              LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+            }
+          }
+        }
+      }
+      if (!portListed) {
+	for (port = outConnections.begin(); port != outConnections.end(); port++) {
+
+          try {
+            port->first->pushPacket(data, EOS, streamID.c_str());
+            this->stats[(*port).second].update(1, 0, EOS, streamID);
+          } catch(...) {
+            LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
+          }
         }
       }
     }
@@ -797,13 +975,30 @@ namespace  bulkio {
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     if (this->active) {
+      bool portListed = false;
       OutPort< XMLPortTraits >::ConnectionsList::iterator port;
+      std::vector<connection_descriptor_struct >::iterator ftPtr;
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
-        try {
-          port->first->pushPacket(data, EOS, streamID.c_str());
-          this->stats[(*port).second].update(strlen(data), 0, EOS, streamID);
-        } catch(...) {
-          LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+        for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
+	  if (ftPtr->port_name == this->name) portListed = true;
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+            try {
+              port->first->pushPacket(data, EOS, streamID.c_str());
+              this->stats[(*port).second].update(strlen(data), 0, EOS, streamID);
+            } catch(...) {
+              LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
+            }
+          }
+        }
+      }
+      if (!portListed) {
+	for (port = outConnections.begin(); port != outConnections.end(); port++) {
+          try {
+            port->first->pushPacket(data, EOS, streamID.c_str());
+            this->stats[(*port).second].update(strlen(data), 0, EOS, streamID);
+          } catch(...) {
+            LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
+          }
         }
       }
     }

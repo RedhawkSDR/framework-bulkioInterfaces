@@ -12,23 +12,24 @@
 
 #include "bulkio_base.h"
 #include "bulkio_traits.h"
+#include "ossie/CorbaUtils.h"
 
 namespace bulkio {
-    
+
     struct connection_descriptor_struct {
         connection_descriptor_struct ()
         {
         };
-        
+
         static std::string getId() {
             return std::string("connection_descriptor");
         };
-        
+
         std::string connection_name;
         std::string stream_id;
         std::string port_name;
     };
-    
+
   //
   // Callback interface used by BULKIO Ports when connect/disconnect event happens
   //
@@ -375,6 +376,9 @@ namespace bulkio {
 
 
     LOGGER_PTR                                logger;
+    std::vector<connection_descriptor_struct> filterTable;
+    boost::shared_ptr< ConnectionEventListener >    _connectCB;
+    boost::shared_ptr< ConnectionEventListener >    _disconnectCB;
 
   public:
     virtual void   setLogger( LOGGER_PTR newLogger );
@@ -384,29 +388,15 @@ namespace bulkio {
   private:
 
     void _pushOversizedPacket(
-            NativeSequenceType &        data,
-            BULKIO::PrecisionUTCTime&   T,
-            bool                        EOS,
-            const std::string&          streamID);
-    void _pushOversizedPacket(
             const DataBufferType &      data,
             BULKIO::PrecisionUTCTime&   T,
             bool                        EOS,
             const std::string&          streamID);
     void _pushPacket(
-            NativeSequenceType &        data,
+            const PortSequenceType &      data,
             BULKIO::PrecisionUTCTime&   T,
             bool                        EOS,
             const std::string&          streamID);
-    void _pushPacket(
-            const DataBufferType &      data,
-            BULKIO::PrecisionUTCTime&   T,
-            bool                        EOS,
-            const std::string&          streamID);
-
-    boost::shared_ptr< ConnectionEventListener >    _connectCB;
-    boost::shared_ptr< ConnectionEventListener >    _disconnectCB;
-    std::vector<connection_descriptor_struct> filterTable;
 
   };
 
@@ -541,6 +531,8 @@ namespace bulkio {
     virtual ~OutStringPort() {};
 
 
+    virtual void disconnectPort(const char* connectionId);
+
     /*
      * pushPacket
      *     maps to dataFile BULKIO method call for passing strings of data 
@@ -604,5 +596,46 @@ namespace bulkio {
 
 }  // end of bulkio namespace
 
+inline bool operator>>= (const CORBA::Any& a, bulkio::connection_descriptor_struct& s) {
+    CF::Properties* temp;
+    if (!(a >>= temp)) return false;
+    CF::Properties& props = *temp;
+    for (unsigned int idx = 0; idx < props.length(); idx++) {
+        if (!strcmp("connectionTable::connection_name", props[idx].id)) {
+            if (!(props[idx].value >>= s.connection_name)) return false;
+        } else if (!strcmp("connectionTable::stream_id", props[idx].id)) {
+            if (!(props[idx].value >>= s.stream_id)) return false;
+        } else if (!strcmp("connectionTable::port_name", props[idx].id)) {
+            if (!(props[idx].value >>= s.port_name)) return false;
+        }
+    }
+    return true;
+};
+
+inline void operator<<= (CORBA::Any& a, const bulkio::connection_descriptor_struct& s) {
+    CF::Properties props;
+    props.length(3);
+    props[0].id = CORBA::string_dup("connectionTable::connection_name");
+    props[0].value <<= s.connection_name;
+    props[1].id = CORBA::string_dup("connectionTable::stream_id");
+    props[1].value <<= s.stream_id;
+    props[2].id = CORBA::string_dup("connectionTable::port_name");
+    props[2].value <<= s.port_name;
+    a <<= props;
+};
+
+inline bool operator== (const bulkio::connection_descriptor_struct& s1, const bulkio::connection_descriptor_struct& s2) {
+    if (s1.connection_name!=s2.connection_name)
+        return false;
+    if (s1.stream_id!=s2.stream_id)
+        return false;
+    if (s1.port_name!=s2.port_name)
+        return false;
+    return true;
+};
+
+inline bool operator!= (const bulkio::connection_descriptor_struct& s1, const bulkio::connection_descriptor_struct& s2) {
+    return !(s1==s2);
+};
 
 #endif

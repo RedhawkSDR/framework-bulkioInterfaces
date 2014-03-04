@@ -15,16 +15,24 @@ from bulkio.const import MAX_TRANSFER_BYTES
 
 
 class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
+    
+    class connection_descriptor_struct:
+        def __init__( self, pname=None, conn_name=None, stream_id=None ): 
+            self.port_name=pname
+            self.connection_name=conn_name
+            self.stream_id = stream_id
+    
     TRANSFER_TYPE='c'
     def __init__(self, name, PortTypeClass, PortTransferType=TRANSFER_TYPE, logger=None ):
         self.name = name
         self.logger = logger
         self.PortType = PortTypeClass
         self.outConnections = {} # key=connectionId,  value=port
-        self.refreshSRI = False
+        self.refreshSRI = True
         self.stats = OutStats(self.name, PortTransferType )
         self.port_lock = threading.Lock()
         self.sriDict = {} # key=streamID  value=StreamSRI
+        self.filterTable = []
 
         if self.logger:
             self.logger.debug('bulkio::OutPort CTOR port:' + str(self.name))
@@ -59,6 +67,18 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         if self.logger:
             self.logger.trace('bulkio::OutPort  disconnectPort ENTER ')
         self.port_lock.acquire()
+        portListed = False
+        for filt in self.filterTable:
+            if filt.port_name == self.name:
+                portList = True
+                break
+        for streamid in self.sriDict:
+            if portListed:
+                for filt in self.filterTable:
+                    if self.name == filt.port_name and streamid == filt.stream_id and connectionId == filt.connection_name:
+                        self.outConnections[connectionId].pushPacket([], timestamp.now(), True, streamid)
+            else:
+                self.outConnections[connectionId].pushPacket([], timestamp.now(), True, streamid)
         try:
             self.outConnections.pop(str(connectionId), None)
             if self.logger:
@@ -106,6 +126,13 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             sris.append(copy.deepcopy(self.sriDict[entry]))
         self.port_lock.release()
         return sris
+    
+    def updateConnectionFilter(self, _filterTable):
+        self.port_lock.acquire()
+        if _filterTable == None :
+            _filterTable = []
+        self.filterTable = _filterTable
+        self.port_lock.release()
 
     def pushSRI(self, H):
         if self.logger:
@@ -113,17 +140,34 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         self.port_lock.acquire()
         self.sriDict[H.streamID] = copy.deepcopy(H)
         try:
+            portListed = False
             for connId, port in self.outConnections.items():
-                try:
-                   if port != None:
-                      port.pushSRI(H)
-                except Exception:
-                    if self.logger:
-                       self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
+                for ftPtr in self.filterTable:
+
+                    # check if port was listed in connection filter table
+                    if ftPtr.port_name == self.name:
+                        portListed = True
+
+                    if (ftPtr.port_name == self.name) and (ftPtr.connection_name == connId) and (ftPtr.stream_id == H.streamID):
+                        try:
+                            if port != None:
+                                port.pushSRI(H)
+                        except Exception:
+                            if self.logger:
+                                self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
+
+            if not portListed:
+                for connId, port in self.outConnections.items():
+                    try:
+                        if port != None:
+                            port.pushSRI(H)
+                    except Exception:
+                        if self.logger:
+                            self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
+
         finally:
             self.refreshSRI = False
             self.port_lock.release()
-
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushSRI EXIT ')
 
@@ -169,14 +213,33 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             self._pushPacket(subPacket, T, EOS, streamID);
 
     def _pushPacket(self, data, T, EOS, streamID):
+        
+        portListed = False
+        
         for connId, port in self.outConnections.items():
-            try:
-                if port != None:
-                    port.pushPacket(data, T, EOS, streamID)
-                    self.stats.update(len(data), 0, EOS, streamID, connId)
-            except Exception, e:
-                if self.logger:
-                    self.logger.error("The call to pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+            for ftPtr in self.filterTable:
+
+                if ftPtr.port_name == self.name : 
+                    portListed = True
+
+                if (ftPtr.port_name == self.name) and (ftPtr.connection_name == connId) and (ftPtr.stream_id == streamID):
+                    try:
+                        if port != None:
+                            port.pushPacket(data, T, EOS, streamID)
+                            self.stats.update(len(data), 0, EOS, streamID, connId)
+                    except Exception, e:
+                        if self.logger:
+                            self.logger.error("The call to pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+
+        if not portListed:
+            for connId, port in self.outConnections.items():
+                try:
+                    if port != None:
+                        port.pushPacket(data, T, EOS, streamID)
+                        self.stats.update(len(data), 0, EOS, streamID, connId)
+                except Exception, e:
+                    if self.logger:
+                        self.logger.error("The call to pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
         if EOS==True:
             if self.sriDict.has_key(streamID):
                 tmp = self.sriDict.pop(streamID)
@@ -189,6 +252,8 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         if self.refreshSRI:
             if self.sriDict.has_key(streamID): 
                 self.pushSRI(self.sriDict[streamID])
+            else:
+                self.sriDict[streamID] = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
 
         self.port_lock.acquire()
         try:
@@ -269,15 +334,30 @@ class OutFilePort(OutPort):
 
         self.port_lock.acquire()
 
-        try:    
+        try:
+            portListed = False
             for connId, port in self.outConnections.items():
-               try:
-                    if port != None:
-                        port.pushPacket(URL, T, EOS, streamID)
-                        self.stats.update(1, 0, EOS, streamID, connId)
-               except Exception:
-                   if self.logger:
-                        self.logger.error("The call to OutFilePort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+                for ftPtr in self.filterTable:
+                    if ftPtr.port_name == self.name : 
+                        portListed = True
+                    if (ftPtr.port_name == self.name) and (ftPtr.connection_name == connId) and (ftPtr.stream_id == streamID):
+                        try:
+                            if port != None:
+                                port.pushPacket(URL, T, EOS, streamID)
+                                self.stats.update(1, 0, EOS, streamID, connId)
+                        except Exception:
+                            if self.logger:
+                                self.logger.error("The call to OutFilePort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+
+            if not portListed:
+                for connId, port in self.outConnections.items():
+                    try:
+                        if port != None:
+                            port.pushPacket(URL, T, EOS, streamID)
+                            self.stats.update(1, 0, EOS, streamID, connId)
+                    except Exception:
+                        if self.logger:
+                            self.logger.error("The call to OutFilePort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
             if EOS==True:
                 if self.sriDict.has_key(streamID):
                     tmp = self.sriDict.pop(streamID)
@@ -306,15 +386,29 @@ class OutXMLPort(OutPort):
 
         self.port_lock.acquire()
 
-        try:    
+        try:
+            portListed = False
             for connId, port in self.outConnections.items():
-               try:
-                    if port != None:
-                        port.pushPacket(xml_string, EOS, streamID)
-                        self.stats.update(len(xml_string), 0, EOS, streamID, connId)
-               except Exception:
-                   if self.logger:
-                       self.logger.error("The call to OutXMLPort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+                for ftPtr in self.filterTable:
+                    if ftPtr.port_name == self.name : 
+                        portList = True
+                    if (ftPtr.port_name == self.name) and (ftPtr.connection_name == connId) and (ftPtr.stream_id == streamID):
+                        try:
+                            if port != None:
+                                port.pushPacket(xml_string, EOS, streamID)
+                                self.stats.update(len(xml_string), 0, EOS, streamID, connId)
+                        except Exception:
+                            if self.logger:
+                                self.logger.error("The call to OutXMLPort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
+            if not portListed:
+                for connId, port in self.outConnections.items():
+                    try:
+                        if port != None:
+                            port.pushPacket(xml_string, EOS, streamID)
+                            self.stats.update(len(xml_string), 0, EOS, streamID, connId)
+                    except Exception:
+                        if self.logger:
+                            self.logger.error("The call to OutXMLPort::pushPacket failed on port %s connection %s instance %s", self.name, connId, port)
             if EOS==True:
                 if self.sriDict.has_key(streamID):
                     tmp = self.sriDict.pop(streamID)
@@ -323,8 +417,6 @@ class OutXMLPort(OutPort):
 
         if self.logger:
             self.logger.trace('bulkio::OutXMLPort  pushPacket EXIT ')
- 
-
 
 class OutSDDSPort(OutPort):
     TRANSFER_TYPE = 'c'

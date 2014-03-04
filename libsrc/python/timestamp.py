@@ -30,7 +30,7 @@ def create( whole_secs=-1.0, fractional_secs=-1.0, tsrc=BULKIO.TCM_CPU ):
         wsec=int(ts)
         fsec = ts-int(ts)
 
-    return BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU,
+    return BULKIO.PrecisionUTCTime(tsrc,
                                    BULKIO.TCS_VALID, 0.0,
                                    wsec, fsec )
 

@@ -117,6 +117,12 @@ namespace  bulkio {
     struct timeval tv;
     struct timezone tz;
     gettimeofday(&tv, &tz);
+#if 0
+    std::cout << "linkStats::update name " << portName << " i:" <<  receivedStatistics_idx << 
+	" elements:" << elementsReceived << 
+	" qs:" << queueSize << 
+	" eos:" << EOS << std::endl;
+#endif
     receivedStatistics[receivedStatistics_idx].elements = elementsReceived;
     receivedStatistics[receivedStatistics_idx].queueSize = queueSize;
     receivedStatistics[receivedStatistics_idx].secs = tv.tv_sec;
@@ -176,6 +182,13 @@ namespace  bulkio {
       i = (i + 1) % historyWindow;
       aggregateSum++;
     }
+#if 0    
+    std::cout << "linkStats::retrieve  name :" << portName << 
+      " total data:" <<  totalData << 
+      " aggreateSum:" << aggregateSum <<
+      " bitsize:" << bitSize << 
+      " totalTime:" << totalTime << std::endl;
+#endif
     runningStats.portName = CORBA::string_dup(portName.c_str());
     runningStats.bitsPerSecond = ((totalData * bitSize) / totalTime);
     runningStats.elementsPerSecond = (totalData / totalTime);

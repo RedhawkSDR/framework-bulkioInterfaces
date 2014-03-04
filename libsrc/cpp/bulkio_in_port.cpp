@@ -206,6 +206,7 @@ namespace  bulkio {
     TRACE_ENTER( logger, "InPort::pushSRI"  );
     SCOPED_LOCK lock(sriUpdateLock);
     BULKIO::StreamSRI tmpH = H;
+    LOG_TRACE(logger,"pushSRI - FIND- PORT:" << name << " NEW SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
     SriMap::iterator currH = currentHs.find(std::string(H.streamID));
     if (currH == currentHs.end()) {
       LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << H.streamID << " Mode:" << H.mode );
@@ -263,10 +264,10 @@ namespace  bulkio {
     if(portBlocking) {
       queueSem->incr();
       SCOPED_LOCK lock(dataBufferLock);
+      LOG_TRACE( logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")" );
+      stats->update(data.length(), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, false);
       DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, false);
       workQueue.push_back(tmpIn);
-      LOG_TRACE( logger, "bulkio::InPort pushPacket NEW PACKET (QUEUE" << workQueue.size() << ")" );
-      stats->update(data.length(), (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, false);
       dataAvailable.notify_all();
     } else {
       SCOPED_LOCK lock(dataBufferLock);
@@ -286,11 +287,11 @@ namespace  bulkio {
       }
       if (sriChangedHappened)
 	sriChanged = true;
+
+      LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
+      stats->update(data.length(), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, flushToReport);
       workQueue.push_back(tmpIn);
-      LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size() << ")");
-
-      stats->update(data.length(), (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       dataAvailable.notify_all();
     }
 
@@ -759,10 +760,10 @@ namespace  bulkio {
     if(portBlocking) {
       queueSem->incr();
       SCOPED_LOCK lock(dataBufferLock);
+      LOG_TRACE( logger, "bulkio::InStringPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")" );
+      stats->update( _getElementLength(data), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, false);
       workQueue.push_back(tmpIn);
-      LOG_TRACE( logger, "bulkio::InStringPort pushPacket NEW PACKET (QUEUE" << workQueue.size() << ")" );
-      stats->update( _getElementLength(data), (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       dataAvailable.notify_all();
     } else {
       SCOPED_LOCK lock(dataBufferLock);
@@ -782,10 +783,10 @@ namespace  bulkio {
       }
       if (sriChangedHappened)
 	sriChanged = true;
+      LOG_DEBUG( logger, "bulkio::InStringPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
+      stats->update( _getElementLength(data), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, flushToReport);
       workQueue.push_back(tmpIn);
-      LOG_DEBUG( logger, "bulkio::InStringPort pushPacket NEW Packet (QUEUE=" << workQueue.size() << ")");
-      stats->update( _getElementLength(data), (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       dataAvailable.notify_all();
     }
     
@@ -824,10 +825,10 @@ namespace  bulkio {
     if(portBlocking) {
       queueSem->incr();
       SCOPED_LOCK lock(dataBufferLock);
+      LOG_TRACE( logger, "bulkio::InStringPort pushPacket NEW PACKET (QUEUE" << workQueue.size()+1 << ")" );
+      stats->update( _getElementLength(data), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       DataTransferType *tmpIn = new DataTransferType(data, EOS, streamID, tmpH, sriChanged, false);
       workQueue.push_back(tmpIn);
-      LOG_TRACE( logger, "bulkio::InStringPort pushPacket NEW PACKET (QUEUE" << workQueue.size() << ")" );
-      stats->update( _getElementLength(data), (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       dataAvailable.notify_all();
     } else {
       SCOPED_LOCK lock(dataBufferLock);
@@ -848,10 +849,10 @@ namespace  bulkio {
       if (sriChangedHappened)
 	sriChanged = true;
 
+      LOG_DEBUG( logger, "bulkio::InStringPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
+      stats->update( _getElementLength(data), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       DataTransferType *tmpIn = new DataTransferType(data, EOS, streamID, tmpH, sriChanged, flushToReport);
       workQueue.push_back(tmpIn);
-      LOG_DEBUG( logger, "bulkio::InStringPort pushPacket NEW Packet (QUEUE=" << workQueue.size() << ")");
-      stats->update( _getElementLength(data), (float)workQueue.size()/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       dataAvailable.notify_all();
     }
     TRACE_EXIT( logger, "InStringPort::pushPacket"  );

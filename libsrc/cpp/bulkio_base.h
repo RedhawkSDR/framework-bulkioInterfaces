@@ -120,6 +120,8 @@ namespace bulkio {
 
       virtual void update(unsigned int elementsReceived, float queueSize, bool EOS, const std::string &streamID, bool flush = false);
 
+      StreamIDList getActiveStreamIDs(){return activeStreamIDs;};
+
       virtual BULKIO::PortStatistics retrieve();
 
      protected:
@@ -187,6 +189,8 @@ namespace bulkio {
     // Constant that defines if retrieval of data from a ports's queue will BLOCK
     //
     const  float    BLOCKING = -1.0;
+
+    static uint64_t        MaxTransferBytes() { return omniORB::giopMaxMsgSize(); };
 
   };
 

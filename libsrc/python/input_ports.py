@@ -99,12 +99,12 @@ class InPort:
     def pushSRI(self, H):
         
         if self.logger:
-            self.logger.trace( "bulkio::InPort pushSRI ENTER (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InPort pushSRI ENTER (port=" + str(self.name) +")" )
 
         self.port_lock.acquire()
         if H.streamID not in self.sriDict:
             if self.logger:
-                self.logger.debug( "pushSRI PORT:" + str(name) + " NEW SRI:" + str(H.streamID) )
+                self.logger.debug( "pushSRI PORT:" + str(self.name) + " NEW SRI:" + str(H.streamID) )
             if self.newStreamCallback:
                 self.newStreamCallback( H ) 
             self.sriDict[H.streamID] = (copy.deepcopy(H), True)
@@ -120,19 +120,19 @@ class InPort:
         self.port_lock.release()
 
         if self.logger:
-            self.logger.trace( "bulkio::InPort pushSRI EXIT (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InPort pushSRI EXIT (port=" + str(self.name) +")" )
 
 
     def pushPacket(self, data, T, EOS, streamID):
 
         if self.logger:
-            self.logger.trace( "bulkio::InPort pushPacket ENTER (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InPort pushPacket ENTER (port=" + str(self.name) +")" )
 
         self.port_lock.acquire()
         if self.queue.maxsize == 0:
             self.port_lock.release()
             if self.logger:
-                self.logger.trace( "bulkio::InPort pushPacket EXIT (port=" + str(name) +")" )
+                self.logger.trace( "bulkio::InPort pushPacket EXIT (port=" + str(self.name) +")" )
             return
         packet = None
         try:
@@ -179,12 +179,12 @@ class InPort:
             self.port_lock.release()
 
         if self.logger:
-            self.logger.trace( "bulkio::InPort pushPacket EXIT (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InPort pushPacket EXIT (port=" + str(self.name) +")" )
     
     def getPacket(self):
 
         if self.logger:
-            self.logger.trace( "bulkio::InPort getPacket ENTER (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InPort getPacket ENTER (port=" + str(self.name) +")" )
 
         try:
             data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.get(block=False)
@@ -205,7 +205,7 @@ class InPort:
             return None, None, None, None, None, None, None
 
         if self.logger:
-            self.logger.trace( "bulkio::InPort getPacket EXIT (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InPort getPacket EXIT (port=" + str(self.name) +")" )
 
 
 
@@ -273,13 +273,13 @@ class InFilePort(InPort, BULKIO__POA.dataFile):
     def pushPacket(self, URL, T, EOS, streamID):
 
         if self.logger:
-            self.logger.trace( "bulkio::InFilePort pushPacket ENTER (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InFilePort pushPacket ENTER (port=" + str(self.name) +")" )
 
         self.port_lock.acquire()
         if self.queue.maxsize == 0:
             self.port_lock.release()
             if self.logger:
-                self.logger.trace( "bulkio::InFilePort pushPacket EXIT (port=" + str(name) +")" )
+                self.logger.trace( "bulkio::InFilePort pushPacket EXIT (port=" + str(self.name) +")" )
             return
         packet = None
         try:
@@ -326,7 +326,7 @@ class InFilePort(InPort, BULKIO__POA.dataFile):
             self.port_lock.release()
 
         if self.logger:
-            self.logger.trace( "bulkio::InFilePort pushPacket EXIT (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InFilePort pushPacket EXIT (port=" + str(self.name) +")" )
 
 
 class InXMLPort(InPort, BULKIO__POA.dataXML):
@@ -338,13 +338,13 @@ class InXMLPort(InPort, BULKIO__POA.dataXML):
     def pushPacket(self, xml_string, EOS, streamID):
 
         if self.logger:
-            self.logger.trace( "bulkio::InXMLPort pushPacket ENTER (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InXMLPort pushPacket ENTER (port=" + str(self.name) +")" )
             
         self.port_lock.acquire()
         if self.queue.maxsize == 0:
             self.port_lock.release()
             if self.logger:
-                self.logger.trace( "bulkio::InXMLPort pushPacket EXIT (port=" + str(name) +")" )
+                self.logger.trace( "bulkio::InXMLPort pushPacket EXIT (port=" + str(self.name) +")" )
             return
         packet = None
         try:
@@ -390,7 +390,7 @@ class InXMLPort(InPort, BULKIO__POA.dataXML):
             self.port_lock.release()
 
         if self.logger:
-            self.logger.trace( "bulkio::InXMLPort pushPacket EXIT (port=" + str(name) +")" )
+            self.logger.trace( "bulkio::InXMLPort pushPacket EXIT (port=" + str(self.name) +")" )
     
 
 class InSDDSPort(BULKIO__POA.dataSDDS):
@@ -416,12 +416,12 @@ class InSDDSPort(BULKIO__POA.dataSDDS):
         try:
             self._detach_cb = getattr(callback, "detach")
             if not callable(self._detach_cb):
-                self._attach_cb = None
+                self._detach_cb = None
         except AttributeError:
             self._detach_cb = None
 
         if self.logger:
-            self.logger.debug("bulkio::InSDDSPort CTOR port:" + str(name) )
+            self.logger.debug("bulkio::InSDDSPort CTOR port:" + str(self.name) )
 
     def setBitSize(self, bitSize):
         self.stats.setBitSize(bitSize)
@@ -474,7 +474,7 @@ class InSDDSPort(BULKIO__POA.dataSDDS):
     def attach(self, streamDef, userid):
 
         if self.logger:
-            self.logger.trace("bulkio::InSDDSPort attach ENTER  (port=" + str(name) +")" )
+            self.logger.trace("bulkio::InSDDSPort attach ENTER  (port=" + str(self.name) +")" )
             self.logger.debug("SDDS PORT, ATTACH REQUEST, STREAM/USER"  + str(streamDef) + '/' + str(userid))
 
         if self._get_usageState() == BULKIO.dataSDDS.BUSY:
@@ -505,14 +505,14 @@ class InSDDSPort(BULKIO__POA.dataSDDS):
 
         if self.logger:
             self.logger.debug("SDDS PORT, ATTACH COMPLETED,  ID:" + str(attachId) + " STREAM/USER: " + str(streamDef) + '/' + str(userid))
-            self.logger.trace("bulkio::InSDDSPort attach EXIT (port=" + str(name) +")" )
+            self.logger.trace("bulkio::InSDDSPort attach EXIT (port=" + str(self.name) +")" )
             
         return attachId
 
     def detach(self, attachId):
 
         if self.logger:
-            self.logger.trace("bulkio::InSDDSPort detach ENTER (port=" + str(name) +")" )
+            self.logger.trace("bulkio::InSDDSPort detach ENTER (port=" + str(self.name) +")" )
             self.logger.debug("SDDS PORT, DETACH REQUESTED, ID:" + str(attachId) )
 
         if not self._attachedStreams.has_key(attachId):
@@ -546,7 +546,7 @@ class InSDDSPort(BULKIO__POA.dataSDDS):
 
         if self.logger:
             self.logger.debug("SDDS PORT, DETACH SUCCESS, ID:" + str(attachId) )
-            self.logger.trace("bulkio::InSDDSPort detach EXIT (port=" + str(name) +")" )
+            self.logger.trace("bulkio::InSDDSPort detach EXIT (port=" + str(self.name) +")" )
 
     def getStreamDefinition(self, attachId):
         try:
@@ -569,7 +569,7 @@ class InSDDSPort(BULKIO__POA.dataSDDS):
     def pushSRI(self, H, T):
 
         if self.logger:
-            self.logger.trace("bulkio::InSDDSPort pushSRI ENTER (port=" + str(name) +")" )
+            self.logger.trace("bulkio::InSDDSPort pushSRI ENTER (port=" + str(self.name) +")" )
 
         self.port_lock.acquire()
         if H.streamID not in self.sriDict:
@@ -591,4 +591,4 @@ class InSDDSPort(BULKIO__POA.dataSDDS):
         self.port_lock.release()
 
         if self.logger:
-            self.logger.trace("bulkio::InSDDSPort pushSRI EXIT (port=" + str(name) +")" )
+            self.logger.trace("bulkio::InSDDSPort pushSRI EXIT (port=" + str(self.name) +")" )
