@@ -2,6 +2,7 @@
 #define BULKIO_OUTPORT_FIXTURE_H
 
 #include <cppunit/extensions/HelperMacros.h>
+#include<omniORB4/CORBA.h>
 #include<log4cxx/logger.h>
 class Bulkio_OutPort_Fixture : public CppUnit::TestFixture
 {
@@ -62,9 +63,11 @@ public:
   void test_subclass();
 
 
-  template < typename T > void test_port_api( T *port );
+  template < typename T,  typename IP > void test_port_api( T *port );
 
   log4cxx::LoggerPtr logger;
+
+  CORBA::ORB_ptr orb;
 };
 
 #endif  // BULKIO_OutPort_FIXTURE_H

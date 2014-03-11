@@ -190,7 +190,7 @@ namespace bulkio {
     //
     const  float    BLOCKING = -1.0;
 
-    static uint64_t        MaxTransferBytes() { return omniORB::giopMaxMsgSize(); };
+    inline uint64_t        MaxTransferBytes() { return omniORB::giopMaxMsgSize(); };
 
   };
 

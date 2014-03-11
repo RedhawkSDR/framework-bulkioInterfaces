@@ -25,7 +25,7 @@ namespace bulkio {
             return std::string("connection_descriptor");
         };
 
-        std::string connection_name;
+        std::string connection_id;
         std::string stream_id;
         std::string port_name;
     };
@@ -601,8 +601,8 @@ inline bool operator>>= (const CORBA::Any& a, bulkio::connection_descriptor_stru
     if (!(a >>= temp)) return false;
     CF::Properties& props = *temp;
     for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("connectionTable::connection_name", props[idx].id)) {
-            if (!(props[idx].value >>= s.connection_name)) return false;
+        if (!strcmp("connectionTable::connection_id", props[idx].id)) {
+            if (!(props[idx].value >>= s.connection_id)) return false;
         } else if (!strcmp("connectionTable::stream_id", props[idx].id)) {
             if (!(props[idx].value >>= s.stream_id)) return false;
         } else if (!strcmp("connectionTable::port_name", props[idx].id)) {
@@ -615,8 +615,8 @@ inline bool operator>>= (const CORBA::Any& a, bulkio::connection_descriptor_stru
 inline void operator<<= (CORBA::Any& a, const bulkio::connection_descriptor_struct& s) {
     CF::Properties props;
     props.length(3);
-    props[0].id = CORBA::string_dup("connectionTable::connection_name");
-    props[0].value <<= s.connection_name;
+    props[0].id = CORBA::string_dup("connectionTable::connection_id");
+    props[0].value <<= s.connection_id;
     props[1].id = CORBA::string_dup("connectionTable::stream_id");
     props[1].value <<= s.stream_id;
     props[2].id = CORBA::string_dup("connectionTable::port_name");
@@ -625,7 +625,7 @@ inline void operator<<= (CORBA::Any& a, const bulkio::connection_descriptor_stru
 };
 
 inline bool operator== (const bulkio::connection_descriptor_struct& s1, const bulkio::connection_descriptor_struct& s2) {
-    if (s1.connection_name!=s2.connection_name)
+    if (s1.connection_id!=s2.connection_id)
         return false;
     if (s1.stream_id!=s2.stream_id)
         return false;

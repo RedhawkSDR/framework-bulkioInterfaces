@@ -3,6 +3,7 @@ import threading
 import copy
 import time
 import sys
+import struct
 
 from ossie.cf    import ExtendedCF
 from ossie.cf.CF    import Port
@@ -19,20 +20,25 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
     class connection_descriptor_struct:
         def __init__( self, pname=None, conn_name=None, stream_id=None ): 
             self.port_name=pname
-            self.connection_name=conn_name
+            self.connection_id=conn_name
             self.stream_id = stream_id
     
     TRANSFER_TYPE='c'
-    def __init__(self, name, PortTypeClass, PortTransferType=TRANSFER_TYPE, logger=None ):
+    def __init__(self, name, PortTypeClass, PortTransferType=TRANSFER_TYPE, logger=None, noData=[] ):
         self.name = name
         self.logger = logger
         self.PortType = PortTypeClass
+        self.PortTransferType=PortTransferType
         self.outConnections = {} # key=connectionId,  value=port
         self.refreshSRI = True
         self.stats = OutStats(self.name, PortTransferType )
         self.port_lock = threading.Lock()
         self.sriDict = {} # key=streamID  value=StreamSRI
         self.filterTable = []
+        self.noData = noData
+        self.sizeOfData=1
+        if self.PortTransferType:
+            self.sizeOfData = struct.calcsize(PortTransferType)
 
         if self.logger:
             self.logger.debug('bulkio::OutPort CTOR port:' + str(self.name))
@@ -47,6 +53,8 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         try:
            try:
               port = connection._narrow(self.PortType)
+              if port == None:
+                  raise Port.InvalidPort(1, "Invalid Port for Connection ID:" + str(connectionId) )
               self.outConnections[str(connectionId)] = port
               self.refreshSRI = True
 
@@ -67,27 +75,30 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         if self.logger:
             self.logger.trace('bulkio::OutPort  disconnectPort ENTER ')
         self.port_lock.acquire()
+        connId = str(connectionId)
         portListed = False
         for filt in self.filterTable:
             if filt.port_name == self.name:
                 portList = True
                 break
-        for streamid in self.sriDict:
+        for streamid in self.sriDict.keys():
+            sid = str(streamid)
             if portListed:
                 for filt in self.filterTable:
-                    if self.name == filt.port_name and streamid == filt.stream_id and connectionId == filt.connection_name:
-                        self.outConnections[connectionId].pushPacket([], timestamp.now(), True, streamid)
+                    if self.name == filt.port_name and sid == filt.stream_id and connId == filt.connection_name:
+                        self.outConnections[connId].pushPacket(self.noData, timestamp.now(), True, sid)
             else:
-                self.outConnections[connectionId].pushPacket([], timestamp.now(), True, streamid)
+                self.outConnections[connId].pushPacket(self.noData, timestamp.now(), True, sid)
         try:
-            self.outConnections.pop(str(connectionId), None)
+            self.outConnections.pop(connId, None)
             if self.logger:
-                self.logger.debug( "bulkio::OutPort DISCONNECT PORT:" + str(self.name) + " CONNECTION:" + str(connectionId ) )
+                self.logger.debug( "bulkio::OutPort DISCONNECT PORT:" + str(self.name) + " CONNECTION:" + str(connId) )
         finally:
             self.port_lock.release()
 
         if self.logger:
             self.logger.trace('bulkio::OutPort  disconnectPort EXIT ')
+
 
     def enableStats(self, enabled):
         self.stats.setEnabled(enabled)
@@ -148,7 +159,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                     if ftPtr.port_name == self.name:
                         portListed = True
 
-                    if (ftPtr.port_name == self.name) and (ftPtr.connection_name == connId) and (ftPtr.stream_id == H.streamID):
+                    if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connId) and (ftPtr.stream_id == H.streamID):
                         try:
                             if port != None:
                                 port.pushSRI(H)
@@ -181,12 +192,9 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
 
         # Multiply by some number < 1 to leave some margin for the CORBA header
         maxPayloadSize    = MAX_TRANSFER_BYTES * .9
-        if str(self.PortType).find("bulkio.bulkioInterfaces.BULKIO.dataOctet") != -1:
-            # data[0] for octet data is of type string at this point, so
-            # the sys.getsizeof() method will return the wrong value.
-            numSamplesPerPush = int(maxPayloadSize)
-        else:
-            numSamplesPerPush = int(maxPayloadSize/sys.getsizeof(data[0]))
+        if self.sizeOfData and self.sizeOfData > 0:
+            numSamplesPerPush = int(maxPayloadSize)/self.sizeOfData
+
 
         # Determine how many sub-packets to send.
         numFullPackets    = len(data)/numSamplesPerPush;
@@ -222,7 +230,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                 if ftPtr.port_name == self.name : 
                     portListed = True
 
-                if (ftPtr.port_name == self.name) and (ftPtr.connection_name == connId) and (ftPtr.stream_id == streamID):
+                if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connId) and (ftPtr.stream_id == streamID):
                     try:
                         if port != None:
                             port.pushPacket(data, T, EOS, streamID)
@@ -268,12 +276,12 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
 class OutCharPort(OutPort):
     TRANSFER_TYPE = 'c'
     def __init__(self, name, logger=None ):
-        OutPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE , logger )
+        OutPort.__init__(self, name, BULKIO.dataChar, OutCharPort.TRANSFER_TYPE , logger, noData='' )
 
 class OutOctetPort(OutPort):
     TRANSFER_TYPE = 'B'
     def __init__(self, name, logger=None ):
-        OutPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE , logger )
+        OutPort.__init__(self, name, BULKIO.dataOctet, OutOctetPort.TRANSFER_TYPE , logger, noData='')
 
 class OutShortPort(OutPort):
     TRANSFER_TYPE = 'h'
@@ -318,7 +326,7 @@ class OutDoublePort(OutPort):
 class OutFilePort(OutPort):
     TRANSFER_TYPE = 'c'
     def __init__(self, name, logger=None ):
-        OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE , logger )
+        OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE , logger, noData='' )
 
     def pushPacket(self, URL, EOS, streamID):
         self.pushPacket( URL, timestamp.now(), EOS, streamID )
@@ -340,7 +348,7 @@ class OutFilePort(OutPort):
                 for ftPtr in self.filterTable:
                     if ftPtr.port_name == self.name : 
                         portListed = True
-                    if (ftPtr.port_name == self.name) and (ftPtr.connection_name == connId) and (ftPtr.stream_id == streamID):
+                    if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connId) and (ftPtr.stream_id == streamID):
                         try:
                             if port != None:
                                 port.pushPacket(URL, T, EOS, streamID)
@@ -370,7 +378,7 @@ class OutFilePort(OutPort):
 class OutXMLPort(OutPort):
     TRANSFER_TYPE = 'c'
     def __init__(self, name, logger=None ):
-        OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE , logger )
+        OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE , logger, noData='' )
 
     def pushPacket(self, xml_string, T, EOS, streamID):
         self.pushPacket( xml_string, EOS, streamID );
@@ -392,7 +400,7 @@ class OutXMLPort(OutPort):
                 for ftPtr in self.filterTable:
                     if ftPtr.port_name == self.name : 
                         portList = True
-                    if (ftPtr.port_name == self.name) and (ftPtr.connection_name == connId) and (ftPtr.stream_id == streamID):
+                    if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connId) and (ftPtr.stream_id == streamID):
                         try:
                             if port != None:
                                 port.pushPacket(xml_string, EOS, streamID)
@@ -458,13 +466,14 @@ class OutSDDSPort(OutPort):
     def disconnectPort(self, connectionId):
         try:
             self.port_lock.acquire()
-            entry = self.outConnections[str(connectionId)]
-            if connectionId in self.attachedGroup:
+            connId = str(connectionId)
+            entry = self.outConnections[connId]
+            if connId in self.attachedGroup:
                 try:
-                    entry.detach(self.attachedGroup.pop(connectionId))
+                    entry.detach(self.attachedGroup.pop(connId))
                 except:
                     if self.logger:
-                        self.logger.error("Unable to detach %s, should not have happened", str(connectionId))
+                        self.logger.error("Unable to detach %s, should not have happened", str(connId))
         finally:
             self.port_lock.release()
         OutPort.disconnectPort( self, connectionId )

@@ -134,7 +134,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InInt8Port p = new bulkio.InInt8Port("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -207,7 +207,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InInt16Port p = new bulkio.InInt16Port("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -279,7 +279,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InInt32Port p = new bulkio.InInt32Port("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -352,7 +352,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InInt64ort p = new bulkio.InInt64Port("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -425,7 +425,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InUInt8Port p = new bulkio.InUInt8Port("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -498,7 +498,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InUInt16Port p = new bulkio.InUInt16Port("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -570,7 +570,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InUInt32Port p = new bulkio.InUInt32Port("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -643,7 +643,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InUInt64Port p = new bulkio.InUInt64Port("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -717,7 +717,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InDoublePort p = new bulkio.InDoublePort("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 
@@ -789,7 +789,7 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	org.omg.CORBA.Object  p =  null;
+	bulkio.InFloatPort p = new bulkio.InFloatPort("sink_1",logger);
 	try {
 	    port.connectPort( p, ctx.cid );
 

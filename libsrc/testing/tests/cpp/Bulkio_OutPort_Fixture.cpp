@@ -43,6 +43,7 @@ Bulkio_OutPort_Fixture::setUp()
 {
    logger = log4cxx::Logger::getLogger("BulkioOutPort");
    logger->setLevel( log4cxx::Level::getTrace());
+   orb = ossie::corba::CorbaInit(0,NULL);
 }
 
 
@@ -51,7 +52,7 @@ Bulkio_OutPort_Fixture::tearDown()
 {
 }
 
-template< typename T>
+template<  typename T, typename IP >
 void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
 
   LOG4CXX_INFO(logger, "Running tests port:" << port->getName() );
@@ -63,10 +64,12 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
   port->setNewConnectListener(&port_connected);
   port->setNewDisconnectListener(&port_disconnected);
 
-  CORBA::Object_ptr  p;
-  port->connectPort( p, "connection_1");
+  IP *p  = new IP("sink_1", logger );
+  //PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
+  port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
+  //ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
   port->pushSRI( sri );
@@ -99,7 +102,7 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
 
 
 template< >
-void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutCharPort *port  ) {
+void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutCharPort, bulkio::InCharPort  >( bulkio::OutCharPort *port  ) {
 
   ExtendedCF::UsesConnectionSequence *clist = port->connections();
   CPPUNIT_ASSERT( clist != NULL );
@@ -108,10 +111,12 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutCharPort *port  ) {
   port->setNewConnectListener(&port_connected);
   port->setNewDisconnectListener(&port_disconnected);
 
-  CORBA::Object_ptr  p;
-  port->connectPort( p, "connection_1");
+  bulkio::InCharPort *p  = new bulkio::InCharPort("sink_1", logger );
+  PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
+  port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
+  ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
   port->pushSRI( sri );
@@ -138,7 +143,7 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutCharPort *port  ) {
 
 
 template< >
-void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutFilePort *port  ) {
+void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutFilePort, bulkio::InFilePort >( bulkio::OutFilePort *port  ) {
 
   ExtendedCF::UsesConnectionSequence *clist = port->connections();
   CPPUNIT_ASSERT( clist != NULL );
@@ -147,10 +152,12 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutFilePort *port  ) {
   port->setNewConnectListener(&port_connected);
   port->setNewDisconnectListener(&port_disconnected);
 
-  CORBA::Object_ptr  p;
-  port->connectPort( p, "connection_1");
+  bulkio::InFilePort *p  = new bulkio::InFilePort("sink_1", logger );
+  PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
+  port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
+  ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
   port->pushSRI( sri );
@@ -175,8 +182,8 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutFilePort *port  ) {
 
 
 
-template< >
-void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutXMLPort *port  ) {
+template<>
+void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutXMLPort, bulkio::InXMLPort >( bulkio::OutXMLPort *port  ) {
 
   ExtendedCF::UsesConnectionSequence *clist = port->connections();
   CPPUNIT_ASSERT( clist != NULL );
@@ -185,10 +192,12 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutXMLPort *port  ) {
   port->setNewConnectListener(&port_connected);
   port->setNewDisconnectListener(&port_disconnected);
 
-  CORBA::Object_ptr  p;
-  port->connectPort( p, "connection_1");
+  bulkio::InXMLPort *p  = new bulkio::InXMLPort("sink_1", logger );
+  PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
+  port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
+  ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
   port->pushSRI( sri );
@@ -212,8 +221,8 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutXMLPort *port  ) {
 }
 
 
-template< >
-void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutSDDSPort *port  ) {
+template<  >
+void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutSDDSPort, bulkio::InSDDSPort >( bulkio::OutSDDSPort *port  ) {
 
   ExtendedCF::UsesConnectionSequence *clist = port->connections();
   CPPUNIT_ASSERT( clist != NULL );
@@ -222,10 +231,14 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutSDDSPort *port  ) {
   port->setNewConnectListener(&port_connected);
   port->setNewDisconnectListener(&port_disconnected);
 
-  CORBA::Object_ptr  p;
-  port->connectPort( p, "connection_1");
+
+  bulkio::InSDDSPort *p  = new bulkio::InSDDSPort("sink_1", logger );
+  PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
+  port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
+  ossie::corba::RootPOA()->deactivate_object(p_oid);
+
 
   BULKIO::StreamSRI sri;
   BULKIO::PrecisionUTCTime TS;
@@ -241,7 +254,7 @@ void  Bulkio_OutPort_Fixture::test_port_api( bulkio::OutSDDSPort *port  ) {
   port->enableStats( false );
 
   // create a connection
-  port->connectPort( p, "connection_1");
+  port->connectPort( p->_this(), "connection_1");
   port->enableStats( true );
   port->setBitSize(10);
   port->updateStats( 12, 1, false, "stream1");
@@ -274,7 +287,7 @@ Bulkio_OutPort_Fixture::test_int8()
   bulkio::OutCharPort *port = new bulkio::OutCharPort("test_api_int8", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api<bulkio::OutCharPort, bulkio::InCharPort>( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -294,7 +307,7 @@ Bulkio_OutPort_Fixture::test_int16()
   bulkio::OutInt16Port *port = new bulkio::OutInt16Port("test_api_int16", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api<bulkio::OutInt16Port, bulkio::InInt16Port>( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -313,7 +326,7 @@ Bulkio_OutPort_Fixture::test_int32()
   bulkio::OutInt32Port *port = new bulkio::OutInt32Port("test_api_int32", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api<bulkio::OutInt32Port,bulkio::InInt32Port>( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -333,7 +346,7 @@ Bulkio_OutPort_Fixture::test_int64()
   bulkio::OutInt64Port *port = new bulkio::OutInt64Port("test_api_int64", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api<bulkio::OutInt64Port,bulkio::InInt64Port>( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -360,7 +373,7 @@ Bulkio_OutPort_Fixture::test_uint16()
   bulkio::OutUInt16Port *port = new bulkio::OutUInt16Port("test_api_uint16", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api<bulkio::OutUInt16Port,bulkio::InUInt16Port>( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -379,7 +392,7 @@ Bulkio_OutPort_Fixture::test_uint32()
   bulkio::OutUInt32Port *port = new bulkio::OutUInt32Port("test_api_uint32", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api<bulkio::OutUInt32Port, bulkio::InUInt32Port>( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -398,7 +411,7 @@ Bulkio_OutPort_Fixture::test_uint64()
   bulkio::OutUInt64Port *port = new bulkio::OutUInt64Port("test_api_uint64", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api<bulkio::OutUInt64Port,bulkio::InUInt64Port>( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -432,7 +445,7 @@ Bulkio_OutPort_Fixture::test_file()
   bulkio::OutFilePort *port = new bulkio::OutFilePort("test_api_file", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api< bulkio::OutFilePort, bulkio::InFilePort >( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -454,7 +467,7 @@ Bulkio_OutPort_Fixture::test_xml()
   bulkio::OutXMLPort *port = new bulkio::OutXMLPort("test_api_xml", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api< bulkio::OutXMLPort, bulkio::InXMLPort >( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -476,7 +489,7 @@ Bulkio_OutPort_Fixture::test_sdds()
   bulkio::OutSDDSPort *port = new bulkio::OutSDDSPort("test_api_sdds", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api< bulkio::OutSDDSPort, bulkio::InSDDSPort > ( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }
@@ -489,7 +502,7 @@ Bulkio_OutPort_Fixture::test_subclass()
   bulkio::OutFloatPort *port = new MyOutFloatPort("test_api_subclass", logger );
   CPPUNIT_ASSERT( port != NULL );
 
-  test_port_api( port );
+  test_port_api<bulkio::OutFloatPort,bulkio::InFloatPort >( port );
 
   CPPUNIT_ASSERT_NO_THROW( port );
 }

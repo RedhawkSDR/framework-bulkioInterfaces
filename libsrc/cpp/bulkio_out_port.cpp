@@ -118,9 +118,9 @@ namespace  bulkio {
           if (ftPtr->port_name == this->name) portListed=true;
 
           if ( (ftPtr->port_name == this->name) and 
-	       (ftPtr->connection_name == i->second) and 
+	       (ftPtr->connection_id == i->second) and 
 	       (strcmp(ftPtr->stream_id.c_str(),H.streamID) == 0 ) ){
-	    LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << ftPtr->connection_name << " SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
+	    LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << ftPtr->connection_id << " SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
             try {
               i->first->pushSRI(H);
             } catch(...) {
@@ -132,7 +132,7 @@ namespace  bulkio {
 
       if (!portListed) {
 	for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-	  LOG_DEBUG(logger,"pushSRI -2- PORT:" << name << " CONNECTION:" << ftPtr->connection_name << " SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
+	  LOG_DEBUG(logger,"pushSRI -2- PORT:" << name << " CONNECTION:" << ftPtr->connection_id << " SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
 	  try {
 	    i->first->pushSRI(H);
 	  } catch(...) {
@@ -239,7 +239,7 @@ namespace  bulkio {
 	    if  (ftPtr->port_name == this->name) portListed = true;
 
 	    if ( (ftPtr->port_name == this->name) and 
-		 (ftPtr->connection_name == port->second) and 
+		 (ftPtr->connection_id == port->second) and 
 		 (ftPtr->stream_id == streamID) ){
               try {
 		port->first->pushPacket(data, T, EOS, streamID.c_str());
@@ -360,6 +360,9 @@ namespace  bulkio {
       PortVarType port;
       try {
         port = PortType::_narrow(connection);
+        if (CORBA::is_nil(port)) {
+            throw CF::Port::InvalidPort(1, "Unable to narrow");
+        }
       }
       catch(...) {
         LOG_ERROR( logger, "CONNECT FAILED: UNABLE TO NARROW ENDPOINT,  USES PORT:" << name );
@@ -405,7 +408,7 @@ namespace  bulkio {
               if (cSriSid == (*aSID)) {
                 if (portListed) {
                   for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
-                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
+                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
                       try {
                         outConnections[i].first->pushPacket(seq, tstamp, true, cSriSid.c_str());
                       } catch(...) {}
@@ -498,7 +501,7 @@ namespace  bulkio {
 
           if (ftPtr->port_name == this->name)  portListed = true;
 
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
             try {
               port->first->pushPacket(seq, T, EOS, streamID.c_str());
               if ( this->stats.count((*port).second) == 0 ) {
@@ -562,7 +565,7 @@ namespace  bulkio {
 
           if (ftPtr->port_name == this->name) portListed = true;
 
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
             try {
               port->first->pushPacket(seq, T, EOS, streamID.c_str());
               if ( this->stats.count((*port).second) == 0 ) {
@@ -651,7 +654,7 @@ namespace  bulkio {
                         if (cSriSid == (*aSID)) {
                             if (portListed) {
                                 for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
-                                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == this->outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
+                                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == this->outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
                                         try {
                                             this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
                                         } catch(...) {}
@@ -703,7 +706,7 @@ namespace  bulkio {
 
           if (ftPtr->port_name == this->name) portListed=true;
 
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
             try {
               port->first->pushPacket(data, T, EOS, streamID.c_str());
               if ( this->stats.count((*port).second) == 0 ) {
@@ -764,7 +767,7 @@ namespace  bulkio {
 
           if (ftPtr->port_name == this->name) portListed = true;
 
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
             try {
               BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
               port->first->pushPacket(data, tstamp, EOS, streamID.c_str());
@@ -831,7 +834,7 @@ namespace  bulkio {
                         if (cSriSid == (*aSID)) {
                             if (portListed) {
                                 for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
-                                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
+                                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
                                         try {
                                             outConnections[i].first->pushPacket(data.c_str(), true, cSriSid.c_str());
                                         } catch(...) {}
@@ -930,7 +933,7 @@ namespace  bulkio {
 
 	  if (ftPtr->port_name == this->name)  portListed = true;
 
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
             try {
               port->first->pushPacket(data, EOS, streamID.c_str());
               this->stats[(*port).second].update(1, 0, EOS, streamID);
@@ -981,7 +984,7 @@ namespace  bulkio {
       for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
         for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
 	  if (ftPtr->port_name == this->name) portListed = true;
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_name == port->second) and (ftPtr->stream_id == streamID)) {
+          if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
             try {
               port->first->pushPacket(data, EOS, streamID.c_str());
               this->stats[(*port).second].update(strlen(data), 0, EOS, streamID);

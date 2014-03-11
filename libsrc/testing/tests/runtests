@@ -25,8 +25,10 @@ fi
 
 if [ $# -gt 0 ]
 then
+    echo "hootie"
     # run an associated test script
     python  $*
+    exit
 else
     for pt in test_*.py ; do
        python $pt

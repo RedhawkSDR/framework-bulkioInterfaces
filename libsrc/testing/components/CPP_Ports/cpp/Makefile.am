@@ -31,4 +31,4 @@ CPP_Ports_SOURCES = $(redhawk_SOURCES_auto)
 CPP_Ports_CXXFLAGS = -Wall -I$(bulkio_libsrc_top)/cpp -I$(bulkio_top)/src/cpp -I$(bulkio_top)/src/cpp/ossie $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(RH_DEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 CPP_Ports_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
 CPP_Ports_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs
-CPP_Ports_LDFLAGS +=  -lbulkio-1.0 -lbulkioInterfaces
+CPP_Ports_LDFLAGS +=  $(BIO_LIBS)

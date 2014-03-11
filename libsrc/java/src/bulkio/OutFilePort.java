@@ -258,7 +258,7 @@ public class OutFilePort extends BULKIO.UsesPortStatisticsProviderPOA {
 			}
 
 			if ( (ftPtr.port_name.getValue().equals(this.name)) &&
-			     (ftPtr.connection_name.getValue().equals(p.getKey())) &&
+			     (ftPtr.connection_id.getValue().equals(p.getKey())) &&
 			     (ftPtr.stream_id.getValue().equals(header.streamID))) {
                             try {
 				if ( logger != null ) {
@@ -346,7 +346,7 @@ public class OutFilePort extends BULKIO.UsesPortStatisticsProviderPOA {
 			    portListed = true;		    
 			}
                         if ( (ftPtr.port_name.getValue().equals(this.name)) && 
-			     (ftPtr.connection_name.getValue().equals(p.getKey())) && 
+			     (ftPtr.connection_id.getValue().equals(p.getKey())) && 
 			     (ftPtr.stream_id.getValue().equals(streamID)) ) {
                             try {
                                 p.getValue().pushPacket( odata, time, endOfStream, streamID);
@@ -455,7 +455,7 @@ public class OutFilePort extends BULKIO.UsesPortStatisticsProviderPOA {
                             if (portListed) {
                                 for (connection_descriptor_struct ftPtr : bulkio.utils.emptyIfNull(this.filterTable)) {
                                     if ( (ftPtr.port_name.getValue().equals(this.name)) &&
-					 (ftPtr.connection_name.getValue().equals(connectionId)) &&
+					 (ftPtr.connection_id.getValue().equals(connectionId)) &&
 					 (ftPtr.stream_id.getValue().equals(streamID))) {
                                         try {
                                             port.pushPacket(odata,tstamp,true,streamID);

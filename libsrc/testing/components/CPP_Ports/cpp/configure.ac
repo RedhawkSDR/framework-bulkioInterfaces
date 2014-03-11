@@ -12,7 +12,7 @@ OSSIE_SDRROOT_AS_PREFIX
 # Dependencies
 export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
 PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 1.8 omniORB4 >= 4.0.0])
-#PKG_CHECK_MODULES([BIO], [bulkio >= 1.0 bulkioInterfaces >= 1.8])
+PKG_CHECK_MODULES([BIO], [bulkio >= 1.0 bulkioInterfaces >= 1.8])
 OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([1.41])
 AX_BOOST_THREAD

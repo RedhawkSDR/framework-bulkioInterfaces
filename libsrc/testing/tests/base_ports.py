@@ -371,7 +371,8 @@ class BaseVectorPort(unittest.TestCase):
         dsink=sb.DataSink()
         inport=dsink.getPort(self.sink_inport)
         bio.connectPort(inport, connectionName )
-
+        
+        
         cl = bio._get_connections()
         self.assertNotEqual(cl,None,"Cannot get Connections List")
         self.assertEqual(len(cl),1,"Incorrect Connections List Length")
