@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           bulkioInterfaces
 Version:        1.10.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
@@ -77,7 +77,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/bulkio.pc
 %{_libdir}/pkgconfig/bulkioInterfaces.pc
 %{_prefix}/lib/python/bulkio
-%if 0%{?rhel} >= 6
+%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
 %{_prefix}/lib/python/bulkio-%{version}-py%{python_version}.egg-info
 %{_prefix}/lib/python/bulkioInterfaces-%{version}-py%{python_version}.egg-info
 %endif
@@ -98,6 +98,9 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Mar 21 2014 1.10.0-1
+- Improve OS version detection for RHEL/CentOS/Fedora
+
 * Fri May 24 2013 1.9.0-1
 - Update dependencies
 

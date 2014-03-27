@@ -1,4 +1,3 @@
-#include "Bulkio_MultiOut_Fixture.h"
 #include "bulkio.h"
 #include<log4cxx/logger.h>
 #include<log4cxx/propertyconfigurator.h>
@@ -6,62 +5,26 @@
 #include <log4cxx/patternlayout.h>
 #include <log4cxx/consoleappender.h>
 #include <log4cxx/logmanager.h>
+#include  "Bulkio_MultiOut_Port.h"
 
-
-// Registers the fixture into the 'registry'
-CPPUNIT_TEST_SUITE_REGISTRATION( Bulkio_MultiOut_Fixture );
-
-
-class MyOutFloatPort : public bulkio::OutFloatPort {
-
-public:
-
-  MyOutFloatPort( std::string pname, bulkio::LOGGER_PTR logger ) :
-    bulkio::OutFloatPort( pname, logger ) {};
-
-
-  void pushPacket( bulkio::OutFloatPort::NativeSequenceType & data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
-
-    stats[streamID].update( 1, 1.0, false, "testing" );
-    bulkio::OutFloatPort::pushPacket( data, T, EOS, streamID );
-  }
-
-};
-
-// Global connection/disconnection callbacks
-static void port_connected( const char* connectionId ) {
-
-}
-
-static void port_disconnected( const char* connectionId ) {
-
-}
-
-//
-//  setup 
-//
-//   Create and activate 4 input port objects and 1 output object
-//   Create a connection descriptor table to use when filtering pushPacket/pushSRI calls
-//
-
-void
-Bulkio_MultiOut_Fixture::setUp()
+template < typename OUT_PORT, typename IN_PORT >
+void Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::setUp()
 {
-  logger = log4cxx::Logger::getLogger("BulkioOutPort");
-  logger->setLevel( log4cxx::Level::getTrace());
+  logger = log4cxx::Logger::getLogger("Bulkio-MultiOutPort-" + lname );
+  logger->setLevel( log4cxx::Level::getInfo());
   orb = ossie::corba::CorbaInit(0,NULL);
 
   LOG4CXX_INFO(logger, "Setup - Multiout Create Ports Table " );
 
-  ip1 = new bulkio::InFloatPort("sink_1", logger );
+  ip1 = new IN_PORT("sink_1", logger );
   ip1_oid = ossie::corba::RootPOA()->activate_object(ip1);
-  ip2 = new bulkio::InFloatPort("sink_2", logger );
+  ip2 = new IN_PORT("sink_2", logger );
   ip2_oid = ossie::corba::RootPOA()->activate_object(ip2);
-  ip3 = new bulkio::InFloatPort("sink_3", logger );
+  ip3 = new IN_PORT("sink_3", logger );
   ip3_oid = ossie::corba::RootPOA()->activate_object(ip3);
-  ip4 = new bulkio::InFloatPort("sink_4", logger );
+  ip4 = new IN_PORT("sink_4", logger );
   ip4_oid = ossie::corba::RootPOA()->activate_object(ip4);
-  port = new bulkio::OutFloatPort("multiout_source", logger );
+  port = new OUT_PORT("multiout_source", logger );
   port_oid = ossie::corba::RootPOA()->activate_object(port);
 
   desc_list.clear();
@@ -111,8 +74,8 @@ Bulkio_MultiOut_Fixture::setUp()
 }
 
 
-void
-Bulkio_MultiOut_Fixture::tearDown()
+template < typename OUT_PORT, typename IN_PORT >
+void Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::tearDown()
 {
 
   LOG4CXX_INFO(logger, "TearDown - Deactivate Servants " );
@@ -132,7 +95,8 @@ Bulkio_MultiOut_Fixture::tearDown()
 //   Test pushing out SRI to a single port and ensure other ports did not receive the SRI data
 //
 
-void  Bulkio_MultiOut_Fixture::test_multiout_sri_filtered( ) {
+template < typename OUT_PORT, typename IN_PORT >
+void  Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::test_multiout_sri_filtered( ) {
 
   LOG4CXX_INFO(logger, "Multiout SRI Filtered - BEGIN " );
 
@@ -156,7 +120,7 @@ void  Bulkio_MultiOut_Fixture::test_multiout_sri_filtered( ) {
   double xdelta = 1.0/srate;
   BULKIO::StreamSRI sri;
   BULKIO::PrecisionUTCTime TS = bulkio::time::utils::now();
-  bulkio::OutFloatPort::NativeSequenceType v(91);
+  typename OUT_PORT::NativeSequenceType v(91);
   sri = bulkio::sri::create( filter_stream_id, srate);
   port->pushSRI( sri );
 
@@ -191,8 +155,8 @@ void  Bulkio_MultiOut_Fixture::test_multiout_sri_filtered( ) {
 // then terminate the data flow for each stream with EOS and then check each ports
 // active SRI list is empty
 //
-
-void  Bulkio_MultiOut_Fixture::test_multiout_sri_eos_filtered( ) {
+template < typename OUT_PORT, typename IN_PORT >
+void  Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::test_multiout_sri_eos_filtered( ) {
 
   LOG4CXX_INFO(logger, "Multiout SRI Filtered - BEGIN " );
 
@@ -216,7 +180,7 @@ void  Bulkio_MultiOut_Fixture::test_multiout_sri_eos_filtered( ) {
   double xdelta = 1.0/srate;
   BULKIO::StreamSRI sri;
   BULKIO::PrecisionUTCTime TS = bulkio::time::utils::now();
-  bulkio::OutFloatPort::NativeSequenceType v(0);
+  typename OUT_PORT::NativeSequenceType v(0);
   sri = bulkio::sri::create( filter_stream_id, srate);
   port->pushSRI( sri );
 
@@ -373,7 +337,7 @@ void  Bulkio_MultiOut_Fixture::test_multiout_sri_eos_filtered( ) {
   filter_stream_id = "stream-1-1";
   port->pushPacket( v, TS, true, filter_stream_id );
 
-  bulkio::InFloatPort::dataTransfer *pkt;
+  typename IN_PORT::dataTransfer *pkt;
   pkt  = ip1->getPacket(bulkio::Const::NON_BLOCKING );;
   CPPUNIT_ASSERT_MESSAGE( "getPacket - PKT was empty", pkt != NULL );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - StreamID Mismatch", strcmp( pkt->SRI.streamID, filter_stream_id.c_str() ) == 0 );
@@ -420,8 +384,8 @@ void  Bulkio_MultiOut_Fixture::test_multiout_sri_eos_filtered( ) {
 }
 
 
-
-void  Bulkio_MultiOut_Fixture::test_multiout_data_filtered( ) {
+template < typename OUT_PORT, typename IN_PORT >
+void  Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::test_multiout_data_filtered( ) {
 
   LOG4CXX_INFO(logger, "Multiout Data Filter - 1 stream id , 4 independent consumers" );
 
@@ -452,11 +416,11 @@ void  Bulkio_MultiOut_Fixture::test_multiout_data_filtered( ) {
   sri = bulkio::sri::create( filter_stream_id, srate);
   port->pushSRI( sri );
 
-  bulkio::OutFloatPort::NativeSequenceType v(91);
+  typename OUT_PORT::NativeSequenceType v(91);
   port->pushPacket( v, TS, false, filter_stream_id );
 
   // check all the consumers to see if they got the correct packet
-  bulkio::InFloatPort::dataTransfer *pkt ;
+  typename IN_PORT::dataTransfer *pkt ;
   pkt  = ip1->getPacket(bulkio::Const::NON_BLOCKING );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - PKT was empty", pkt != NULL );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - StreamID Mismatch", strcmp( pkt->SRI.streamID, filter_stream_id.c_str() ) == 0 );
@@ -601,7 +565,8 @@ void  Bulkio_MultiOut_Fixture::test_multiout_data_filtered( ) {
 //
 // Test pushPacket data operations on each port do not affect the other port's state
 //
-void  Bulkio_MultiOut_Fixture::test_multiout_data_sri_filtered( ) {
+template < typename OUT_PORT, typename IN_PORT >
+void  Bulkio_MultiOut_Port< OUT_PORT, IN_PORT >::test_multiout_data_sri_filtered( ) {
 
   LOG4CXX_INFO(logger, "Multiout Data/SRI Filter - 1 stream id , 4 independent consumers" );
 
@@ -632,11 +597,11 @@ void  Bulkio_MultiOut_Fixture::test_multiout_data_sri_filtered( ) {
   sri = bulkio::sri::create( filter_stream_id, srate);
   port->pushSRI( sri );
 
-  bulkio::OutFloatPort::NativeSequenceType v(91);
+  typename OUT_PORT::NativeSequenceType v(91);
   port->pushPacket( v, TS, false, filter_stream_id );
 
   // check all the consumers to see if they got the correct packet
-  bulkio::InFloatPort::dataTransfer *pkt ;
+  typename IN_PORT::dataTransfer *pkt ;
   pkt  = ip1->getPacket(bulkio::Const::NON_BLOCKING );
   LOG4CXX_INFO(logger, "Multiout Data Filter - " << pkt->SRI.streamID << " exp:" << filter_stream_id );
   CPPUNIT_ASSERT_MESSAGE( "getPacket - PKT was empty", pkt != NULL );
@@ -782,11 +747,26 @@ void  Bulkio_MultiOut_Fixture::test_multiout_data_sri_filtered( ) {
 
 
 
+// Registers the fixture into the 'registry'
+// this also worked sans type name in output CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutUInt8 );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutUInt8_Port );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutInt16_Port );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutUInt16_Port );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutInt32_Port );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutUInt32_Port );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutInt64_Port );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutUInt64_Port );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutDouble_Port );
+CPPUNIT_TEST_SUITE_REGISTRATION( MultiOutFloat_Port );
 
-
-
-
-
-
-
+//template class Bulkio_MultiOut_Port< bulkio::OutCharPort, bulkio::InInt8Port >;
+template class Bulkio_MultiOut_Port< bulkio::OutOctetPort, bulkio::InUInt8Port >;
+template class Bulkio_MultiOut_Port< bulkio::OutInt16Port, bulkio::InInt16Port >;
+template class Bulkio_MultiOut_Port< bulkio::OutUInt16Port, bulkio::InUInt16Port >;
+template class Bulkio_MultiOut_Port< bulkio::OutInt32Port, bulkio::InInt32Port >;
+template class Bulkio_MultiOut_Port< bulkio::OutUInt32Port, bulkio::InUInt32Port >;
+template class Bulkio_MultiOut_Port< bulkio::OutInt64Port, bulkio::InInt64Port >;
+template class Bulkio_MultiOut_Port< bulkio::OutUInt64Port, bulkio::InUInt64Port >;
+template class Bulkio_MultiOut_Port< bulkio::OutDoublePort, bulkio::InDoublePort >;
+template class Bulkio_MultiOut_Port< bulkio::OutFloatPort, bulkio::InFloatPort >;
 

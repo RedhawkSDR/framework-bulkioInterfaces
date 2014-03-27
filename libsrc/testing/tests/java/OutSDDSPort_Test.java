@@ -112,7 +112,7 @@ public class OutSDDSPort_Test {
 
 	test_fact ctx = new test_fact( "OutSDDS" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutSDDSPort port = new bulkio.OutSDDSPort(ctx.port_name);
 

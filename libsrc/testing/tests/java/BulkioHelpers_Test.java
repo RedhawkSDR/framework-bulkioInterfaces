@@ -68,9 +68,10 @@ public class BulkioHelpers_Test {
 	    assertTrue("newSRI StreamID Mismatch",  ctx.sid == sri.streamID );	    
 	}
 
-	public void    changedSRI( StreamSRI sri ) {
+	public boolean changedSRI( StreamSRI sri ) {
 	    assertTrue("changedSRI SRI Object Invalid",  null != sri );	    
 	    assertTrue("changedSRI Mode Mismatch",  ctx.mode == sri.mode );
+            return true;
 	}
     }
 
@@ -103,7 +104,7 @@ public class BulkioHelpers_Test {
     @Test
 	public void test_sri_create( ) {
 
-	logger.info("------ Tesing  bulkio.sri.utils.create -----");
+	logger.info("------ Testing  bulkio.sri.utils.create -----");
 
         //
         //
@@ -132,7 +133,7 @@ public class BulkioHelpers_Test {
     @Test
 	public void test_sri_compare( ) {
 
-	logger.info("------ Tesing bulkio.sri.DefaultComparator -----");;
+	logger.info("------ Testing bulkio.sri.DefaultComparator -----");;
 
 	BULKIO.StreamSRI a_sri = bulkio.sri.utils.create();
 	BULKIO.StreamSRI b_sri = bulkio.sri.utils.create();
@@ -209,7 +210,7 @@ public class BulkioHelpers_Test {
     @Test
 	public void test_timestamp_create( ) {
 
-	logger.info("------ Tesing bulkio.time.utils.create -----");
+	logger.info("------ Testing bulkio.time.utils.create -----");
 
         BULKIO.PrecisionUTCTime ts = bulkio.time.utils.now();
 	assertEquals( " tcmode mismatch.", ts.tcmode,BULKIO.TCM_CPU.value );

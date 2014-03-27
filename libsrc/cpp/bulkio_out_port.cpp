@@ -1,4 +1,3 @@
-
 /*******************************************************************************************
 
 
@@ -40,7 +39,6 @@ namespace  bulkio {
 
 
     recConnectionsRefresh = false;
-    refreshSRI = true;
     recConnections.length(0);
 
     LOG_DEBUG( logger, "bulkio::OutPort::CTOR port:" << name );
@@ -109,6 +107,23 @@ namespace  bulkio {
 
     SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
 
+    std::string sid( H.streamID );
+    typename OutPortSriMap::iterator sri_iter;
+    sri_iter=  currentSRIs.find( sid );
+    if ( sri_iter == currentSRIs.end() ) {
+      SriMapStruct sri_ctx( H );
+      // need to use insert since we do not have default CTOR for SriMapStruct
+      currentSRIs.insert( OutPortSriMap::value_type( sid, sri_ctx ) );
+      sri_iter=  currentSRIs.find( sid );
+    }
+    else {
+      // overwrite the SRI 
+      sri_iter->second.sri = H;
+
+      // reset connections list to be empty
+      sri_iter->second.connections.clear();
+   }
+
     if (active) {
       bool portListed = false;
       std::vector<connection_descriptor_struct >::iterator ftPtr;
@@ -120,9 +135,10 @@ namespace  bulkio {
           if ( (ftPtr->port_name == this->name) and 
 	       (ftPtr->connection_id == i->second) and 
 	       (strcmp(ftPtr->stream_id.c_str(),H.streamID) == 0 ) ){
-	    LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << ftPtr->connection_id << " SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
+	    LOG_DEBUG(logger,"pushSRI - PORT:" << name << " CONNECTION:" << ftPtr->connection_id << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
             try {
               i->first->pushSRI(H);
+	      sri_iter->second.connections.insert( i->second );
             } catch(...) {
               LOG_ERROR( logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << i->second );
             }
@@ -132,18 +148,17 @@ namespace  bulkio {
 
       if (!portListed) {
 	for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-	  LOG_DEBUG(logger,"pushSRI -2- PORT:" << name << " CONNECTION:" << ftPtr->connection_id << " SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
+          std::string connectionId = CORBA::string_dup(i->second.c_str());
+	  LOG_DEBUG(logger,"pushSRI -2- PORT:" << name << " CONNECTION:" << connectionId << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
 	  try {
 	    i->first->pushSRI(H);
+	    sri_iter->second.connections.insert( i->second );
 	  } catch(...) {
 	    LOG_ERROR( logger, "PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << i->second );
 	  }
 	}
       }
     }
-
-    currentSRIs[std::string(H.streamID)] = std::make_pair(H,false) ;
-    refreshSRI = false;
 
     TRACE_EXIT(logger, "OutPort::pushSRI" );
     return;
@@ -170,6 +185,7 @@ namespace  bulkio {
       // Use const alias to point to the start of the current sub-packet's data
       const TransportType* buffer = static_cast<const TransportType*>(&data[0]);
 
+
       // Always do at least one push (may be empty), ensuring that all samples
       // are pushed
       size_t samplesRemaining = data.size();
@@ -189,7 +205,7 @@ namespace  bulkio {
           // Wrap a non-owning CORBA sequence (last argument is whether to free
           // the buffer on destruction) around this sub-packet's data
           const PortSequenceType subPacket(pushSize, pushSize, const_cast<TransportType*>(buffer), false);
-          _pushPacket(subPacket, T, packetEOS, streamID);
+          _pushPacket(subPacket, T, packetEOS, streamID );
 
           // Advance buffer to next sub-packet boundary
           buffer += pushSize;
@@ -206,14 +222,12 @@ namespace  bulkio {
 
     TRACE_ENTER(logger, "OutPort::pushPacket" );
 
-    if (refreshSRI) {
-      if (currentSRIs.find(streamID) != currentSRIs.end()) {
-          pushSRI(currentSRIs[streamID].first);
-      } else {
-          BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
-          currentSRIs[std::string(tmpH.streamID)] = std::make_pair(tmpH,false) ;
-          pushSRI(currentSRIs[streamID].first);
-      }
+
+    // check if sri has been pushed... 
+    typename OutPortSriMap::iterator sri_iter =  currentSRIs.find( streamID );
+    if ( sri_iter == currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      pushSRI( H );
     }
 
     // don't want to process while command information is coming in
@@ -230,6 +244,10 @@ namespace  bulkio {
           bool                      EOS,
           const std::string&        streamID) {
       typename  ConnectionsList::iterator port;
+
+      // grab SRI context 
+      typename OutPortSriMap::iterator sri_iter =  currentSRIs.find( streamID );
+
       if (active) {
 	bool portListed = false;
         std::vector<connection_descriptor_struct >::iterator ftPtr;
@@ -241,8 +259,16 @@ namespace  bulkio {
 	    if ( (ftPtr->port_name == this->name) and 
 		 (ftPtr->connection_id == port->second) and 
 		 (ftPtr->stream_id == streamID) ){
+
+	      if ( sri_iter != currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+		_pushSRI( port, sri_iter->second );
+	      }
+
               try {
 		port->first->pushPacket(data, T, EOS, streamID.c_str());
+		if ( stats.count(port->second) == 0 ) {
+		  stats.insert( std::make_pair(port->second, linkStatistics( name, sizeof(NativeType) ) ) );
+		}
                 stats[port->second].update(data.length(), 0, EOS, streamID);
               } catch(...) {
                 LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
@@ -252,8 +278,16 @@ namespace  bulkio {
         }
 	if (!portListed) {
 	  for (port = outConnections.begin(); port != outConnections.end(); port++) {
-            try {
+
+	    if ( sri_iter != currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	      _pushSRI( port, sri_iter->second );
+	    }
+
+	    try {
 	      port->first->pushPacket(data, T, EOS, streamID.c_str());
+	      if ( stats.count(port->second) == 0 ) {
+		stats.insert( std::make_pair(port->second, linkStatistics( name, sizeof(NativeType) ) ) );
+	      }
 	      stats[port->second].update(data.length(), 0, EOS, streamID);
             } catch(...) {
 	      LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
@@ -279,14 +313,12 @@ namespace  bulkio {
 
     TRACE_ENTER(logger, "OutPort::pushPacket" );
 
-    if (refreshSRI) {
-      if (currentSRIs.find(streamID) != currentSRIs.end()) {
-        pushSRI(currentSRIs[streamID].first);
-      } else {
-          BULKIO::StreamSRI tmpH = {1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID.c_str(), false, 0};
-          currentSRIs[std::string(tmpH.streamID)] = std::make_pair(tmpH,false) ;
-          pushSRI(currentSRIs[streamID].first);
-      }
+
+    // check if sri has been pushed... 
+    typename OutPortSriMap::iterator sri_iter =  currentSRIs.find( streamID );
+    if ( sri_iter == currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      pushSRI( H );
     }
 
     // don't want to process while command information is coming in
@@ -371,13 +403,13 @@ namespace  bulkio {
       outConnections.push_back(std::make_pair(port, connectionId));
       active = true;
       recConnectionsRefresh = true;
-      refreshSRI = true;
 
       LOG_DEBUG( logger, "CONNECTION ESTABLISHED,  PORT/CONNECTION_ID:" << name << "/" << connectionId );
-    }
+
     if (_connectCB) (*_connectCB)(connectionId);
 
     TRACE_EXIT(logger, "OutPort::connectPort" );
+    }
   }
 
 
@@ -395,38 +427,44 @@ namespace  bulkio {
           break;
         }
       }
+
+      std::string  cid(connectionId);      
       for (unsigned int i = 0; i < outConnections.size(); i++) {
         if (outConnections[i].second == connectionId) {
           PortSequenceType seq;
-          SriMap::iterator cSRIs = currentSRIs.begin();
+          typename OutPortSriMap::iterator cSRIs = currentSRIs.begin();
           BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
-          // send an EOS for every connection that's listed on the connection table
-          for (SriMap::iterator cSRIs=currentSRIs.begin(); cSRIs!=currentSRIs.end(); cSRIs++) {
-            std::string cSriSid = ossie::corba::returnString(cSRIs->second.first.streamID);
-            StreamIDList aSIDs = stats[outConnections[i].second].getActiveStreamIDs();
-            for (StreamIDList::iterator aSID=aSIDs.begin(); aSID!=aSIDs.end(); aSID++) {
-              if (cSriSid == (*aSID)) {
-                if (portListed) {
-                  for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
-                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
+
+          // send an EOS for every connection that's listed for this SRI
+          for (; cSRIs!=currentSRIs.end(); cSRIs++) {
+            std::string cSriSid(cSRIs->second.sri.streamID);
+
+	    // Check if we have sent out sri/data to the connection
+	    if ( cSRIs->second.connections.count( cid ) != 0 ) {
+	      if (portListed) {
+		for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+		  if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == cid ) and (ftPtr->stream_id == cSriSid)) {
                       try {
                         outConnections[i].first->pushPacket(seq, tstamp, true, cSriSid.c_str());
                       } catch(...) {}
                     }
                   }
-                } else {
+	      } else {
                   outConnections[i].first->pushPacket(seq, tstamp, true, cSriSid.c_str());
-                }
-              }
-            }
-          }
+	      }
+	    }
+
+	    // remove connection id from sri connections list
+	    cSRIs->second.connections.erase( cid );
+
+	  }
           LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
           outConnections.erase(outConnections.begin() + i);
           stats.erase( outConnections[i].second );
           break;
-        }
+	}
       }
-
+    
       if (outConnections.size() == 0) {
         active = false;
       }
@@ -438,11 +476,70 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
-  SriMap  OutPort< PortTraits >::getCurrentSRI()
+  void  OutPort< PortTraits >::_pushSRI( typename ConnectionsList::iterator connPair, SriMapStruct &sri_ctx)
   {
-      SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
-      return currentSRIs;
+    TRACE_ENTER(logger, "OutPort::_pushSRI" );
+
+    // assume parent will lock us...
+    if ( connPair != outConnections.end() ) {
+
+      // push SRI over port instance
+      try {
+	connPair->first->pushSRI(sri_ctx.sri);
+	sri_ctx.connections.insert( connPair->second );
+	LOG_TRACE( logger, "_pushSRI()  connection_id/streamID " << connPair->second << "/" << sri_ctx.sri.streamID );
+      } catch(...) {
+	LOG_ERROR( logger, "_pushSRI() PUSH-SRI FAILED, PORT/CONNECTION: " << name << "/" << connPair->second );
+      }      
+    }
+
+    TRACE_EXIT(logger, "OutPort::_pushSRI" );
+    return;
   }
+
+
+  template < typename PortTraits >
+  void  OutPort< PortTraits >::_pushSRI( const std::string &connectionId, SriMapStruct &sri_ctx)
+  {
+    TRACE_ENTER(logger, "OutPort::_pushSRI" );
+
+    typename ConnectionsList::iterator i;
+
+    for ( i=outConnections.begin(); i != outConnections.end(); i++ ) {
+      if ( i->second == connectionId ) {
+	_pushSRI( i, sri_ctx );
+	break;
+      }
+    }
+    TRACE_EXIT(logger, "OutPort::_pushSRI" );
+    return;
+  }
+
+
+  template < typename PortTraits >
+  bulkio::SriMap  OutPort< PortTraits >::getCurrentSRI()
+  {
+    bulkio::SriMap ret;
+    SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
+    typename OutPortSriMap::iterator cSri = currentSRIs.begin();
+    for ( ; cSri != currentSRIs.end(); cSri++ ) {
+      ret[cSri->first] = std::make_pair<  BULKIO::StreamSRI, bool >( cSri->second.sri, false );
+    }
+    return ret;
+  }
+
+  template < typename PortTraits >
+  bulkio::SriList  OutPort< PortTraits >::getActiveSRIs()
+  {
+    bulkio::SriList ret;
+    SCOPED_LOCK lock(updatingPortsLock);   // restrict access till method completes
+    typename OutPortSriMap::iterator cSri = currentSRIs.begin();
+    for ( ; cSri != currentSRIs.end(); cSri++ ) {
+      ret.push_back( cSri->second.sri );
+    }
+    return ret;
+  }
+
 
   template < typename PortTraits >
   typename OutPort< PortTraits >::ConnectionsList  OutPort< PortTraits >::getConnections()
@@ -482,15 +579,18 @@ namespace  bulkio {
 
     TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
 
-    if (  this->refreshSRI) {
-      if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-        this->pushSRI(this->currentSRIs[streamID].first);
-      }
+    // check if sri has been pushed... 
+    typename OutInt8Port::OutPortSriMap::iterator sri_iter =  this->currentSRIs.find( streamID );
+    if ( sri_iter == this->currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      this->pushSRI( H );
     }
+
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     // Magic is below, make a new sequence using the data from the Iterator
     // as the data for the sequence.  The 'false' at the end is whether or not
     // CORBA is allowed to delete the buffer when the sequence is destroyed.
+    sri_iter =  this->currentSRIs.find( streamID );
     PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
     if (this->active) {
       bool portListed = false;
@@ -502,6 +602,10 @@ namespace  bulkio {
           if (ftPtr->port_name == this->name)  portListed = true;
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
+	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	      _pushSRI( port, sri_iter->second );
+	    }
+
             try {
               port->first->pushPacket(seq, T, EOS, streamID.c_str());
               if ( this->stats.count((*port).second) == 0 ) {
@@ -516,6 +620,11 @@ namespace  bulkio {
       }
       if (!portListed) {
 	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+
+	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	    _pushSRI( port, sri_iter->second );
+	  }
+
           try {
             port->first->pushPacket(seq, T, EOS, streamID.c_str());
             if ( this->stats.count((*port).second) == 0 ) {
@@ -546,16 +655,20 @@ namespace  bulkio {
 
     TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
 
-    if (  this->refreshSRI) {
-      if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-        this->pushSRI(this->currentSRIs[streamID].first);
-      }
+    // check if sri has been pushed... 
+    typename OutInt8Port::OutPortSriMap::iterator sri_iter =  this->currentSRIs.find( streamID );
+    if ( sri_iter == this->currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      this->pushSRI( H );
     }
+
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
     // Magic is below, make a new sequence using the data from the Iterator
     // as the data for the sequence.  The 'false' at the end is whether or not
     // CORBA is allowed to delete the buffer when the sequence is destroyed.
     PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
+    // grab SRI context 
+    sri_iter =  this->currentSRIs.find( streamID );
     if (this->active) {
       bool portListed = false;
       typename  OutInt8Port::ConnectionsList::iterator port;
@@ -566,6 +679,10 @@ namespace  bulkio {
           if (ftPtr->port_name == this->name) portListed = true;
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
+	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	      _pushSRI( port, sri_iter->second );
+	    }
+
             try {
               port->first->pushPacket(seq, T, EOS, streamID.c_str());
               if ( this->stats.count((*port).second) == 0 ) {
@@ -580,6 +697,11 @@ namespace  bulkio {
       }
       if (!portListed) {
 	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+
+	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	    _pushSRI( port, sri_iter->second );
+	  }
+
           try {
             port->first->pushPacket(seq, T, EOS, streamID.c_str());
             if ( this->stats.count((*port).second) == 0 ) {
@@ -641,33 +763,35 @@ namespace  bulkio {
                 break;
             }
         }
+
+	std::string cid(connectionId);
         for (unsigned int i = 0; i < this->outConnections.size(); i++) {
             if (this->outConnections[i].second == connectionId) {
                 std::string data("");
-                SriMap::iterator cSRIs = this->currentSRIs.begin();
+                typename OutPort< PortTraits >::SriMap::iterator cSRIs = this->currentSRIs.begin();
                 BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
-                // send an EOS for every connection that's listed on the connection table
-                for (SriMap::iterator cSRIs=this->currentSRIs.begin(); cSRIs!=this->currentSRIs.end(); cSRIs++) {
-                    std::string cSriSid = ossie::corba::returnString(cSRIs->second.first.streamID);
-                    StreamIDList aSIDs = this->stats[this->outConnections[i].second].getActiveStreamIDs();
-                    for (StreamIDList::iterator aSID=aSIDs.begin(); aSID!=aSIDs.end(); aSID++) {
-                        if (cSriSid == (*aSID)) {
-                            if (portListed) {
-                                for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
-                                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == this->outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
-                                        try {
-                                            this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
-                                        } catch(...) {}
-                                    }
-                                }
-                            } else {
-                                try {
-                                    this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
-                                } catch(...) {}
-                            }
-                        }
-                    }
-                }
+		  
+		// send an EOS for every connection that's listed for this SRI
+		for (; cSRIs!=this->currentSRIs.end(); cSRIs++) {
+		  std::string cSriSid(cSRIs->second.first.streamID);
+		  if (  cSRIs->second.connections.count( cid ) != 0 ) {
+		    if (portListed) {
+		      for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+			if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == cid) and (ftPtr->stream_id == cSriSid)) {
+			  try {
+			    this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
+			  } catch(...) {}
+			}
+		      }
+		    } else {
+		      try {
+			this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
+		      } catch(...) {}
+		    }
+		  }
+		  // remove connection id from sri connections list
+		  cSRIs->second.connections.erase( cid );
+		}
                 LOG_DEBUG( this->logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
                 this->outConnections.erase(this->outConnections.begin() + i);
                 this->stats.erase( this->outConnections[i].second );
@@ -691,12 +815,17 @@ namespace  bulkio {
 
     TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
 
-    if (this->refreshSRI) {
-      if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-        this->pushSRI(this->currentSRIs[streamID].first);
-      }
+    // check if sri has been pushed... 
+    typename OutStringPort::OutPortSriMap::iterator sri_iter =  this->currentSRIs.find( streamID );
+    if ( sri_iter == this->currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      this->pushSRI( H );
     }
+
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+    // grab SRI context 
+    sri_iter =  this->currentSRIs.find( streamID );
+
     if (this->active) {
       bool portListed = false;
       typename OutPort< PortTraits >::ConnectionsList::iterator port;
@@ -707,6 +836,10 @@ namespace  bulkio {
           if (ftPtr->port_name == this->name) portListed=true;
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
+	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	      _pushSRI( port, sri_iter->second );
+	    }
+	    
             try {
               port->first->pushPacket(data, T, EOS, streamID.c_str());
               if ( this->stats.count((*port).second) == 0 ) {
@@ -721,6 +854,11 @@ namespace  bulkio {
       }
       if (!portListed) {
 	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+
+	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	    _pushSRI( port, sri_iter->second );
+	  }
+
           try {
             port->first->pushPacket(data, T, EOS, streamID.c_str());
             if ( this->stats.count((*port).second) == 0 ) {
@@ -752,12 +890,16 @@ namespace  bulkio {
 
     TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
 
-    if (this->refreshSRI) {
-      if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-        this->pushSRI(this->currentSRIs[streamID].first);
-      }
+    // check if sri has been pushed... 
+    typename OutStringPort::OutPortSriMap::iterator sri_iter =  this->currentSRIs.find( streamID );
+    if ( sri_iter == this->currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      this->pushSRI( H );
     }
+
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+    // grab SRI context 
+    sri_iter =  this->currentSRIs.find( streamID );
     if (this->active) {
       bool portListed = false;
       typename OutPort< PortTraits >::ConnectionsList::iterator port;
@@ -768,6 +910,10 @@ namespace  bulkio {
           if (ftPtr->port_name == this->name) portListed = true;
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
+	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	      _pushSRI( port, sri_iter->second );
+	    }
+
             try {
               BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
               port->first->pushPacket(data, tstamp, EOS, streamID.c_str());
@@ -783,6 +929,10 @@ namespace  bulkio {
       }
       if (!portListed) {
 	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
+
+	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	    _pushSRI( port, sri_iter->second );
+	  }
           try {
             BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
             port->first->pushPacket(data, tstamp, EOS, streamID.c_str());
@@ -822,31 +972,33 @@ namespace  bulkio {
                 break;
             }
         }
+
+	std::string cid(connectionId);
         for (unsigned int i = 0; i < this->outConnections.size(); i++) {
             if (this->outConnections[i].second == connectionId) {
                 std::string data("");
-                SriMap::iterator cSRIs = this->currentSRIs.begin();
-                // send an EOS for every connection that's listed on the connection table
-                for (SriMap::iterator cSRIs=this->currentSRIs.begin(); cSRIs!=this->currentSRIs.end(); cSRIs++) {
-                    std::string cSriSid = ossie::corba::returnString(cSRIs->second.first.streamID);
-                    StreamIDList aSIDs = this->stats[this->outConnections[i].second].getActiveStreamIDs();
-                    for (StreamIDList::iterator aSID=aSIDs.begin(); aSID!=aSIDs.end(); aSID++) {
-                        if (cSriSid == (*aSID)) {
-                            if (portListed) {
-                                for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
-                                    if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
-                                        try {
-                                            outConnections[i].first->pushPacket(data.c_str(), true, cSriSid.c_str());
-                                        } catch(...) {}
-                                    }
-                                }
-                            } else {
-                                try {
-                                    outConnections[i].first->pushPacket(data.c_str(), true, cSriSid.c_str());
-                                } catch(...) {}
-                            }
-                        }
-                    }
+                OutPort< XMLPortTraits >::OutPortSriMap::iterator cSRIs = this->currentSRIs.begin();
+
+		// send an EOS for every connection that's listed for this SRI
+		for (; cSRIs!=this->currentSRIs.end(); cSRIs++) {
+		  std::string cSriSid(cSRIs->second.sri.streamID);
+		  if (  cSRIs->second.connections.count( cid ) != 0 ) {
+		    if (portListed) {
+		      for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+			if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == outConnections[i].second) and (ftPtr->stream_id == cSriSid)) {
+			  try {
+			    outConnections[i].first->pushPacket(data.c_str(), true, cSriSid.c_str());
+			  } catch(...) {}
+			}
+		      }
+		    } else {
+		      try {
+			outConnections[i].first->pushPacket(data.c_str(), true, cSriSid.c_str());
+		      } catch(...) {}
+		    }
+		  }
+		  // remove connection id from sri connections list
+		  cSRIs->second.connections.erase( cid );
                 }
                 LOG_DEBUG( this->logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
                 this->outConnections.erase(this->outConnections.begin() + i);
@@ -875,28 +1027,30 @@ namespace  bulkio {
       TRACE_ENTER(this->logger, "OutPort::disconnectPort" );
       {
           SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+	  std::string cid(connectionId);
           BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
           for (unsigned int i = 0; i < this->outConnections.size(); i++) {
               if (this->outConnections[i].second == connectionId) {
                   std::string data("");
-                  SriMap::iterator cSRIs = this->currentSRIs.begin();
-                  // send an EOS for every connection that's listed on the connection table
-                  for (SriMap::iterator cSRIs=this->currentSRIs.begin(); cSRIs!=this->currentSRIs.end(); cSRIs++) {
-                      std::string cSriSid = ossie::corba::returnString(cSRIs->second.first.streamID);
-                      StreamIDList aSIDs = this->stats[this->outConnections[i].second].getActiveStreamIDs();
-                      for (StreamIDList::iterator aSID=aSIDs.begin(); aSID!=aSIDs.end(); aSID++) {
-                          if (cSriSid == (*aSID)) {
-                              try {
-                                  this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
-                              } catch(...) {}
-                          }
-                      }
-                  }
-                  LOG_DEBUG( this->logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
-                  this->outConnections.erase(this->outConnections.begin() + i);
-                  this->stats.erase( this->outConnections[i].second );
-                  break;
-              }
+                  OutPort< FilePortTraits >::OutPortSriMap::iterator cSRIs = this->currentSRIs.begin();
+		  
+		  // send an EOS for every connection that's listed for this SRI
+		  for (; cSRIs!=this->currentSRIs.end(); cSRIs++) {
+		    std::string cSriSid(cSRIs->second.sri.streamID);
+		    if (  cSRIs->second.connections.count( cid ) != 0 ) {
+		      try {
+			this->outConnections[i].first->pushPacket(data.c_str(), tstamp, true, cSriSid.c_str());
+		      } catch(...) {}
+		    }
+
+		    // remove connection id from sri connections list
+		    cSRIs->second.connections.erase( cid );
+		  }
+	      }
+	      LOG_DEBUG( this->logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
+	      this->outConnections.erase(this->outConnections.begin() + i);
+	      this->stats.erase( this->outConnections[i].second );
+	      break;
           }
           
           if (this->outConnections.size() == 0) {
@@ -918,12 +1072,16 @@ namespace  bulkio {
   void OutStringPort< XMLPortTraits >::pushPacket( const char *data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
     TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
-    if (this->refreshSRI) {
-      if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-        pushSRI(this->currentSRIs[streamID].first);
-      }
+
+    // check if sri has been pushed... 
+    OutStringPort::OutPortSriMap::iterator sri_iter =  this->currentSRIs.find( streamID );
+    if ( sri_iter == this->currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      this->pushSRI( H );
     }
+
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+    sri_iter =  this->currentSRIs.find( streamID );
     if (this->active) {
       bool portListed = false;
       OutPort< XMLPortTraits >::ConnectionsList::iterator port;
@@ -934,6 +1092,10 @@ namespace  bulkio {
 	  if (ftPtr->port_name == this->name)  portListed = true;
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
+	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	      _pushSRI( port, sri_iter->second );
+	    }
+
             try {
               port->first->pushPacket(data, EOS, streamID.c_str());
               this->stats[(*port).second].update(1, 0, EOS, streamID);
@@ -945,6 +1107,10 @@ namespace  bulkio {
       }
       if (!portListed) {
 	for (port = outConnections.begin(); port != outConnections.end(); port++) {
+
+	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	    _pushSRI( port, sri_iter->second );
+	  }
 
           try {
             port->first->pushPacket(data, EOS, streamID.c_str());
@@ -971,12 +1137,16 @@ namespace  bulkio {
   void OutStringPort<  XMLPortTraits  >::pushPacket( const char *data, bool EOS, const std::string& streamID) {
 
     TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
-    if (this->refreshSRI) {
-      if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-        pushSRI(this->currentSRIs[streamID].first);
-      }
+
+    // check if sri has been pushed... 
+    OutPort< XMLPortTraits >::OutPortSriMap::iterator sri_iter =  this->currentSRIs.find( streamID );
+    if ( sri_iter == this->currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      this->pushSRI( H );
     }
+
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
+    sri_iter =  this->currentSRIs.find( streamID );
     if (this->active) {
       bool portListed = false;
       OutPort< XMLPortTraits >::ConnectionsList::iterator port;
@@ -985,6 +1155,9 @@ namespace  bulkio {
         for (ftPtr=filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
 	  if (ftPtr->port_name == this->name) portListed = true;
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
+	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	      _pushSRI( port, sri_iter->second );
+	    }
             try {
               port->first->pushPacket(data, EOS, streamID.c_str());
               this->stats[(*port).second].update(strlen(data), 0, EOS, streamID);
@@ -996,6 +1169,9 @@ namespace  bulkio {
       }
       if (!portListed) {
 	for (port = outConnections.begin(); port != outConnections.end(); port++) {
+	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
+	    _pushSRI( port, sri_iter->second );
+	  }
           try {
             port->first->pushPacket(data, EOS, streamID.c_str());
             this->stats[(*port).second].update(strlen(data), 0, EOS, streamID);

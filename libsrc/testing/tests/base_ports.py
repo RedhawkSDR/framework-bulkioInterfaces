@@ -131,7 +131,7 @@ class BaseVectorPort(unittest.TestCase):
         dsource=sb.DataSource()
         dsink=sb.DataSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
-        print "Test Componet:" + c_spd_xml
+        print "Test Component:" + c_spd_xml
         test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
         data=self.seq
 
@@ -167,7 +167,7 @@ class BaseVectorPort(unittest.TestCase):
         dsource=sb.DataSource()
         dsink=sb.DataSink()
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
-        print "Test Componet:" + c_spd_xml
+        print "Test Component:" + c_spd_xml
         test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
         data=self.seq
 
@@ -197,7 +197,7 @@ class BaseVectorPort(unittest.TestCase):
 
     def test_inport_using_componet(self):
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
-        print "Test Componet:" + c_spd_xml
+        print "Test Component:" + c_spd_xml
         test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
 
         ##
@@ -305,7 +305,7 @@ class BaseVectorPort(unittest.TestCase):
 
     def test_outport_using_component(self):
         c_spd_xml = test_dir + self.c_dir + '/' + self.c_name + '/' + self.c_name + '.spd.xml'
-        print "Test Componet:" + c_spd_xml
+        print "Test Component:" + c_spd_xml
         test_comp=sb.launch( c_spd_xml, execparams=self.execparams)
 
         ##
@@ -352,7 +352,7 @@ class BaseVectorPort(unittest.TestCase):
         self.assertNotEqual(ps,None,"Cannot get Port Statistics")
 
         cnt = len(bio.sriDict)
-        self.assertEqual(cnt,0,"SRI list should be 0")
+        self.assertEqual(cnt,1,"SRI list should be 1")
 
         bio.enableStats(False)
 
@@ -397,7 +397,7 @@ class BaseVectorPort(unittest.TestCase):
         self.assertNotEqual(ps,None,"Cannot get Port Statistics")
 
         cnt = len(bio.sriDict)
-        self.assertEqual(cnt,0,"SRI list should be 0")
+        self.assertEqual(cnt,1,"SRI list should be 1")
 
         bio.enableStats(False)
 

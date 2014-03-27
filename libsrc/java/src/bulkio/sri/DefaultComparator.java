@@ -30,7 +30,7 @@ public class DefaultComparator implements bulkio.sri.Comparator {
             return false;
         if (SRI_1.blocking != SRI_2.blocking)
             return false;
-        if (SRI_1.streamID != SRI_2.streamID)
+        if (!SRI_1.streamID.equals(SRI_2.streamID))
             return false;
         if (SRI_1.keywords == null || SRI_2.keywords == null )
 	    return false;

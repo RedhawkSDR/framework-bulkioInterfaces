@@ -105,7 +105,7 @@ public class OutStringPort_Test {
 
 	test_fact ctx = new test_fact( "OutFile" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutFilePort port = new bulkio.OutFilePort(ctx.port_name);
 
@@ -177,7 +177,7 @@ public class OutStringPort_Test {
 
 	test_fact ctx = new test_fact( "OutXML" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutXMLPort port = new bulkio.OutXMLPort(ctx.port_name);
 

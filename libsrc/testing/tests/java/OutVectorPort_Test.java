@@ -29,6 +29,7 @@ import BULKIO.dataSDDSPackage.AttachError;
 import BULKIO.dataSDDSPackage.DetachError;
 import BULKIO.dataSDDSPackage.StreamInputError;
 import bulkio.ConnectionEventListener;
+import org.omg.CORBA.ORB;
 
 /**
  * Tests for {@link Foo}.
@@ -40,6 +41,8 @@ public class OutVectorPort_Test {
 
     Logger logger =  Logger.getRootLogger();
 
+    public static ORB orb;
+
     class test_fact {
 
 	String  name = "OutInt8";
@@ -49,6 +52,7 @@ public class OutVectorPort_Test {
 	String  sid = new String("test-outport-streamid");
 
 	String  cid = new String("connect-1");
+	String  cid2 = new String("connect-2");
 
 	short   mode = 1;
 
@@ -83,6 +87,10 @@ public class OutVectorPort_Test {
 	public static void oneTimeSetUp() {
 	// Set up a simple configuration that logs on the console.
 	BasicConfigurator.configure();
+
+        // Create and initialize the ORB
+        String [] args = new String[0];
+        orb = ORB.init(args, null);
     }
 
     @AfterClass
@@ -92,7 +100,6 @@ public class OutVectorPort_Test {
 
     @Before
 	public void setUp() {
-
     }
 
     @After
@@ -106,7 +113,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutInt8" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutInt8Port port = new bulkio.OutInt8Port(ctx.port_name);
 
@@ -136,11 +143,21 @@ public class OutVectorPort_Test {
 	
 	bulkio.InInt8Port p = new bulkio.InInt8Port("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -152,7 +169,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	char []v = new char[0];
+	char []v = new char[] { (char)0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -170,6 +187,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 8);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
 
@@ -179,7 +201,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutInt16" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutInt16Port port = new bulkio.OutInt16Port(ctx.port_name);
 
@@ -209,11 +231,20 @@ public class OutVectorPort_Test {
 	
 	bulkio.InInt16Port p = new bulkio.InInt16Port("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -225,7 +256,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	short []v = new short[0];
+	short []v = new short[] { (short)0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -243,6 +274,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 16);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
     @Test
@@ -251,7 +287,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutInt32" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutInt32Port port = new bulkio.OutInt32Port(ctx.port_name);
 
@@ -281,11 +317,20 @@ public class OutVectorPort_Test {
 	
 	bulkio.InInt32Port p = new bulkio.InInt32Port("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -297,7 +342,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	int []v = new int[0];
+	int []v = new int[] { 0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -315,6 +360,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 32);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
 
@@ -324,7 +374,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutInt64" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutInt64Port port = new bulkio.OutInt64Port(ctx.port_name);
 
@@ -352,13 +402,22 @@ public class OutVectorPort_Test {
 	//
 	port.setConnectionEventListener(new connect_listener(ctx) );
 	
-	bulkio.InInt64ort p = new bulkio.InInt64Port("sink_1",logger);
+	bulkio.InInt64Port p = new bulkio.InInt64Port("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -370,7 +429,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	long []v = new long[0];
+	long []v = new long[] { 0L };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -388,6 +447,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 64);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
 
@@ -397,7 +461,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutUInt8" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutUInt8Port port = new bulkio.OutUInt8Port(ctx.port_name);
 
@@ -427,11 +491,20 @@ public class OutVectorPort_Test {
 	
 	bulkio.InUInt8Port p = new bulkio.InUInt8Port("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -443,7 +516,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	byte []v = new byte[0];
+	byte []v = new byte[] { (byte)0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -461,6 +534,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 8);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
 
@@ -470,7 +548,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutUInt16" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutUInt16Port port = new bulkio.OutUInt16Port(ctx.port_name);
 
@@ -500,11 +578,20 @@ public class OutVectorPort_Test {
 	
 	bulkio.InUInt16Port p = new bulkio.InUInt16Port("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -516,7 +603,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	short []v = new short[0];
+	short []v = new short[] { (short)0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -534,6 +621,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 16);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
     @Test
@@ -542,7 +634,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutUInt32" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutUInt32Port port = new bulkio.OutUInt32Port(ctx.port_name);
 
@@ -572,11 +664,20 @@ public class OutVectorPort_Test {
 	
 	bulkio.InUInt32Port p = new bulkio.InUInt32Port("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -588,7 +689,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	int []v = new int[0];
+	int []v = new int[] { 0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -606,6 +707,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 32);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
 
@@ -615,7 +721,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutUInt64" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutUInt64Port port = new bulkio.OutUInt64Port(ctx.port_name);
 
@@ -645,11 +751,20 @@ public class OutVectorPort_Test {
 	
 	bulkio.InUInt64Port p = new bulkio.InUInt64Port("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -661,7 +776,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	long []v = new long[0];
+	long []v = new long[] { 0L };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -679,6 +794,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 64);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
 
@@ -689,7 +809,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutDouble" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutDoublePort port = new bulkio.OutDoublePort(ctx.port_name);
 
@@ -719,11 +839,20 @@ public class OutVectorPort_Test {
 	
 	bulkio.InDoublePort p = new bulkio.InDoublePort("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -735,7 +864,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	double []v = new double[0];
+	double []v = new double[] { 0.0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -753,6 +882,11 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 64);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
     @Test
@@ -761,7 +895,7 @@ public class OutVectorPort_Test {
 
 	test_fact ctx = new test_fact( "OutFloat" );
 
-	logger.info("------ Tesing " + ctx.name + " Port ------");
+	logger.info("------ Testing " + ctx.name + " Port ------");
 
 	bulkio.OutFloatPort port = new bulkio.OutFloatPort(ctx.port_name);
 
@@ -791,11 +925,20 @@ public class OutVectorPort_Test {
 	
 	bulkio.InFloatPort p = new bulkio.InFloatPort("sink_1",logger);
 	try {
-	    port.connectPort( p, ctx.cid );
+	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
+	}
+
+        // clear callback and reconnect
+        port.setConnectionEventListener(null);
+	try {
+	    port.connectPort( p._this_object(orb), ctx.cid );
+	}
+	catch(Exception e){
+            fail("Unable to connect port");
 	}
 
 	// push sri
@@ -807,7 +950,7 @@ public class OutVectorPort_Test {
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
 	// push data
-	float []v = new float[0];
+	float []v = new float[] { 0.0f };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
 	port.pushPacket( v, TS, false, ctx.sid );
 
@@ -825,8 +968,37 @@ public class OutVectorPort_Test {
 	sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 0 );
 
+        // Check that the statistics report the right element size
+        test_element_size(port, 32);
+
+        // Test that statistics are returned for all connections
+        test_statistics(port, p._this_object(orb), ctx);
     }
 
+    private void test_element_size(BULKIO.UsesPortStatisticsProviderOperations port, int bits)
+    {
+	BULKIO.UsesPortStatistics[] stats = port.statistics();
+	assertEquals("No statistics",  stats.length, 1);
+        double bpe = stats[0].statistics.bitsPerSecond / stats[0].statistics.elementsPerSecond;
+        assertEquals("Incorrect element size", (double)bits, bpe, 1e-6);
+    }
 
+    private void test_statistics(BULKIO.UsesPortStatisticsProviderPOA port,
+                                 org.omg.CORBA.Object sink,
+                                 test_fact ctx)
+    {
+        try {
+            port.connectPort(sink, ctx.cid);
+            port.connectPort(sink, ctx.cid2);
+        } catch (final CF.PortPackage.OccupiedPort ex) {
+            fail("Port should never throw CF.Port.OccupiedPort");
+        } catch (final CF.PortPackage.InvalidPort ex) {
+            fail("Failed to connect ports");
+        }
+        BULKIO.UsesPortStatistics[] stats = port.statistics();
+        assertEquals("Statistics returned wrong number of connections", stats.length, 2);
+        assertNotNull("Statistics[0] is null", stats[0]);
+        assertNotNull("Statistics[1] is null", stats[1]);
+    }
 
 }

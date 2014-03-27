@@ -74,9 +74,10 @@ public class InSDDSPort_Test {
 	    assertTrue("newSRI StreamID Mismatch",  ctx.sid == sri.streamID );	    
 	}
 
-	public void    changedSRI( StreamSRI sri ) {
+	public boolean changedSRI( StreamSRI sri ) {
 	    assertTrue("changedSRI SRI Object Invalid",  null != sri );	    
 	    assertTrue("changedSRI Mode Mismatch",  ctx.mode == sri.mode );
+            return true;
 	}
     }
 
@@ -136,7 +137,7 @@ public class InSDDSPort_Test {
 
 	ctx=new test_fact("InSDDS");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 
 	bulkio.InSDDSPort port = new bulkio.InSDDSPort(ctx.port_name );
 

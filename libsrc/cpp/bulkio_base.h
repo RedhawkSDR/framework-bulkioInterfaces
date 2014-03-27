@@ -45,11 +45,12 @@ namespace bulkio {
 
   };
 
-
   //
   // Mapping of Stream IDs to SRI objects
   //
   typedef std::map< std::string, std::pair< BULKIO::StreamSRI, bool > >  SriMap;
+
+  typedef std::vector< BULKIO::StreamSRI >                               SriList;
 
   //
   // Listing of Stream IDs for searching

@@ -31,3 +31,7 @@ popd
 pushd ../components/TestLargePush/python
 ./reconf; ./configure; make
 popd
+
+pushd cpp 
+./reconf; ./configure;
+popd

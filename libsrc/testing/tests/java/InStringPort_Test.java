@@ -66,9 +66,10 @@ public class InStringPort_Test {
 	    assertTrue("newSRI StreamID Mismatch",  ctx.sid == sri.streamID );	    
 	}
 
-	public void    changedSRI( StreamSRI sri ) {
+	public boolean changedSRI( StreamSRI sri ) {
 	    assertTrue("changedSRI SRI Object Invalid",  null != sri );	    
 	    assertTrue("changedSRI Mode Mismatch",  ctx.mode == sri.mode );
+            return true;
 	}
     }
 
@@ -104,7 +105,7 @@ public class InStringPort_Test {
 
 	ctx=new test_fact("InFile");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 
 	bulkio.InFilePort port = new bulkio.InFilePort(ctx.port_name );
 
@@ -176,7 +177,7 @@ public class InStringPort_Test {
 
 	ctx=new test_fact("InXML");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 
 	bulkio.InXMLPort port = new bulkio.InXMLPort(ctx.port_name );
 

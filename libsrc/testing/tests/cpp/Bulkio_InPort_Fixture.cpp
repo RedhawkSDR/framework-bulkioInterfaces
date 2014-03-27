@@ -39,7 +39,7 @@ void
 Bulkio_InPort_Fixture::setUp()
 {
    logger = log4cxx::Logger::getLogger("BulkioInPort");
-   logger->setLevel( log4cxx::Level::getTrace());
+   logger->setLevel( log4cxx::Level::getInfo());
 }
 
 

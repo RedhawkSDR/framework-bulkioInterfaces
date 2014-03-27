@@ -4,6 +4,7 @@
 
 #include <queue>
 #include <list>
+#include <set>
 #include <vector>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
@@ -99,6 +100,22 @@ namespace bulkio {
   };
 
 
+  struct SriMapStruct {
+      BULKIO::StreamSRI        sri;
+      std::set<std::string>    connections;
+
+    SriMapStruct( const BULKIO::StreamSRI &in_sri ) {
+      sri = in_sri;
+    };
+
+    SriMapStruct( const SriMapStruct &src ) {
+      sri = src.sri;
+      connections = src.connections;
+    };
+  };
+
+
+
   //
   //  OutPort
   //
@@ -156,6 +173,13 @@ namespace bulkio {
     // ConnectionList Definition
     //
     typedef typename  bulkio::Connections< PortVarType >::List        ConnectionsList;
+
+    //
+    // Mapping of Stream IDs to SRI Map/Refresh objects
+    //
+    typedef std::map< std::string, SriMapStruct >                    OutPortSriMap;
+
+
 
   public:
 
@@ -318,9 +342,14 @@ namespace bulkio {
     virtual void enableStats(bool enable);
 
     //
-    // Return list of SRI received by this port via pushSRI method
+    // Return map of streamID/SRI objects 
     //
-    virtual SriMap getCurrentSRI();
+    virtual bulkio::SriMap getCurrentSRI();
+
+    //
+    // Return list of SRI objects
+    //
+    virtual bulkio::SriList getActiveSRIs();
 
     //
     // Return a ConnectionsList for the current ports and connections ids establish via connectPort method
@@ -342,16 +371,16 @@ namespace bulkio {
     }
 
 
-    //
-    // List of SRIs sent out by this port
-    //
-    SriMap                                   currentSRIs __attribute__ ((deprecated));
-
-
   protected:
+
 
     // Map of stream ids and statistic object
     typedef typename  std::map<std::string, linkStatistics  >    _StatsMap;
+
+    //
+    // List of SRIs sent out by this port
+    //
+    OutPortSriMap                            currentSRIs;
 
     //
     // List of Port connections and connection identifiers
@@ -374,6 +403,11 @@ namespace bulkio {
     //
     _StatsMap                                 stats;
 
+    //
+    // _pushSRI - method to push given SRI to a specific connections
+    //
+    void _pushSRI( typename ConnectionsList::iterator connPair, SriMapStruct &sri_ctx);
+    void _pushSRI( const std::string &connectionId, SriMapStruct &sri_ctx);
 
     LOGGER_PTR                                logger;
     std::vector<connection_descriptor_struct> filterTable;

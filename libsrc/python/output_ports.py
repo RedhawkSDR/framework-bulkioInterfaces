@@ -22,6 +22,16 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             self.port_name=pname
             self.connection_id=conn_name
             self.stream_id = stream_id
+
+    class SriMapStruct:
+        def __init__( self, sri=None, connections=None): 
+            self.sri=sri
+            self.connections = connections #set of connection ID strings that have received this SRI
+
+    class SDDSSriMapStruct(SriMapStruct):
+        def __init__( self, sri=None, connections=None, time=None): 
+            super(SriMapStruct,self).__init__(sri,connections)
+            self.time = time
     
     TRANSFER_TYPE='c'
     def __init__(self, name, PortTypeClass, PortTransferType=TRANSFER_TYPE, logger=None, noData=[] ):
@@ -30,15 +40,18 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         self.PortType = PortTypeClass
         self.PortTransferType=PortTransferType
         self.outConnections = {} # key=connectionId,  value=port
-        self.refreshSRI = True
         self.stats = OutStats(self.name, PortTransferType )
         self.port_lock = threading.Lock()
-        self.sriDict = {} # key=streamID  value=StreamSRI
+        self.sriDict = {} # key=streamID  value=SriMapStruct
         self.filterTable = []
         self.noData = noData
-        self.sizeOfData=1
+
+        # Determine maximum transfer size in advance
+        byteSize = 1
         if self.PortTransferType:
-            self.sizeOfData = struct.calcsize(PortTransferType)
+            byteSize = struct.calcsize(PortTransferType)
+        # Multiply by some number < 1 to leave some margin for the CORBA header
+        self.maxSamplesPerPush = int(MAX_TRANSFER_BYTES*.9)/byteSize
 
         if self.logger:
             self.logger.debug('bulkio::OutPort CTOR port:' + str(self.name))
@@ -56,7 +69,6 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
               if port == None:
                   raise Port.InvalidPort(1, "Invalid Port for Connection ID:" + str(connectionId) )
               self.outConnections[str(connectionId)] = port
-              self.refreshSRI = True
 
               if self.logger:
                   self.logger.debug('bulkio::OutPort  CONNECT PORT:' + str(self.name) + ' CONNECTION:' + str(connectionId) )
@@ -91,8 +103,12 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                 self.outConnections[connId].pushPacket(self.noData, timestamp.now(), True, sid)
         try:
             self.outConnections.pop(connId, None)
+            for key in self.sriDict.keys():
+                # if connID exist in set, remove it, otherwise do nothing (that is what discard does)
+                self.sriDict[key].connections.discard(connId)
             if self.logger:
                 self.logger.debug( "bulkio::OutPort DISCONNECT PORT:" + str(self.name) + " CONNECTION:" + str(connId) )
+                self.logger.trace( "bulkio::OutPort DISCONNECT PORT:" + str(self.name) + " updated sriDict" + str(sriDict) )
         finally:
             self.port_lock.release()
 
@@ -134,7 +150,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         self.port_lock.acquire()
         sris = []
         for entry in self.sriDict:
-            sris.append(copy.deepcopy(self.sriDict[entry]))
+            sris.append(copy.deepcopy(self.sriDict[entry].sri))
         self.port_lock.release()
         return sris
     
@@ -149,7 +165,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         if self.logger:
             self.logger.trace('bulkio::OutPort pushSRI ENTER ')
         self.port_lock.acquire()
-        self.sriDict[H.streamID] = copy.deepcopy(H)
+        self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=copy.deepcopy(H), connections=set()) 
         try:
             portListed = False
             for connId, port in self.outConnections.items():
@@ -163,6 +179,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                         try:
                             if port != None:
                                 port.pushSRI(H)
+                                self.sriDict[H.streamID].connections.add(connId)
                         except Exception:
                             if self.logger:
                                 self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
@@ -172,53 +189,39 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                     try:
                         if port != None:
                             port.pushSRI(H)
+                            self.sriDict[H.streamID].connections.add(connId)
                     except Exception:
                         if self.logger:
                             self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
 
         finally:
-            self.refreshSRI = False
             self.port_lock.release()
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushSRI EXIT ')
 
     def _pushOversizedPacket(self, data, T, EOS, streamID):
-
-        # If there is no data to break into smaller packets, skip
-        # straight to the pushPacket call and return.
-        if len(data) == 0:
+        # If there is no need to break data into smaller packets, skip straight
+        # to the pushPacket call and return.
+        if len(data) <= self.maxSamplesPerPush:
             self._pushPacket(data, T, EOS, streamID);
             return
 
-        # Multiply by some number < 1 to leave some margin for the CORBA header
-        maxPayloadSize    = MAX_TRANSFER_BYTES * .9
-        if self.sizeOfData and self.sizeOfData > 0:
-            numSamplesPerPush = int(maxPayloadSize)/self.sizeOfData
+        # Push sub-packets maxSamplesPerPush at a time
+        for start in xrange(0, len(data), self.maxSamplesPerPush):
+            # The end index of the packet may exceed the length of the data;
+            # the Python slice operator will clamp it to the actual end
+            end = start + self.maxSamplesPerPush
 
+            # Send end-of-stream as false for all sub-packets except for the
+            # last one (when the end of the sub-packet goes past the end of the
+            # input data), which gets the input EOS.
+            if end >= len(data):
+                packetEOS = EOS
+            else:
+                packetEOS = False
 
-        # Determine how many sub-packets to send.
-        numFullPackets    = len(data)/numSamplesPerPush;
-        lenOfLastPacket   = len(data)%numSamplesPerPush;
-
-        # Send all of the sub-packets of length numSamplesPerPush.
-        # Always send EOS false, (the EOS of the parent packet will be sent
-        # with the last sub-packet).
-        intermediateEOS = False;
-        for rowNum in range(numFullPackets):
-            if rowNum == numFullPackets -1 and lenOfLastPacket == 0:
-                # This is the last sub-packet.
-                intermediateEOS = EOS
-
-            subPacket = data[rowNum*numSamplesPerPush:rowNum*numSamplesPerPush + numSamplesPerPush]
-
-            self._pushPacket(subPacket, T, intermediateEOS, streamID);
-
-        if lenOfLastPacket != 0:
-            # Send the last sub-packet, whose length is less than
-            # numSamplesPerPush.  Note that the EOS of the master packet is
-            # sent with the last sub-packet.
-            subPacket = data[numFullPackets*numSamplesPerPush:numFullPackets*numSamplesPerPush + lenOfLastPacket]
-            self._pushPacket(subPacket, T, EOS, streamID);
+            # Push the current slice of the input data
+            self._pushPacket(data[start:end], T, packetEOS, streamID);
 
     def _pushPacket(self, data, T, EOS, streamID):
         
@@ -233,6 +236,9 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                 if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connId) and (ftPtr.stream_id == streamID):
                     try:
                         if port != None:
+                            if connId not in self.sriDict[streamID].connections:
+                                port.pushSRI(self.sriDict[streamID].sri)
+                                self.sriDict[streamID].connections.add(connId)
                             port.pushPacket(data, T, EOS, streamID)
                             self.stats.update(len(data), 0, EOS, streamID, connId)
                     except Exception, e:
@@ -243,6 +249,9 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             for connId, port in self.outConnections.items():
                 try:
                     if port != None:
+                        if connId not in self.sriDict[streamID].connections:
+                            port.pushSRI(self.sriDict[streamID].sri)
+                            self.sriDict[streamID].connections.add(connId)
                         port.pushPacket(data, T, EOS, streamID)
                         self.stats.update(len(data), 0, EOS, streamID, connId)
                 except Exception, e:
@@ -257,11 +266,9 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         if self.logger:
             self.logger.trace('bulkio::OutPort  pushPacket ENTER ')
 
-        if self.refreshSRI:
-            if self.sriDict.has_key(streamID): 
-                self.pushSRI(self.sriDict[streamID])
-            else:
-                self.sriDict[streamID] = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
+        if not self.sriDict.has_key(streamID):
+            sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
+            self.pushSRI(sri)
 
         self.port_lock.acquire()
         try:
@@ -328,17 +335,14 @@ class OutFilePort(OutPort):
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE , logger, noData='' )
 
-    def pushPacket(self, URL, EOS, streamID):
-        self.pushPacket( URL, timestamp.now(), EOS, streamID )
-
     def pushPacket(self, URL, T, EOS, streamID):
 
         if self.logger:
             self.logger.trace('bulkio::OutFilePort  pushPacket ENTER ')
 
-        if self.refreshSRI:
-            if self.sriDict.has_key(streamID): 
-                self.pushSRI(self.sriDict[streamID])
+        if not self.sriDict.has_key(streamID):
+            sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
+            self.pushSRI(sri)
 
         self.port_lock.acquire()
 
@@ -380,17 +384,14 @@ class OutXMLPort(OutPort):
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE , logger, noData='' )
 
-    def pushPacket(self, xml_string, T, EOS, streamID):
-        self.pushPacket( xml_string, EOS, streamID );
-
     def pushPacket(self, xml_string, EOS, streamID):
 
         if self.logger:
             self.logger.trace('bulkio::OutXMLPort  pushPacket ENTER ')
 
-        if self.refreshSRI:
-            if self.sriDict.has_key(streamID): 
-                self.pushSRI(self.sriDict[streamID])
+        if not self.sriDict.has_key(streamID):
+            sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
+            self.pushSRI(sri)
 
         self.port_lock.acquire()
 
@@ -425,6 +426,38 @@ class OutXMLPort(OutPort):
 
         if self.logger:
             self.logger.trace('bulkio::OutXMLPort  pushPacket EXIT ')
+
+    def disconnectPort(self, connectionId):
+        if self.logger:
+            self.logger.trace('bulkio::OutXMLPort  disconnectPort ENTER ')
+        self.port_lock.acquire()
+        connId = str(connectionId)
+        portListed = False
+        for filt in self.filterTable:
+            if filt.port_name == self.name:
+                portList = True
+                break
+        for streamid in self.sriDict.keys():
+            sid = str(streamid)
+            if portListed:
+                for filt in self.filterTable:
+                    if self.name == filt.port_name and sid == filt.stream_id and connId == filt.connection_name:
+                        self.outConnections[connId].pushPacket(self.noData, True, sid)
+            else:
+                self.outConnections[connId].pushPacket(self.noData, True, sid)
+        try:
+            self.outConnections.pop(connId, None)
+            for key,value in self.sriDict.items():
+                # if connID exist in set, remove it, otherwise do nothing (that is what discard does)
+                self.sriDict[key].connections.discard(connId)
+            if self.logger:
+                self.logger.debug( "bulkio::OutXMLPort DISCONNECT PORT:" + str(self.name) + " CONNECTION:" + str(connId) )
+                self.logger.trace( "bulkio::OutXMLPort DISCONNECT PORT:" + str(self.name) + " updated sriDict" + str(sriDict) )
+        finally:
+            self.port_lock.release()
+
+        if self.logger:
+            self.logger.trace('bulkio::OutXMLPort  disconnectPort EXIT ')
 
 class OutSDDSPort(OutPort):
     TRANSFER_TYPE = 'c'
@@ -553,7 +586,7 @@ class OutSDDSPort(OutPort):
             self.logger.trace("bulkio::OutSDDSPort, PUSH-SRI ENTER ")
 
         self.port_lock.acquire()
-        self.sriDict[H.streamID] = (copy.deepcopy(H), copy.deepcopy(T))
+        self.sriDict[H.streamID] = OutPort.SDDSSriMapStruct(sri=copy.deepcopy(H), connections=set(), time=copy.deepcopy(T)) 
         self.defaultStreamSRI = H
         self.defaultTime = T
         try:
@@ -565,7 +598,6 @@ class OutSDDSPort(OutPort):
                    if self.logger:
                        self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
         finally:
-            self.refreshSRI = False
             self.port_lock.release() 
 
         if self.logger:

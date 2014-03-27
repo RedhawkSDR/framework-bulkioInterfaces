@@ -66,9 +66,10 @@ public class InVectorPort_Test {
 	    assertTrue("newSRI StreamID Mismatch",  ctx.sid == sri.streamID );	    
 	}
 
-	public void    changedSRI( StreamSRI sri ) {
+	public boolean  changedSRI( StreamSRI sri ) {
 	    assertTrue("changedSRI SRI Object Invalid",  null != sri );	    
 	    assertTrue("changedSRI Mode Mismatch",  ctx.mode == sri.mode );
+            return true;
 	}
     }
 
@@ -104,7 +105,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InInt8");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InInt8Port port = new bulkio.InInt8Port(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -202,7 +203,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InInt16");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InInt16Port port = new bulkio.InInt16Port(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -300,7 +301,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InInt32");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InInt32Port port = new bulkio.InInt32Port(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -397,7 +398,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InInt64");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InInt64Port port = new bulkio.InInt64Port(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -495,7 +496,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InUInt8");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InUInt8Port port = new bulkio.InUInt8Port(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -593,7 +594,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InUInt16");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InUInt16Port port = new bulkio.InUInt16Port(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -691,7 +692,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InUInt32");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InUInt32Port port = new bulkio.InUInt32Port(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -788,7 +789,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InUInt64");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InUInt64Port port = new bulkio.InUInt64Port(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -886,7 +887,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InDouble");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InDoublePort port = new bulkio.InDoublePort(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );
@@ -984,7 +985,7 @@ public class InVectorPort_Test {
 
 	ctx=new test_fact("InFloat");
 
-	logger.info("------ Tesing " + ctx.name + " Port -----");
+	logger.info("------ Testing " + ctx.name + " Port -----");
 		
 	bulkio.InFloatPort port = new bulkio.InFloatPort(ctx.port_name);
 	port.setNewStreamListener( new test_stream_cb( ctx ) );

@@ -123,6 +123,7 @@ OutULongPort.java \
 OutUShortPort.java \
 OutXMLPort.java \
 connection_descriptor_struct.java \
+SriMapStruct.java \
 queueSemaphore.java \
 SizeOf.java \
 SriListener.java \

@@ -42,7 +42,7 @@ void
 Bulkio_OutPort_Fixture::setUp()
 {
    logger = log4cxx::Logger::getLogger("BulkioOutPort");
-   logger->setLevel( log4cxx::Level::getTrace());
+   logger->setLevel( log4cxx::Level::getInfo());
    orb = ossie::corba::CorbaInit(0,NULL);
 }
 
@@ -63,6 +63,11 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
 
   port->setNewConnectListener(&port_connected);
   port->setNewDisconnectListener(&port_disconnected);
+
+  {
+    CORBA::Object_ptr p;
+    CPPUNIT_ASSERT_THROW(port->connectPort( p, "connection_1"), CF::Port::InvalidPort );
+  }
 
   IP *p  = new IP("sink_1", logger );
   //PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
@@ -92,7 +97,7 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
 
   typename T::ConnectionsList cl =  port->_getConnections();
   std::string sid="none";
-  int cnt= port->currentSRIs.count(sid);
+  int cnt= port->getCurrentSRI().count(sid);
   CPPUNIT_ASSERT( cnt == 0 );
 
   port->enableStats( false );
