@@ -67,7 +67,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             Connection(uses = "dataUshort",      provides = "ushortIn"),
             Connection(uses = "dataShort",       provides = "shortIn"),
             Connection(uses = "dataLong",        provides = "longIn"),
-            Connection(uses = "dataUlong",       provides = "uLongIn"),
+            Connection(uses = "dataUlong",       provides = "ulongIn"),
             Connection(uses = "dataUlongLong",   provides = "ulonglongIn"),
             Connection(uses = "dataLongLong",    provides = "longlongIn"),
          #   Connection(uses = "dataOctet",       provides = "octetIn"),

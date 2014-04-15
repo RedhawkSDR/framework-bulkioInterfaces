@@ -261,7 +261,7 @@ namespace  bulkio {
 		 (ftPtr->stream_id == streamID) ){
 
 	      if ( sri_iter != currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-		_pushSRI( port, sri_iter->second );
+		this->_pushSRI( port, sri_iter->second );
 	      }
 
               try {
@@ -280,7 +280,7 @@ namespace  bulkio {
 	  for (port = outConnections.begin(); port != outConnections.end(); port++) {
 
 	    if ( sri_iter != currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	      _pushSRI( port, sri_iter->second );
+	      this->_pushSRI( port, sri_iter->second );
 	    }
 
 	    try {
@@ -507,7 +507,7 @@ namespace  bulkio {
 
     for ( i=outConnections.begin(); i != outConnections.end(); i++ ) {
       if ( i->second == connectionId ) {
-	_pushSRI( i, sri_ctx );
+	this->_pushSRI( i, sri_ctx );
 	break;
       }
     }
@@ -603,7 +603,7 @@ namespace  bulkio {
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
 	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	      _pushSRI( port, sri_iter->second );
+	      this->_pushSRI( port, sri_iter->second );
 	    }
 
             try {
@@ -622,7 +622,7 @@ namespace  bulkio {
 	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 
 	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	    _pushSRI( port, sri_iter->second );
+	    this->_pushSRI( port, sri_iter->second );
 	  }
 
           try {
@@ -680,7 +680,7 @@ namespace  bulkio {
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
 	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	      _pushSRI( port, sri_iter->second );
+	      this->_pushSRI( port, sri_iter->second );
 	    }
 
             try {
@@ -699,7 +699,7 @@ namespace  bulkio {
 	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 
 	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	    _pushSRI( port, sri_iter->second );
+	    this->_pushSRI( port, sri_iter->second );
 	  }
 
           try {
@@ -837,7 +837,7 @@ namespace  bulkio {
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
 	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	      _pushSRI( port, sri_iter->second );
+	      this->_pushSRI( port, sri_iter->second );
 	    }
 	    
             try {
@@ -856,7 +856,7 @@ namespace  bulkio {
 	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 
 	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	    _pushSRI( port, sri_iter->second );
+	    this->_pushSRI( port, sri_iter->second );
 	  }
 
           try {
@@ -911,7 +911,7 @@ namespace  bulkio {
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
 	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	      _pushSRI( port, sri_iter->second );
+	      this->_pushSRI( port, sri_iter->second );
 	    }
 
             try {
@@ -931,7 +931,7 @@ namespace  bulkio {
 	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
 
 	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	    _pushSRI( port, sri_iter->second );
+	    this->_pushSRI( port, sri_iter->second );
 	  }
           try {
             BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
@@ -1093,7 +1093,7 @@ namespace  bulkio {
 
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
 	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	      _pushSRI( port, sri_iter->second );
+	      this->_pushSRI( port, sri_iter->second );
 	    }
 
             try {
@@ -1109,7 +1109,7 @@ namespace  bulkio {
 	for (port = outConnections.begin(); port != outConnections.end(); port++) {
 
 	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	    _pushSRI( port, sri_iter->second );
+	    this->_pushSRI( port, sri_iter->second );
 	  }
 
           try {
@@ -1156,7 +1156,7 @@ namespace  bulkio {
 	  if (ftPtr->port_name == this->name) portListed = true;
           if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
 	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	      _pushSRI( port, sri_iter->second );
+	      this->_pushSRI( port, sri_iter->second );
 	    }
             try {
               port->first->pushPacket(data, EOS, streamID.c_str());
@@ -1170,7 +1170,7 @@ namespace  bulkio {
       if (!portListed) {
 	for (port = outConnections.begin(); port != outConnections.end(); port++) {
 	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	    _pushSRI( port, sri_iter->second );
+	    this->_pushSRI( port, sri_iter->second );
 	  }
           try {
             port->first->pushPacket(data, EOS, streamID.c_str());

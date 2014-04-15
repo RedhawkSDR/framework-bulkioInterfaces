@@ -41,6 +41,6 @@
 //
 // Input/Output Port definitions for managing SDDS streams
 //
-#include "bulkio_sdds.h"
+#include "bulkio_attachable_base.h"
 
 #endif

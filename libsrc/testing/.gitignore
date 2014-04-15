@@ -1,0 +1,5 @@
+components/CPP_Ports/cpp/CPP_Ports
+components/Java_Ports/java/bin/
+components/TestLargePush/cpp/TestLargePush
+components/TestLargePush/java/bin/
+tests/cpp/Bulkio

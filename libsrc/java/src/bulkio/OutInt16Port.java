@@ -556,7 +556,7 @@ public class OutInt16Port extends BULKIO.UsesPortStatisticsProviderPOA {
         }
 
         if ( callback != null ) {
-            callback.connect(connectionId);
+            callback.disconnect(connectionId);
         }
     }
 

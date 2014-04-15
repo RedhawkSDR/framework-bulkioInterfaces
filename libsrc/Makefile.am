@@ -19,7 +19,7 @@ libbulkio_@BULKIO_API_VERSION@_la_SOURCES = \
     cpp/bulkio.cpp \
     cpp/bulkio_in_port.cpp \
     cpp/bulkio_out_port.cpp \
-    cpp/bulkio_sdds_port.cpp \
+	cpp/bulkio_attachable_port.cpp \
     cpp/bulkio_sri_helpers.cpp \
     cpp/bulkio_time_helpers.cpp \
     cpp/bulkio_p.h
@@ -32,7 +32,7 @@ library_include_HEADERS = cpp/bulkio.h \
 	cpp/bulkio_traits.h \
 	cpp/bulkio_in_port.h \
 	cpp/bulkio_out_port.h \
-	cpp/bulkio_sdds.h \
+	cpp/bulkio_attachable_base.h \
 	cpp/bulkio_compat.h
 
 ## The generated configuration header is installed in its own subdirectory of
@@ -53,10 +53,16 @@ libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(BULKIO_IN
 ###############################################################################
 # Python
 
+# Mimic automake silent rules
+OSSIE_V_pysetup = $(ossie__v_pysetup_$(V))
+ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
+ossie__v_pysetup_0 = --quiet
+ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
+
 all-python: build-python
 
 build-python:
-	python setup.py build
+	python setup.py $(OSSIE_V_pysetup) build
 
 install-python:
 	test -n "$(DESTDIR)" && buildroot="--root=$(DESTDIR)"; \
@@ -91,6 +97,7 @@ InLongLongPort.java \
 InLongPort.java \
 InOctetPort.java \
 InSDDSPort.java \
+InVITA49Port.java \
 InShortPort.java \
 InUInt16Port.java \
 InUInt32Port.java \
@@ -113,6 +120,7 @@ OutLongLongPort.java \
 OutLongPort.java \
 OutOctetPort.java \
 OutSDDSPort.java \
+OutVITA49Port.java \
 OutShortPort.java \
 OutUInt16Port.java \
 OutUInt32Port.java \
@@ -130,6 +138,12 @@ SriListener.java \
 ConnectionEventListener.java \
 sriState.java \
 utils.java \
+sdds/SDDSStream.java \
+sdds/SDDSStreamAttachment.java \
+sdds/SDDSStreamContainer.java \
+vita49/VITA49Stream.java \
+vita49/VITA49StreamAttachment.java \
+vita49/VITA49StreamContainer.java \
 sri/Comparator.java \
 sri/DefaultComparator.java \
 sri/utils.java \
@@ -150,7 +164,7 @@ $(JAVA_DIR)/java.files: $(JAVA_SRCS_ABS)
 
 # The jar depends on the file list, which depends on the .java files
 $(BINARY_JAR): $(JAVA_DIR)/java.files $(JAVA_DIR)/META-INF/MANIFEST.MF $(top_builddir)/BULKIOInterfaces.jar
-	mkdir -p $(JAVA_BINDIR)
+	@mkdir -p $(JAVA_BINDIR)
 	$(JAVAC) -cp $(CLASSPATH) -target 1.6 -source 1.6 -d $(JAVA_BINDIR) @$(JAVA_DIR)/java.files
 	$(JAR) cmf $(JAVA_DIR)/META-INF/MANIFEST.MF $(BINARY_JAR) -C $(JAVA_BINDIR) .
 

@@ -18,6 +18,6 @@
 #include <ossie/BULKIO/bio_dataFile.h>
 #include <ossie/BULKIO/bio_dataXML.h>
 #include <ossie/BULKIO/bio_dataSDDS.h>
-
+#include <ossie/BULKIO/bio_dataVITA49.h>
 
 #endif

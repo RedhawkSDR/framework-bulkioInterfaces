@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+idldir=${prefix}/share/idl
+
+Name: bulkioInterfaces
+Description: bulkioInterfaces for REDHAWK
+Requires:
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lbulkioInterfaces
+Cflags: -I${includedir}/ossie

@@ -141,7 +141,7 @@ AC_MSG_RESULT($HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 # End optional java support
 
-AC_CONFIG_FILES([Makefile jni/Makefile])
+AC_CONFIG_FILES([bulkioInterfaces.pc Makefile jni/Makefile])
 if test "$enable_base_classes" != "no"; then
   if test "$HAVE_JAVASUPPORT = yes"; then
     AC_CONFIG_FILES([libsrc/java/META-INF/MANIFEST.MF libsrc/java/META-INF/MANIFEST.MF.src])

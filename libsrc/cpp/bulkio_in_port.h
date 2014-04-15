@@ -257,6 +257,16 @@ namespace bulkio {
     virtual void unblock();
 
     //
+    // Support function for automatic component-managed start.  Calls unblock.
+    //
+    virtual void startPort();
+
+    //
+    // Support function for automatic component-managed stop.  Calls block.
+    //
+    virtual void stopPort();
+
+    //
     // blocked
     //
     // @return bool returns state of breakBlock variable used to release any upstream blocking pushPacket calls
@@ -568,6 +578,16 @@ namespace bulkio {
     // component. Called in component's start method.
     //
     virtual void unblock();
+
+    //
+    // Support function for automatic component-managed start.  Calls unblock.
+    //
+    virtual void startPort();
+
+    //
+    // Support function for automatic component-managed stop.  Calls block.
+    //
+    virtual void stopPort();
 
     //
     // blocked

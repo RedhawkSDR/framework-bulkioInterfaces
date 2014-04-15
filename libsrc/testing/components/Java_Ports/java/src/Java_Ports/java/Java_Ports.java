@@ -180,7 +180,11 @@ public class Java_Ports extends Resource implements Runnable,  bulkio.InSDDSPort
 
         String attachID = java.util.UUID.randomUUID().toString();
         logger.info( " ATTACH: " + attachID + " STREAM ID/ADDR/PORT:" + stream.id  + "/" + stream.multicastAddress + "/" + stream.port );
-        port_dataSDDSOut.attach( stream, userId );
+        try{
+            port_dataSDDSOut.attach( stream, userId );
+        }catch (DetachError e){
+            e.printStackTrace();
+        }
         return attachID;
     }
 

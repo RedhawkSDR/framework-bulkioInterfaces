@@ -325,6 +325,18 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
+  void InPort< PortTraits >::stopPort()
+  {
+    block();
+  }
+
+  template < typename PortTraits >
+  void  InPort< PortTraits >::startPort()
+  {
+    unblock();
+  }
+
+  template < typename PortTraits >
   bool  InPort< PortTraits >::blocked()
   {    
     return breakBlock;
@@ -879,6 +891,18 @@ namespace  bulkio {
   template < typename PortTraits >
   void  InStringPort< PortTraits >::unblock()
   {    breakBlock = false;
+  }
+
+  template < typename PortTraits >
+  void InStringPort< PortTraits >::stopPort()
+  {
+    block();
+  }
+
+  template < typename PortTraits >
+  void  InStringPort< PortTraits >::startPort()
+  {
+    unblock();
   }
 
 

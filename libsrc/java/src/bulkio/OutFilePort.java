@@ -503,7 +503,7 @@ public class OutFilePort extends BULKIO.UsesPortStatisticsProviderPOA {
         }
 
 	if ( callback != null ) {
-	    callback.connect(connectionId);
+	    callback.disconnect(connectionId);
 	}
 
 	if ( logger != null ) {

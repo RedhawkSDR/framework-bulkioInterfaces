@@ -592,3 +592,203 @@ class InSDDSPort(BULKIO__POA.dataSDDS):
 
         if self.logger:
             self.logger.trace("bulkio::InSDDSPort pushSRI EXIT (port=" + str(self.name) +")" )
+
+class InVITA49Port(BULKIO__POA.dataVITA49):
+    _TYPE_='b'
+    def __init__(self, name, logger=None, callback = None, sriCmp=None, timeCmp=None, PortType = _TYPE_ ):
+        self.name = name
+        self.logger = logger
+        self.sri = None
+        self.port_lock = threading.Lock()
+        self._attachedStreams = {} # key=attach_id, value = (streamDef, userid) 
+        self.stats = InStats(name, PortType )
+        self.sriDict = {} # key=streamID, value=(StreamSRI, PrecisionUTCTime)
+        self.callback = callback
+        self.sri_cmp = sriCmp
+        self.time_cmp = timeCmp
+        self.sriChanged = False
+        try:
+            self._attach_cb = getattr(callback, "attach")
+            if not callable(self._attach_cb):
+                self._attach_cb = None
+        except AttributeError:
+            self._attach_cb = None
+        try:
+            self._detach_cb = getattr(callback, "detach")
+            if not callable(self._detach_cb):
+                self._detach_cb = None
+        except AttributeError:
+            self._detach_cb = None
+
+        if self.logger:
+            self.logger.debug("bulkio::InVITA49Port CTOR port:" + str(self.name) )
+
+    def setBitSize(self, bitSize):
+        self.stats.setBitSize(bitSize)
+
+    def enableStats(self, enabled):
+        self.stats.setEnabled(enabled)
+        
+    def updateStats(self, elementsReceived, queueSize, streamID):
+        self.port_lock.acquire()
+        self.stats.update(elementsReceived, queueSize, streamID)
+        self.port_lock.release()
+
+    def _get_statistics(self):
+        self.port_lock.acquire()
+        recStat = self.stats.retrieve()
+        self.port_lock.release()
+        return recStat
+
+    def _get_state(self):
+        if len(self._attachedStreams.values()) == 0:
+            return BULKIO.IDLE
+        # default behavior is to limit to one connection
+        elif len(self._attachedStreams.values()) == 1:
+            return BULKIO.BUSY
+        else:
+            return BULKIO.ACTIVE
+
+    def _get_attachedSRIs(self):
+        sris = []
+        for entry in self.sriDict:
+            sris.append(copy.deepcopy(self.sriDict[entry]))
+        self.port_lock.release()
+        return sris
+
+    def _get_usageState(self):
+        if len(self._attachedStreams.values()) == 0:
+            return BULKIO.dataVITA49.IDLE
+        # default behavior is to limit to one connection
+        elif len(self._attachedStreams.values()) == 1:
+            return BULKIO.dataVITA49.BUSY
+        else:
+            return BULKIO.dataVITA49.ACTIVE
+
+    def _get_attachedStreams(self):
+        return [x[0] for x in self._attachedStreams.values()]
+
+    def _get_attachmentIds(self):
+        return self._attachedStreams.keys()
+
+    def attach(self, streamDef, userid):
+
+        if self.logger:
+            self.logger.trace("bulkio::InVITA49Port attach ENTER  (port=" + str(self.name) +")" )
+            self.logger.debug("VITA49 PORT, ATTACH REQUEST, STREAM/USER"  + str(streamDef) + '/' + str(userid))
+
+        if self._get_usageState() == BULKIO.dataVITA49.BUSY:
+            if self.logger:
+                self.logger.error("VITA49 PORT, No Capacity to satisfy request. STREAM/USER"  + str(streamDef) + '/' + str(userid))
+            raise BULKIO.dataVITA49.AttachError("No capacity")
+
+        #
+        # Allocate capacities here if applicable
+        #
+
+        # The attachment succeeded so generate a attachId
+        attachId = None
+        try:
+            if self.logger:
+                self.logger.debug("VITA49 PORT: CALLING ATTACH CALLBACK, STREAM/USER"  + str(streamDef) + '/' + str(userid) )
+            if self._attach_cb != None:
+                attachId = self._attach_cb(streamDef, userid)
+        except Exception, e:
+            if self.logger:
+                self.logger.error("VITA49 PORT: ATTACH CALLBACK EXCEPTION : " + str(e) + " STREAM/USER"  + str(streamDef) + '/' + str(userid) )
+            raise BULKIO.dataVITA49.AttachError(str(e))
+        
+        if attachId == None:
+            attachId = str(uuid.uuid4())
+
+        self._attachedStreams[attachId] = (streamDef, userid)
+
+        if self.logger:
+            self.logger.debug("VITA49 PORT, ATTACH COMPLETED,  ID:" + str(attachId) + " STREAM/USER: " + str(streamDef) + '/' + str(userid))
+            self.logger.trace("bulkio::InVITA49Port attach EXIT (port=" + str(self.name) +")" )
+            
+        return attachId
+
+    def detach(self, attachId):
+
+        if self.logger:
+            self.logger.trace("bulkio::InVITA49Port detach ENTER (port=" + str(self.name) +")" )
+            self.logger.debug("VITA49 PORT, DETACH REQUESTED, ID:" + str(attachId) )
+
+        if not self._attachedStreams.has_key(attachId):
+
+            if self.logger:
+                self.logger.debug("VITA49 PORT, DETACH UNKNOWN ID:" + str(attachId) )
+
+            if attachId:
+                raise BULKIO.dataVITA49.DetachError("Stream %s not attached" % str(attachId))
+            else:
+                raise BULKIO.dataVITA49.DetachError("Cannot detach Unkown ID")
+
+        attachedStreamDef, refcnf = self._attachedStreams[attachId]
+
+        #
+        # Deallocate capacity here if applicable
+        #
+        try:
+            if self.logger:
+                self.logger.debug("VITA49 PORT, CALLING DETACH CALLBACK, ID:" + str(attachId) )
+
+            if self._detach_cb != None:
+                self._detach_cb(attachId)
+        except Exception, e:
+            if self.logger:
+                self.logger.error("VITA49 PORT, DETACH CALLBACK EXCEPTION: " + str(e) )
+            raise BULKIO.dataVITA49.DetachError(str(e))
+
+        # Remove the attachment from our list
+        del self._attachedStreams[attachId]
+
+        if self.logger:
+            self.logger.debug("VITA49 PORT, DETACH SUCCESS, ID:" + str(attachId) )
+            self.logger.trace("bulkio::InVITA49Port detach EXIT (port=" + str(self.name) +")" )
+
+    def getStreamDefinition(self, attachId):
+        try:
+            return self._attachedStreams[attachId][0]
+        except KeyError:
+            raise BULKIO.dataVITA49.StreamInputError("Stream %s not attached" % attachId)
+
+    def getUser(self, attachId):
+        try:
+            return self._attachedStreams[attachId][1]
+        except KeyError:
+            raise BULKIO.dataVITA49.StreamInputError("Stream %s not attached" % attachId)
+
+    def _get_activeSRIs(self):
+        self.port_lock.acquire()
+        activeSRIs = [self.sriDict[entry][0] for entry in self.sriDict]
+        self.port_lock.release()
+        return activeSRIs
+
+    def pushSRI(self, H, T):
+
+        if self.logger:
+            self.logger.trace("bulkio::InVITA49Port pushSRI ENTER (port=" + str(self.name) +")" )
+
+        self.port_lock.acquire()
+        if H.streamID not in self.sriDict:
+            if self.newStreamCallback:
+                self.newStreamCallback( H ) 
+            self.sriDict[H.streamID] = (copy.deepcopy(H), copy.deepcopy(T))
+        else:
+            cur_H, cur_T = self.sriDict[H.streamID]
+            s_same = False
+            if self.sri_cmp:
+                s_same = self.sri_cmp(cur_H, H)
+            
+            t_same = False
+            if self.time_cmp:
+                t_same = self.time_cmp(cur_T, T)
+                
+            self.sriChanged = ( s_same == False )  or  ( t_same == False )
+            self.sriDict[H.streamID] = (copy.deepcopy(H), copy.deepcopy(T))
+        self.port_lock.release()
+
+        if self.logger:
+            self.logger.trace("bulkio::InVITA49Port pushSRI EXIT (port=" + str(self.name) +")" )

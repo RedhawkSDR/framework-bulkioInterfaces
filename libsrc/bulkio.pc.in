@@ -5,6 +5,7 @@ includedir=@includedir@
 
 Name: bulkio
 Description: BULKIO base class library
+Requires: bulkioInterfaces >= @PACKAGE_VERSION@
 Version: @BULKIO_API_VERSION@
 Libs: -L${libdir} -lbulkio-@BULKIO_API_VERSION@
 Cflags: -I${includedir}/bulkio 
