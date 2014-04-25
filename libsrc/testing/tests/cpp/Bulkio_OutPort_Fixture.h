@@ -3,7 +3,7 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 #include<omniORB4/CORBA.h>
-#include<log4cxx/logger.h>
+#include<ossie/debug.h>
 class Bulkio_OutPort_Fixture : public CppUnit::TestFixture
 {
   CPPUNIT_TEST_SUITE( Bulkio_OutPort_Fixture );
@@ -65,7 +65,7 @@ public:
 
   template < typename T,  typename IP > void test_port_api( T *port );
 
-  log4cxx::LoggerPtr logger;
+  rh_logger::LoggerPtr logger;
 
   CORBA::ORB_ptr orb;
 };

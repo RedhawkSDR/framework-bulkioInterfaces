@@ -32,7 +32,7 @@ tcheck:
 
 check:
 	@for jtest in "$(JTESTS)" ; do \
-		$(JAVA) -cp $(JAVA_CP)   org.junit.runner.JUnitCore $$jtest ; \
+		$(JAVA) -cp $(JAVA_CP) -Dlog4j.configuration=file:log4j_config.txt org.junit.runner.JUnitCore $$jtest ; \
 	done
 
 clean:

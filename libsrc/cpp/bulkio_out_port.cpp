@@ -406,10 +406,10 @@ namespace  bulkio {
 
       LOG_DEBUG( logger, "CONNECTION ESTABLISHED,  PORT/CONNECTION_ID:" << name << "/" << connectionId );
 
+    }
     if (_connectCB) (*_connectCB)(connectionId);
 
     TRACE_EXIT(logger, "OutPort::connectPort" );
-    }
   }
 
 
@@ -433,7 +433,7 @@ namespace  bulkio {
         if (outConnections[i].second == connectionId) {
           PortSequenceType seq;
           typename OutPortSriMap::iterator cSRIs = currentSRIs.begin();
-          BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
+          BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::notSet();
 
           // send an EOS for every connection that's listed for this SRI
           for (; cSRIs!=currentSRIs.end(); cSRIs++) {
@@ -769,7 +769,7 @@ namespace  bulkio {
             if (this->outConnections[i].second == connectionId) {
                 std::string data("");
                 typename OutPort< PortTraits >::SriMap::iterator cSRIs = this->currentSRIs.begin();
-                BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
+                BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::notSet();
 		  
 		// send an EOS for every connection that's listed for this SRI
 		for (; cSRIs!=this->currentSRIs.end(); cSRIs++) {
@@ -1028,7 +1028,7 @@ namespace  bulkio {
       {
           SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
 	  std::string cid(connectionId);
-          BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::now();
+          BULKIO::PrecisionUTCTime tstamp = bulkio::time::utils::notSet();
           for (unsigned int i = 0; i < this->outConnections.size(); i++) {
               if (this->outConnections[i].second == connectionId) {
                   std::string data("");

@@ -378,6 +378,7 @@ class BaseVectorPort(unittest.TestCase):
         self.assertEqual(len(cl),1,"Incorrect Connections List Length")
 
         bio.disconnectPort(connectionName)
+        bio.disconnectPort(connectionName)
 
         cl = bio._get_connections()
         self.assertNotEqual(cl,None,"Cannot get Connections List")
@@ -400,4 +401,17 @@ class BaseVectorPort(unittest.TestCase):
         self.assertEqual(cnt,1,"SRI list should be 1")
 
         bio.enableStats(False)
+
+        # repeating connect/disconnect to test ticket #1996
+        connectionName="testing-connection-list" 
+        dsink=sb.DataSink()
+        inport=dsink.getPort(self.sink_inport)
+        bio.connectPort(inport, connectionName )
+
+        cl = bio._get_connections()
+        self.assertNotEqual(cl,None,"Cannot get Connections List")
+        self.assertEqual(len(cl),1,"Incorrect Connections List Length")
+
+        bio.disconnectPort(connectionName)
+        bio.disconnectPort(connectionName)
 

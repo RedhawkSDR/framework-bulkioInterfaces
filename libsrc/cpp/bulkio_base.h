@@ -8,7 +8,7 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/locks.hpp>
-#include <log4cxx/logger.h>
+#include <ossie/debug.h>
 #include <ossie/BULKIO/bio_runtimeStats.h>
 #include <ossie/BULKIO/bulkioDataTypes.h>
 
@@ -81,7 +81,7 @@ namespace bulkio {
   //
   // Logging interface definition 
   //
-  typedef log4cxx::LoggerPtr         LOGGER_PTR;
+  typedef LOGGER                     LOGGER_PTR;
 
 
   //
@@ -240,6 +240,11 @@ namespace bulkio {
       // Create a time stamp object from the current time of day reported by the system
       //
       BULKIO::PrecisionUTCTime now();
+      
+      //
+      // Create a time stamp object from the current time of day reported by the system
+      //
+      BULKIO::PrecisionUTCTime notSet();
     };
 
 
@@ -315,11 +320,8 @@ namespace bulkio {
     };
     
     inline void zeroTime(BULKIO::PrecisionUTCTime &timeTag) {
-        timeTag.tcmode = 1;
-        timeTag.tcstatus = 0;
-        timeTag.toff = 0.0;
-        timeTag.twsec = 0.0;
-        timeTag.tfsec = 0.0;
+        timeTag = bulkio::time::utils::notSet();
+        timeTag.tcmode = BULKIO::TCM_CPU;
     };
     
     //

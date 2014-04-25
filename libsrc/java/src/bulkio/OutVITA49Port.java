@@ -125,6 +125,7 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
         this.filterTable = null;
 	this.callback = eventCB;
         this.streamContainer = new VITA49StreamContainer();
+        this.userId = new String("defaultUserId");
 	if ( this.logger != null ) {
 	    this.logger.debug( "bulkio::OutPort CTOR port: " + portName ); 
             this.streamContainer.setLogger(logger);
@@ -268,6 +269,7 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
 
         synchronized(this.updatingPortsLock) {    // don't want to process while command information is coming in
             this.currentSRIs.put(header.streamID, new SriMapStruct(header, time));
+            this.streamContainer.updateStreamSRIAndTime(header.streamID, header, time);
             if (this.active) {
                 // state if this port is not listed in the filter table... then pushSRI down stream
                 boolean portListed = false;
@@ -360,7 +362,7 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
             }
 
             hasPortEntry = true;
-            dataVITA49Operations connectedPort = this.outConnections.get(ftPtr.connection_id);
+            dataVITA49Operations connectedPort = this.outConnections.get(ftPtr.connection_id.getValue());
             if (connectedPort == null){
 	        if ( logger != null ) {
 	            logger.debug("bulkio.OutPort updateConnectionFilter() did not find connected port for connection_id " + ftPtr.connection_id +")" );
@@ -377,8 +379,8 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
                     streamAttList = new ArrayList<VITA49StreamAttachment>();
                 }else{
                     streamAttList = streamAttMap.get(ftPtr.stream_id.getValue());
-                    streamAttList.add(expectedAttachment);
                 }
+                streamAttList.add(expectedAttachment);
                 streamAttMap.put(ftPtr.stream_id.getValue(), streamAttList);
             }
         }
@@ -414,6 +416,9 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
                     if(stream != null){
                         try{
                             stream.detachAll();
+	                    if ( logger != null ) {
+                                logger.debug("bulkio::OutPort updateConnectionFilter() calling detachAll() for streamId " + entry.getKey());
+                            }
                         }catch (DetachError e){
 	                    if ( logger != null ) {
                                 logger.error("bulkio::OutPort updateConnectionFilter() DetachError on detachAll() for streamId " + entry.getKey());
@@ -432,6 +437,9 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
                 this.streamContainer.updateSRIForAllStreams(currentSRIs);
                 try{
                     this.streamContainer.addConnectionToAllStreams(p.getKey(),p.getValue());
+	            if ( logger != null ) {
+                        logger.debug("bulkio::OutPort updateConnectionFilter() calling addConnectionToAllStreams for connection " + p.getKey());
+                    }
                 }catch (AttachError e){
 	            if ( logger != null ) {
                         logger.error("bulkio::OutPort updateConnectionFilter() AttachError on updateAttachments() for all streams");
@@ -482,11 +490,6 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
                 }
                 portListed = true;
                 if (ftPtr.connection_id.getValue().equals(connectionId)) {
-                    if (this.currentSRIs.containsKey(ftPtr.stream_id.getValue())){
-                        SriMapStruct sriMap = this.currentSRIs.get(ftPtr.stream_id.getValue());
-                        this.streamContainer.updateStreamSRI(ftPtr.stream_id.getValue(),sriMap.sri);
-                        this.streamContainer.updateStreamTime(ftPtr.stream_id.getValue(),sriMap.time);
-                    }
                     try{
                         this.streamContainer.addConnectionToStream(connectionId, port,ftPtr.stream_id.getValue());
                     }catch (AttachError e){
@@ -506,7 +509,6 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
             }
             if (!portListed ){
                 try{
-                    this.streamContainer.updateSRIForAllStreams(currentSRIs);
                     this.streamContainer.addConnectionToAllStreams(connectionId,port);
                 }catch (AttachError e){
 	            if ( logger != null ) {
@@ -647,7 +649,21 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
         for (VITA49Stream s: this.streamContainer.getStreams()){
             attachIdList.addAll(Arrays.asList(s.getAttachIds()));           
         }
-        return null;
+        return attachIdList.toArray(new String[0]);
+    }
+
+    /**
+     * @generated
+     */
+    public String[] attachmentIds(String streamId)
+    {
+        ArrayList<String> attachIdList  = new ArrayList<String>();
+        for (VITA49Stream s: this.streamContainer.getStreams()){
+            if(s.getStreamId().equals(streamId)){
+                attachIdList.addAll(Arrays.asList(s.getAttachIds()));
+            }
+        }
+        return attachIdList.toArray(new String[0]);
     }
 
     /**
@@ -655,8 +671,32 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
      */
     public String[] attach(final BULKIO.VITA49StreamDefinition streamDef, final String userId) throws AttachError, StreamInputError, DetachError
     {
+        // Eventually deprecate this method
+        this.userId = userId;
+        addStream(streamDef);
+        String[] emptyArray = {};
+        return emptyArray;
+    }
+
+    /**
+     * @generated
+     */
+    public boolean updateStream(final BULKIO.VITA49StreamDefinition streamDef) throws AttachError, StreamInputError, DetachError
+    {
+        if (!this.streamContainer.hasStreamId(streamDef.id)){
+            return false;
+        }
+        this.streamContainer.removeStreamByStreamId(streamDef.id);
+        return this.addStream(streamDef);
+    }
+
+    /**
+     * @generated
+     */
+    public boolean addStream(final BULKIO.VITA49StreamDefinition streamDef) throws AttachError, StreamInputError, DetachError
+    {
 	if ( logger != null ) {
-	    logger.trace("bulkio.OutPort attach ENTER (port=" + name +")" );
+	    logger.trace("bulkio.OutPort addStream ENTER (port=" + name +")" );
 	}
 
         String attachId = null;
@@ -664,10 +704,10 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
         synchronized (this.updatingPortsLock) {
             stream = this.streamContainer.findByStreamId(streamDef.id);
             if (stream != null){
-                //detach all attachments for this stream
-                stream.detachAll();
+                //if stream already exists return false
+                return false;
             }else{
-                stream = new VITA49Stream(streamDef, userId, streamDef.id, null, null, null);
+                stream = new VITA49Stream(streamDef, this.userId, streamDef.id, null, null, null);
                 this.streamContainer.addStream(stream);
             }
 
@@ -708,11 +748,19 @@ public class OutVITA49Port extends BULKIO.UsesPortStatisticsProviderPOA {
         String[] attachIds = stream.getAttachIds();
 	if ( logger != null ) {
             for(String str: attachIds){ 
-	        logger.trace("VITA49 PORT: ATTACH COMLPETED ID:" + str + " NAME(userid):" + stream.getName() );
+	        logger.trace("VITA49 PORT: addStream() ATTACHMENT COMPLETED ATTACH ID:" + str + " NAME(userid):" + stream.getName() );
             }
-	    logger.trace("bulkio.OutPort attach EXIT (port=" + name +")" );
+	    logger.trace("bulkio.OutPort addStream() EXIT (port=" + name +")" );
 	}
-        return attachIds;
+        return true;
+    }
+
+    /**
+     * @generated
+     */
+    public void removeStream(String streamId) throws AttachError, StreamInputError, DetachError
+    {
+        this.streamContainer.removeStreamByStreamId(streamId);
     }
 
     /**

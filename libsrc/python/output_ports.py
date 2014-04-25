@@ -8,18 +8,49 @@ import struct
 from ossie.cf    import ExtendedCF
 from ossie.cf.CF    import Port
 from ossie.utils import uuid
+from ossie.properties import simple_property
+
 from bulkio.statistics import OutStats
 from bulkio import sri
 from bulkio import timestamp
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA 
 from bulkio.const import MAX_TRANSFER_BYTES
 
+class connection_descriptor_struct(object):
+    connection_id = simple_property(id_="connectionTable::connection_id",
+                                    name="connection_id",
+                                    type_="string")
 
-class connection_descriptor_struct:
-    def __init__( self, pname=None, conn_name=None, stream_id=None ): 
-        self.port_name=pname
-        self.connection_id=conn_name
+    stream_id = simple_property(id_="connectionTable::stream_id",
+                                name="stream_id",
+                                type_="string")
+
+    port_name = simple_property(id_="connectionTable::port_name",
+                                name="port_name",
+                                type_="string")
+
+    def __init__(self, connection_id="", stream_id="", port_name=""):
+        self.connection_id = connection_id
         self.stream_id = stream_id
+        self.port_name = port_name
+
+    def __str__(self):
+        """Return a string representation of this structure"""
+        d = {}
+        d["connection_id"] = self.connection_id
+        d["stream_id"] = self.stream_id
+        d["port_name"] = self.port_name
+        return str(d)
+
+    def getId(self):
+        return "connectionTable::connection_descriptor"
+
+    def isStruct(self):
+        return True
+
+    def getMembers(self):
+        return [("connection_id",self.connection_id),("stream_id",self.stream_id),("port_name",self.port_name)]
+
 
 class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
     
@@ -82,35 +113,40 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
     def disconnectPort(self, connectionId):
         if self.logger:
             self.logger.trace('bulkio::OutPort  disconnectPort ENTER ')
+        if not self.outConnections.has_key(connectionId):
+            if self.logger:
+                self.logger.warn("bulkio::OutPort  disconnectPort() - connectionId " + str(connectionId) + " is not contained in list of outConnections")
+            return
         self.port_lock.acquire()
-        connId = str(connectionId)
-        portListed = False
-        for filt in self.filterTable:
-            if filt.port_name == self.name:
-                portList = True
-                break
-        for streamid in self.sriDict.keys():
-            sid = str(streamid)
-            if portListed:
-                for filt in self.filterTable:
-                    if self.name == filt.port_name and sid == filt.stream_id and connId == filt.connection_name:
-                        self.outConnections[connId].pushPacket(self.noData, timestamp.now(), True, sid)
-            else:
-                self.outConnections[connId].pushPacket(self.noData, timestamp.now(), True, sid)
         try:
+            connId = str(connectionId)
+            portListed = False
+            for filt in self.filterTable:
+                if filt.port_name == self.name:
+                    portList = True
+                    break
+            for streamid in self.sriDict.keys():
+                sid = str(streamid)
+                empty_timestamp = timestamp.notSet()
+                if portListed:
+                    for filt in self.filterTable:
+                        if self.name == filt.port_name and sid == filt.stream_id and connId == filt.connection_name:
+                            self.outConnections[connId].pushPacket(self.noData, empty_timestamp, True, sid)
+                else:
+                    self.outConnections[connId].pushPacket(self.noData, empty_timestamp, True, sid)
+
             self.outConnections.pop(connId, None)
             for key in self.sriDict.keys():
                 # if connID exist in set, remove it, otherwise do nothing (that is what discard does)
                 self.sriDict[key].connections.discard(connId)
             if self.logger:
                 self.logger.debug( "bulkio::OutPort DISCONNECT PORT:" + str(self.name) + " CONNECTION:" + str(connId) )
-                self.logger.trace( "bulkio::OutPort DISCONNECT PORT:" + str(self.name) + " updated sriDict" + str(sriDict) )
+                self.logger.trace( "bulkio::OutPort DISCONNECT PORT:" + str(self.name) + " updated sriDict" + str(self.sriDict) )
         finally:
             self.port_lock.release()
 
         if self.logger:
             self.logger.trace('bulkio::OutPort  disconnectPort EXIT ')
-
 
     def enableStats(self, enabled):
         self.stats.setEnabled(enabled)
@@ -121,48 +157,57 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
     def _get_connections(self):
         currentConnections = []
         self.port_lock.acquire()
-        for id_, port in self.outConnections.items():
-            currentConnections.append(ExtendedCF.UsesConnection(id_, port))
-        self.port_lock.release()
+        try:
+            for id_, port in self.outConnections.items():
+                currentConnections.append(ExtendedCF.UsesConnection(id_, port))
+        finally:
+            self.port_lock.release()
         return currentConnections
 
     def _get_statistics(self):
         self.port_lock.acquire()
-        recStat = self.stats.retrieve()
-        self.port_lock.release()
+        try:
+            recStat = self.stats.retrieve()
+        finally:
+            self.port_lock.release()
         return recStat
 
     def _get_state(self):
         self.port_lock.acquire()
-        numberOutgoingConnections = len(self.outConnections)
-        self.port_lock.release()
+        try:
+            numberOutgoingConnections = len(self.outConnections)
+        finally:
+            self.port_lock.release()
         if numberOutgoingConnections == 0:
             return BULKIO.IDLE
         else:
             return BULKIO.ACTIVE
-        return BULKIO.BUSY
 
     def _get_activeSRIs(self):
         self.port_lock.acquire()
-        sris = []
-        for entry in self.sriDict:
-            sris.append(copy.deepcopy(self.sriDict[entry].sri))
-        self.port_lock.release()
+        try:
+            sris = []
+            for entry in self.sriDict:
+                sris.append(copy.deepcopy(self.sriDict[entry].sri))
+        finally:
+            self.port_lock.release()
         return sris
     
     def updateConnectionFilter(self, _filterTable):
         self.port_lock.acquire()
-        if _filterTable == None :
-            _filterTable = []
-        self.filterTable = _filterTable
-        self.port_lock.release()
+        try:
+            if _filterTable == None :
+                _filterTable = []
+            self.filterTable = _filterTable
+        finally:
+            self.port_lock.release()
 
     def pushSRI(self, H):
         if self.logger:
             self.logger.trace('bulkio::OutPort pushSRI ENTER ')
         self.port_lock.acquire()
-        self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=copy.deepcopy(H), connections=set()) 
         try:
+            self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=copy.deepcopy(H), connections=set()) 
             portListed = False
             for connId, port in self.outConnections.items():
                 for ftPtr in self.filterTable:
@@ -426,67 +471,81 @@ class OutXMLPort(OutPort):
     def disconnectPort(self, connectionId):
         if self.logger:
             self.logger.trace('bulkio::OutXMLPort  disconnectPort ENTER ')
+        if not self.outConnections.has_key(connectionId):
+            if self.logger:
+                self.logger.warn("bulkio::OutXMLPort  disconnectPort() - connectionId " + str(connectionId) + " is not contained in list of outConnections")
+            return
         self.port_lock.acquire()
-        connId = str(connectionId)
-        portListed = False
-        for filt in self.filterTable:
-            if filt.port_name == self.name:
-                portList = True
-                break
-        for streamid in self.sriDict.keys():
-            sid = str(streamid)
-            if portListed:
-                for filt in self.filterTable:
-                    if self.name == filt.port_name and sid == filt.stream_id and connId == filt.connection_name:
-                        self.outConnections[connId].pushPacket(self.noData, True, sid)
-            else:
-                self.outConnections[connId].pushPacket(self.noData, True, sid)
         try:
+            connId = str(connectionId)
+            portListed = False
+            for filt in self.filterTable:
+                if filt.port_name == self.name:
+                    portList = True
+                    break
+            for streamid in self.sriDict.keys():
+                sid = str(streamid)
+                if portListed:
+                    for filt in self.filterTable:
+                        if self.name == filt.port_name and sid == filt.stream_id and connId == filt.connection_name:
+                            self.outConnections[connId].pushPacket(self.noData, True, sid)
+                else:
+                    self.outConnections[connId].pushPacket(self.noData, True, sid)
+
             self.outConnections.pop(connId, None)
             for key,value in self.sriDict.items():
                 # if connID exist in set, remove it, otherwise do nothing (that is what discard does)
                 self.sriDict[key].connections.discard(connId)
             if self.logger:
                 self.logger.debug( "bulkio::OutXMLPort DISCONNECT PORT:" + str(self.name) + " CONNECTION:" + str(connId) )
-                self.logger.trace( "bulkio::OutXMLPort DISCONNECT PORT:" + str(self.name) + " updated sriDict" + str(sriDict) )
+                self.logger.trace( "bulkio::OutXMLPort DISCONNECT PORT:" + str(self.name) + " updated sriDict" + str(self.sriDict) )
         finally:
             self.port_lock.release()
 
         if self.logger:
             self.logger.trace('bulkio::OutXMLPort  disconnectPort EXIT ')
 
-class OutAttachablePort:
+class OutAttachablePort(OutPort):
     class StreamAttachment:
         def __init__(self, connectionId, attachId, inputPort):
             self.connectionId=connectionId
             self.attachId=attachId
             self.inputPort=inputPort
 
+        def detach(self):
+            self.inputPort.detach(self.attachId)
+            
+
     class Stream:
         def __init__(self, streamDef, name, streamId=None, streamAttachments=[], sri=None, time=None):
             self.streamDef=streamDef
             self.name = name
             self.streamId=streamId
-            self.streamAttachments=streamAttachments
+            self.streamAttachments=streamAttachments[:]
             self.sri=sri
             self.time=time
 
-        def detachByConnectionID(self, connectionId):
+        def detachAll(self):
+            for att in list(self.streamAttachments):
+                att.detach()
+                self.streamAttachments.remove(att)
+
+        def detachByConnectionId(self, connectionId):
             for att in list(self.streamAttachments):
                 if att.connectionId == connectionId and att.inputPort and att.attachId:
-                    att.inputPort.detach(att.attachId)
+                    att.detach()
                     self.streamAttachments.remove(att)
 
-        def detachByAttachID(self, attachId):
+        def detachByAttachId(self, attachId):
             for att in list(self.streamAttachments):
                 if att.attachId and att.inputPort and att.attachId == attachId:
-                    att.inputPort.detach(att.attachId)
+                    att.detach()
                     self.streamAttachments.remove(att)
 
-        def detachByAttachIdConnectionID(self, connectionId):
+        def detachByAttachIdConnectionId(self, connectionId):
             for att in list(self.streamAttachments):
                 if att.attachId and att.inputPort and att.attachId == attachId and att.connectionId == connectionId:
-                    att.inputPort.detach(att.attachId)
+                    att.detach()
                     self.streamAttachments.remove(att)
 
         def createNewAttachment(self,connectionId, port):
@@ -516,7 +575,7 @@ class OutAttachablePort:
 
             # Iterate through attachments and compare to expected connectionIds
             connectionsToRemove = []
-            for att in stream.streamAttachments:
+            for att in self.streamAttachments:
                 existingConnectionId = att.connectionId
                 detachConnection = True
                 for connId in expectedConnectionIds:
@@ -542,24 +601,26 @@ class OutAttachablePort:
             self.logger = None
 
         def printState(self, title):
+            if self.logger:
+                self.logger.debug(title)
             for stream in self.streams:
                 self.printBlock("Stream", stream.streamId,0)
                 for att in stream.streamAttachments:
-                    printBlock("Attachment",att.attachId,1)
+                    self.printBlock("Attachment",att.attachId,1)
+            if self.logger:
+                self.logger.debug("")
 
         def printBlock(self, title, id, indents):
             indent = ""
-            if indents > 0:
-                indent = "    "
-            totalIndent = "" 
-            for ii in range(ii):
-                totalIndent += indent
+            for ii in range(indents):
+                indent += "    "
             line = "---------------"
 
-            print totalIndent + " |" + line
-            print totalIndent + " |" + title
-            print totalIndent + " |   '" + id + "'" 
-            print totalIndent + " |" + line
+            if self.logger:
+                self.logger.debug(indent + " |" + line)
+                self.logger.debug(indent + " |" + str(title))
+                self.logger.debug(indent + " |   '" + str(id) + "'") 
+                self.logger.debug(indent + " |" + line)
 
         def hasStreams(self):
             if len(self.streams) > 0:
@@ -606,20 +667,20 @@ class OutAttachablePort:
                 if stream.streamId == streamId:
                     stream.time = time
 
+        def updateStreamSRIAndTime(self, streamId, sri, time):
+            for stream in self.streams:
+                if stream.streamId == streamId:
+                    stream.sri = sri
+                    stream.time = time
+
         def addStream(self, stream):
             self.streams.append(stream)
 
         def removeStreamByStreamId(self, streamId):
             for s in list(self.streams):
-                if s.id == streamId: 
-                   self.streams.pop(s)
-
-        def findByAttachId(self, attachId):
-            streamList = []
-            for s in self.streams:
-                if s.attachId == attachId:
-                    streamList.append(s) 
-            return streamList            
+                if s.streamId == streamId:
+                   s.detachAll()
+                   self.streams.remove(s)
 
         def findByStreamId(self, streamId):
             for s in self.streams:
@@ -627,49 +688,33 @@ class OutAttachablePort:
                     return s
             return None            
 
-        def findByConnectionId(self, connectionId):
-            streamList = []
-            for s in self.streams:
-                for a in s.streamAttachments:
-                    if a.connectionId == connectionId:
-                        streamList.append(s)
-            return streamList
-
         def detachByAttachIdConnectionId(self, attachId=None, connectionId=None):
             for stream in self.streams:
                 for atts in list(stream.streamAttachments):
                     if atts.connectionId == connectionId and atts.inputPort and atts.attachId and atts.attachId == attachId:
                         atts.inputPort.detach(atts.attachId)
-                        stream.streamAttachments.pop(atts)
+                        stream.streamAttachments.remove(atts)
 
         def detachAllStreams(self):
             for stream in self.streams:
                 for atts in list(stream.streamAttachments):
                     if atts.inputPort and atts.attachId:
                         atts.inputPort.detach(atts.attachId)
-                        stream.streamAttachments.pop(atts)
+                        stream.streamAttachments.remove(atts)
 
         def detachByConnectionId(self, connectionId=None):
             for stream in self.streams:
                 for atts in list(stream.streamAttachments):
                     if atts.connectionId == connectionId and atts.inputPort and atts.attachId:
                         atts.inputPort.detach(atts.attachId)
-                        stream.streamAttachments.pop(atts)
+                        stream.streamAttachments.remove(atts)
 
         def detachByAttachId(self, attachId=None):
             for stream in self.streams:
                 for atts in list(stream.streamAttachments):
                     if atts.attachId and atts.attachId == attachId and atts.inputPort:
                         atts.inputPort.detach(atts.attachId)
-                        stream.streamAttachments.pop(atts)
-
-        def findStreamAttachmentsByConnectionId(self, connectionId):
-            attachList = []
-            for stream in self.streams:
-                for att in stream.streamAttachments:
-                    if att.connectionId == connectionId:
-                        attachList.append(att)    
-            return attachList
+                        stream.streamAttachments.remove(atts)
 
         def findStreamAttachmentsByAttachId(self, attachId):
             attachList = []
@@ -682,20 +727,32 @@ class OutAttachablePort:
         def setLogger(self, logger):
             self.logger = logger
 
-class OutSDDSPort(OutPort):
+
     TRANSFER_TYPE = 'c'
-    def __init__(self, name, max_attachments=None, logger=None ):
-        OutPort.__init__(self, name, BULKIO.dataSDDS, OutSDDSPort.TRANSFER_TYPE , logger )
+    def __init__(self, name, max_attachments=None, logger=None, interface=None ):
+        OutPort.__init__(self, name, interface, OutAttachablePort.TRANSFER_TYPE , logger )
         self.max_attachments = max_attachments
-        self.streamContainer = OutAttachablePort.StreamContainer() 
-        self.defaultStreamSRI = sri.create()
-        self.defaultTime = timestamp.now()
+        self.streamContainer = OutAttachablePort.StreamContainer()
         self.sriDict = {} # key=streamID  value=SriMapStruct
         self.filterTable = []
-        
+        if not interface:
+            if self.logger:
+                self.logger.error("OutAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
+            raise Port.InvalidPort(1, "OutAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
+        self.interface=interface # BULKIO port interface (valid options are BULKIO.dataSDDS or BULKIO.dataVITA49)
+        self.setLogger(logger)
+    
+    def setLogger(self, logger):
+        self.logger = logger;
+        self.streamContainer.setLogger(logger)
+
     def _get_state(self):
         self.port_lock.acquire()
-        if len(self._attachedStreams.values()) == 0:
+        try:
+            numberAttachedStreams = len(self._attachedStreams.values())
+        finally:
+            self.port_lock.release()
+        if numberAttachedStreams == 0:
             return BULKIO.IDLE
         else:
             return BULKIO.ACTIVE
@@ -709,6 +766,22 @@ class OutSDDSPort(OutPort):
             streams.append(stream.streamDef)
         return streams 
 
+    def attachmentIds(self):
+        ids = []
+        for stream in self.streamContainer.streams:
+            for atts in stream.streamAttachments:
+                ids.append(atts.attachId)
+        return ids 
+
+    def attachmentIds(self,streamId):
+        ids = []
+        for stream in self.streamContainer.streams:
+            if stream.streamId == streamId:
+                for atts in stream.streamAttachments:
+                    ids.append(atts.attachId)
+                break
+        return ids
+
     def connectPort(self, connection, connectionId):
         OutPort.connectPort( self, connection, connectionId )
         self.port_lock.acquire()
@@ -718,7 +791,7 @@ class OutSDDSPort(OutPort):
                 port = self.outConnections[str(connectionId)]
 
                 if self.logger:
-                    self.logger.trace("bulkio::OutSDDSPort, Filter Table %s" % self.filterTable)
+                    self.logger.trace("bulkio::OutAttachablePort connectPort(), Filter Table %s" % self.filterTable)
                 for ftPtr in self.filterTable:
                     # check if port was listed in connection filter table
                     if ftPtr.port_name == self.name:
@@ -726,14 +799,9 @@ class OutSDDSPort(OutPort):
 
                     if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connectionId):
                         desiredStreamId = ftPtr.stream_id
-                        if self.sriDict.has_key(desiredStreamId):
-                            sriMap = self.sriDict[desiredStreamId]
-                            stream.sri = sriMap.sri
-                            stream.time = sriMap.time
                         self.streamContainer.addConnectionToStream(connectionId,port,desiredStreamId)
 
                 if not portListed:
-                    self.streamContainer.updateSRIForAllStreams(self.sriDict)
                     self.streamContainer.addConnectionToAllStreams(connectionId,port) 
 
             except Exception, e:
@@ -742,22 +810,24 @@ class OutSDDSPort(OutPort):
                 raise Port.InvalidPort(1, "Invalid Port for Connection ID:" + str(connectionId) )
         finally:
             self.port_lock.release()
+        self.streamContainer.printState("After connectPort")
     
     def disconnectPort(self, connectionId):
+        self.port_lock.acquire()
         try:
-            self.port_lock.acquire()
             try:
                 self.streamContainer.detachByConnectionId(connectionId)
             except:
                 if self.logger:
-                    self.logger.error("Unable to detach %s, should not have happened", str(connId))
+                    self.logger.error("bulkio::OutAttachablePort disconnectPort() Unable to detach %s, should not have happened", str(connId))
         finally:
             self.port_lock.release()
         OutPort.disconnectPort( self, connectionId )
+        self.streamContainer.printState("After disconnectPort")
 
     def detach(self, attachId=None, connectionId=None):
         if self.logger:
-            self.logger.trace("bulkio::OutSDDSPort, DETACH ENTER ")
+            self.logger.trace("bulkio::OutAttachablePort, DETACH ENTER ")
 
         self.port_lock.acquire()
         try:
@@ -782,22 +852,34 @@ class OutSDDSPort(OutPort):
             self.port_lock.release()
 
         if self.logger:
-            self.logger.trace("bulkio::OutSDDSPort, DETACH EXIT ")
-    
-    def attach(self, streamData, name):
+            self.logger.trace("bulkio::OutAttachablePort, DETACH EXIT ")
 
+    def attach(self, streamData, name):
+        # Eventually deprecate attach() method for output port
+        self.streamContainer.removeStreamByStreamId(streamData.id)
+        self.addStream(streamData)
+        return ""
+
+    def updateStream(self, streamData):
+        streamId = streamData.id
+        if (not self.streamContainer.hasStreamId(streamId)):
+            return False;
+
+        self.streamContainer.removeStreamByStreamId(streamId)
+        return self.addStream(streamData)
+
+
+    def addStream(self, streamData):
         if self.logger:
-            self.logger.trace("bulkio::OutSDDSPort, ATTACH ENTER ")
+            self.logger.trace("bulkio::OutAttachablePort, addStream ENTER ")
 
         ids = []
         self.port_lock.acquire()
         try:
-            stream = self.streamContainer.findByStreamId(streamData.id)
-            if stream:
-                stream.detachAll()
-            else:
-                stream = OutAttachablePort.Stream(streamDef=streamData, name=name, streamId=streamData.id)
-                self.streamContainer.addStream(stream) 
+            if self.streamContainer.hasStreamId(streamData.id):
+                return False;
+
+            stream = OutAttachablePort.Stream(streamDef=streamData, name="", streamId=streamData.id)
 
             portListed = False
             for connId, port in self.outConnections.items():
@@ -816,7 +898,7 @@ class OutSDDSPort(OutPort):
                            stream.createNewAttachment(connectionId,port)
                         except Exception, e:
                             if self.logger:
-                                self.logger.error("bulkio.OutSDDSPort attach() Unable to deliver update to %s: %s" % (str(connId), str(e)))
+                                self.logger.error("bulkio.OutAttachablePort addStream() Unable to create attachment for port/connection %s/%s: %s" % (str(self.name),str(connId), str(e)))
 
             if not portListed: 
                 if self.sriDict.has_key(stream.streamId):
@@ -825,22 +907,30 @@ class OutSDDSPort(OutPort):
                     stream.time = sriMap.time
                 for connId,port in self.outConnections.items():
                     try:
-                       stream.createNewAttachment(connectionId,port)
+                       stream.createNewAttachment(connId,port)
                     except Exception, e:
                         if self.logger:
-                            self.logger.error("bulkio.OutSDDSPort attach() Unable to deliver update to %s: %s" % (str(connId), str(e)))
+                            self.logger.error("bulkio.OutAttachablePort addStream() attachment failed for port/connection %s/%s: %s" % (str(self.name),str(connId), str(e)))
 
+            self.streamContainer.addStream(stream) 
+        
         finally:
             self.port_lock.release()
 
         for atts in stream.streamAttachments:
             ids.append(atts.attachId)
             if self.logger:
-                self.logger.debug("SDDS PORT, ATTACH COMPLETED ID " + str(atts.attachId) + " CONNECTION ID:" + str(atts.connectionId))
-        if self.logger:
-            self.logger.trace("bulkio::OutSDDSPort, ATTACH EXIT ")
+                self.logger.debug("bulkio.OutAttachablePort addStream()  PORT, ATTACH COMPLETED ID " + str(atts.attachId) + " CONNECTION ID:" + str(atts.connectionId))
 
-        return ids
+        if self.logger:
+            self.logger.trace("bulkio::OutAttachablePort, addStream EXIT ")
+       
+        self.streamContainer.printState("After addStream")
+        return True
+
+    def removeStream(self, streamId):
+        self.streamContainer.removeStreamByStreamId(streamId)
+        self.streamContainer.printState("After removeStream")
 
     def getStreamDefinition(self, attachId):
         streamDefList = []
@@ -860,14 +950,16 @@ class OutSDDSPort(OutPort):
     
     def pushSRI(self, H, T):
         if self.logger:
-            self.logger.trace("bulkio::OutSDDSPort, PUSH-SRI ENTER ")
+            self.logger.trace("bulkio::OutAttachablePort, PUSH-SRI ENTER ")
 
         self.port_lock.acquire()
-        self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=copy.deepcopy(H), connections=set(), time=copy.deepcopy(T)) 
-        self.defaultStreamSRI = H
-        self.defaultTime = T
         try:
+            sri = copy.deepcopy(H)
+            sriTime = copy.deepcopy(T)
+            self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=sri, connections=set(), time=sriTime)
             portListed = False
+            self.streamContainer.updateStreamSRIAndTime(H.streamID, sri, sriTime)
+
             for connId, port in self.outConnections.items():
                 for ftPtr in self.filterTable:
 
@@ -880,10 +972,6 @@ class OutSDDSPort(OutPort):
                             if port != None:
                                 port.pushSRI(H, T)
                                 self.sriDict[H.streamID].connections.add(connId)
-                                stream = self.streamContainer.findByStreamId(H.streamID)
-                                if stream:
-                                    stream.sri = H
-                                    stream.time = T
                         except Exception:
                             if self.logger:
                                 self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
@@ -894,10 +982,6 @@ class OutSDDSPort(OutPort):
                         if port != None:
                             port.pushSRI(H, T)
                             self.sriDict[H.streamID].connections.add(connId)
-                            stream = self.streamContainer.findByStreamId(H.streamID)
-                            if stream:
-                                stream.sri = H
-                                stream.time = T
                     except Exception:
                         if self.logger:
                             self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
@@ -905,353 +989,76 @@ class OutSDDSPort(OutPort):
             self.port_lock.release() 
 
         if self.logger:
-            self.logger.trace("bulkio::OutSDDSPort, PUSH-SRI EXIT ")
+            self.logger.trace("bulkio::OutAttachablePort, PUSH-SRI EXIT ")
 
     def updateConnectionFilter(self, _filterTable):
         self.port_lock.acquire()
-        if _filterTable == None :
-            _filterTable = []
-        self.filterTable = _filterTable
+        try:
+            if _filterTable == None :
+                _filterTable = []
+            self.filterTable = _filterTable
 
-        #1. loop over filterTable
-            #A. ignore other port_names
-            #B. create mapping of streamid->connections(attachments) 
+            #1. loop over filterTable
+                #A. ignore other port_names
+                #B. create mapping of streamid->connections(attachments) 
 
-        hasPortEntry = False
-        streamsFound = {}
-        streamAttachments = {}
-        # Populate streamsFound 
-        knownStreamIds = self.streamContainer.getStreamIds()
-        for id in knownStreamIds:
-            streamsFound[id] = False
+            hasPortEntry = False
+            streamsFound = {}
+            streamAttachments = {}
+            # Populate streamsFound 
+            knownStreamIds = self.streamContainer.getStreamIds()
+            for id in knownStreamIds:
+                streamsFound[id] = False
 
-        # Iterate through each filterTable entry and capture state
-        for entry in self.filterTable:
-            if entry.port_name != self.name:
-                continue
+            # Iterate through each filterTable entry and capture state
+            for entry in self.filterTable:
+                if entry.port_name != self.name:
+                    continue
 
-            hasPortEntry = True
-            if entry.connection_id in self.outConnections.keys():
-                connectedPort = self.outConnections.get(entry.connection_id)
-            else:
-                if self.logger:
-                    self.logger.warn("bulkio::OutSDDSPort, updateConnectionFilter() Unable to find connected port with connectionId: " + entry.connection_id)
-                continue
+                hasPortEntry = True
+                if entry.connection_id in self.outConnections.keys():
+                    connectedPort = self.outConnections.get(entry.connection_id)
+                else:
+                    if self.logger:
+                        self.logger.trace("bulkio::OutAttachablePort, updateConnectionFilter() Unable to find connected port with connectionId: " + entry.connection_id)
+                    continue
 
-            if self.streamContainer.hasStreamId(entry.stream_id):
-                streamsFound[entry.stream_id] = True
-                expectedAttachment = OutAttachablePort.StreamAttachment(entry.connection_id, None, connectedPort)
-                if not streamAttachments.has_key(entry.stream_id):
-                    streamAttachments[entry.stream_id] = []
-                streamAttachments[entry.stream_id].append(expectedAttachment)
+                if self.streamContainer.hasStreamId(entry.stream_id):
+                    streamsFound[entry.stream_id] = True
+                    expectedAttachment = OutAttachablePort.StreamAttachment(entry.connection_id, None, connectedPort)
+                    if not streamAttachments.has_key(entry.stream_id):
+                        streamAttachments[entry.stream_id] = []
+                    streamAttachments[entry.stream_id].append(expectedAttachment)
 
-        for entry in streamAttachments:
-            streamId = entry.streamId
-            foundStream = self.streamContainer.findByStreamId(streamId)
-            if foundStream:
-                foundStream.updateAttachments(entry)
-            else:
-                if self.logger:
-                    self.logger.warn("bulkio::OutSDDSPort, updateConnectionFilter() Unable to locate stream definition for streamId: " +streamId)
+            for streamId, expectedAttachements in streamAttachments.iteritems():
+                foundStream = self.streamContainer.findByStreamId(streamId)
+                if foundStream:
+                    foundStream.updateAttachments(expectedAttachements)
+                else:
+                    if self.logger:
+                        self.logger.warn("bulkio::OutAttachablePort, updateConnectionFilter() Unable to locate stream definition for streamId: " +streamId)
 
         
-        if hasPortEntry:
-            # If there's a valid port entry, we need to detach unmentioned streams
-            for streamId,found in streamsFound.items():
-                if not found:
-                    stream = self.streamContainer.findByStreamId(streamId)
-                    if stream:
-                        stream.detachAll()
-        else:
-            # No port entry == All connections on
-            for connId, port in self.outConnections.items():
-                self.streamContainer.addConnectionToAllStreams(connId_,port)
+            if hasPortEntry:
+                # If there's a valid port entry, we need to detach unmentioned streams
+                for streamId,found in streamsFound.items():
+                    if not found:
+                        stream = self.streamContainer.findByStreamId(streamId)
+                        if stream:
+                            stream.detachAll()
+            else:
+                # No port entry == All connections on
+                for connId, port in self.outConnections.items():
+                    self.streamContainer.addConnectionToAllStreams(connId,port)
 
-        self.port_lock.release()
+        finally:
+            self.port_lock.release()
+            self.streamContainer.printState("After updateFilterTable")
 
-class OutVITA49Port(OutPort):
-    TRANSFER_TYPE = 'c'
+class OutSDDSPort(OutAttachablePort):
     def __init__(self, name, max_attachments=None, logger=None ):
-        OutPort.__init__(self, name, BULKIO.dataVITA49, OutVITA49Port.TRANSFER_TYPE , logger )
-        self.max_attachments = max_attachments
-        self.streamContainer = OutAttachablePort.StreamContainer() 
-        self.defaultStreamSRI = sri.create()
-        self.defaultTime = timestamp.now()
-        self.sriDict = {} # key=streamID  value=SriMapStruct
-        self.filterTable = []
-        
-    def _get_state(self):
-        self.port_lock.acquire()
-        if len(self._attachedStreams.values()) == 0:
-            return BULKIO.IDLE
-        else:
-            return BULKIO.ACTIVE
+        OutAttachablePort.__init__(self, name, max_attachments, logger, interface=BULKIO.dataSDDS)
 
-    def _get_attachedSRIs(self):
-        return self._get_activeSRIs()
-
-    def attachedStreams(self):
-        streams = []
-        for stream in self.streamContainer.streams:
-            streams.append(stream.streamDef)
-        return streams 
-
-    def connectPort(self, connection, connectionId):
-        OutPort.connectPort( self, connection, connectionId )
-        self.port_lock.acquire()
-        try:
-            try:
-                portListed = False
-                port = self.outConnections[str(connectionId)]
-
-                if self.logger:
-                    self.logger.trace("bulkio::OutVITA49Port, Filter Table %s" % self.filterTable)
-                for ftPtr in self.filterTable:
-                    # check if port was listed in connection filter table
-                    if ftPtr.port_name == self.name:
-                        portListed = True
-
-                    if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connectionId):
-                        desiredStreamId = ftPtr.stream_id
-                        if self.sriDict.has_key(desiredStreamId):
-                            sriMap = self.sriDict[desiredStreamId]
-                            stream.sri = sriMap.sri
-                            stream.time = sriMap.time
-                        self.streamContainer.addConnectionToStream(connectionId,port,desiredStreamId)
-
-                if not portListed:
-                    self.streamContainer.updateSRIForAllStreams(self.sriDict)
-                    self.streamContainer.addConnectionToAllStreams(connectionId,port) 
-
-            except Exception, e:
-                if self.logger:
-                    self.logger.error("Exception while calling connectPort for connectionId %s: %s" % (connectionId, str(e)))
-                raise Port.InvalidPort(1, "Invalid Port for Connection ID:" + str(connectionId) )
-        finally:
-            self.port_lock.release()
-    
-    def disconnectPort(self, connectionId):
-        try:
-            self.port_lock.acquire()
-            try:
-                self.streamContainer.detachByConnectionId(connectionId)
-            except:
-                if self.logger:
-                    self.logger.error("Unable to detach %s, should not have happened", str(connId))
-        finally:
-            self.port_lock.release()
-        OutPort.disconnectPort( self, connectionId )
-
-    def detach(self, attachId=None, connectionId=None):
-        if self.logger:
-            self.logger.trace("bulkio::OutVITA49Port, DETACH ENTER ")
-
-        self.port_lock.acquire()
-        try:
-            if connectionId:
-                for stream in self.streamContainer.streams:
-                    stream.detachByConnectionId(connectionId)
-
-            if attachId:
-                for stream in self.streamContainer.streams:
-                    for atts in list(stream.streamAttachments):
-                        if atts.attachId == attachId:
-                            atts.inputPort.detach(attachId)
-                            stream.streamAttachments.pop(atts)
-
-            if not attachId and not connectionId:
-                for stream in self.streamContainer.streams:
-                    for atts in list(stream.streamAttachments):
-                        atts.inputPort.detach(attachId)
-                self.streamContainer = OutAttachablePort.StreamContainer()
-
-        finally:
-            self.port_lock.release()
-
-        if self.logger:
-            self.logger.trace("bulkio::OutVITA49Port, DETACH EXIT ")
-    
-    def attach(self, streamData, name):
-
-        if self.logger:
-            self.logger.trace("bulkio::OutVITA49Port, ATTACH ENTER ")
-
-        ids = []
-        self.port_lock.acquire()
-        try:
-            stream = self.streamContainer.findByStreamId(streamData.id)
-            if stream:
-                stream.detachAll()
-            else:
-                stream = OutAttachablePort.Stream(streamDef=streamData, name=name, streamId=streamData.id)
-                self.streamContainer.addStream(stream) 
-
-            portListed = False
-            for connId, port in self.outConnections.items():
-                for ftPtr in self.filterTable:
-
-                    # check if port was listed in connection filter table
-                    if ftPtr.port_name == self.name:
-                        portListed = True
-
-                    if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connId) and (ftPtr.stream_id == stream.streamId):
-                        try:
-                           if self.sriDict.has_key(stream.streamId):
-                              sriMap = self.sriDict[stream.streamId]
-                              stream.sri = sriMap.sri
-                              stream.time = sriMap.time
-                           stream.createNewAttachment(connectionId,port)
-                        except Exception, e:
-                            if self.logger:
-                                self.logger.error("bulkio.OutVITA49Port attach() Unable to deliver update to %s: %s" % (str(connId), str(e)))
-
-            if not portListed: 
-                if self.sriDict.has_key(stream.streamId):
-                    sriMap = self.sriDict[stream.streamId]
-                    stream.sri = sriMap.sri
-                    stream.time = sriMap.time
-                for connId,port in self.outConnections.items():
-                    try:
-                       stream.createNewAttachment(connectionId,port)
-                    except Exception, e:
-                        if self.logger:
-                            self.logger.error("bulkio.OutVITA49Port attach() Unable to deliver update to %s: %s" % (str(connId), str(e)))
-
-        finally:
-            self.port_lock.release()
-
-        for atts in stream.streamAttachments:
-            ids.append(atts.attachId)
-            if self.logger:
-                self.logger.debug("VITA49 PORT, ATTACH COMPLETED ID " + str(atts.attachId) + " CONNECTION ID:" + str(atts.connectionId))
-        if self.logger:
-            self.logger.trace("bulkio::OutVITA49Port, ATTACH EXIT ")
-
-        return ids
-
-    def getStreamDefinition(self, attachId):
-        streamDefList = []
-        for stream in self.streamContainer.streams:
-            for atts in stream.streamAttachments:
-                if atts.attachId == attachId:
-                    streamDefList.append(stream.streamDef)
-        return streamDefList 
-
-    def getUser(self, attachId):
-        nameList = []
-        for stream in self.streamContainer.streams:
-            for atts in stream.streamAttachments:
-                if atts.attachId == attachId:
-                    nameList.append(stream.name)
-        return nameList 
-    
-    def pushSRI(self, H, T):
-        if self.logger:
-            self.logger.trace("bulkio::OutVITA49Port, PUSH-SRI ENTER ")
-
-        self.port_lock.acquire()
-        self.sriDict[H.streamID] = OutPort.SriMapStruct(sri=copy.deepcopy(H), connections=set(), time=copy.deepcopy(T)) 
-        self.defaultStreamSRI = H
-        self.defaultTime = T
-        try:
-            portListed = False
-            for connId, port in self.outConnections.items():
-                for ftPtr in self.filterTable:
-
-                    # check if port was listed in connection filter table
-                    if ftPtr.port_name == self.name:
-                        portListed = True
-
-                    if (ftPtr.port_name == self.name) and (ftPtr.connection_id == connId) and (ftPtr.stream_id == H.streamID):
-                        try:
-                            if port != None:
-                                port.pushSRI(H, T)
-                                self.sriDict[H.streamID].connections.add(connId)
-                                stream = self.streamContainer.findByStreamId(H.streamID)
-                                if stream:
-                                    stream.sri = H
-                                    stream.time = T
-                        except Exception:
-                            if self.logger:
-                                self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
-
-            if not portListed:
-                for connId, port in self.outConnections.items():
-                    try:
-                        if port != None:
-                            port.pushSRI(H, T)
-                            self.sriDict[H.streamID].connections.add(connId)
-                            stream = self.streamContainer.findByStreamId(H.streamID)
-                            if stream:
-                                stream.sri = H
-                                stream.time = T
-                    except Exception:
-                        if self.logger:
-                            self.logger.error("The call to pushSRI failed on port %s connection %s instance %s", self.name, connId, port)
-        finally:
-            self.port_lock.release() 
-
-        if self.logger:
-            self.logger.trace("bulkio::OutVITA49Port, PUSH-SRI EXIT ")
-
-    def updateConnectionFilter(self, _filterTable):
-        self.port_lock.acquire()
-        if _filterTable == None :
-            _filterTable = []
-        self.filterTable = _filterTable
-
-        #1. loop over filterTable
-            #A. ignore other port_names
-            #B. create mapping of streamid->connections(attachments) 
-
-        hasPortEntry = False
-        streamsFound = {}
-        streamAttachments = {}
-        # Populate streamsFound 
-        knownStreamIds = self.streamContainer.getStreamIds()
-        for id in knownStreamIds:
-            streamsFound[id] = False
-
-        # Iterate through each filterTable entry and capture state
-        for entry in self.filterTable:
-            if entry.port_name != self.name:
-                continue
-
-            hasPortEntry = True
-            if entry.connection_id in self.outConnections.keys():
-                connectedPort = self.outConnections.get(entry.connection_id)
-            else:
-                if self.logger:
-                    self.logger.warn("bulkio::OutVITA49Port, updateConnectionFilter() Unable to find connected port with connectionId: " + entry.connection_id)
-                continue
-
-            if self.streamContainer.hasStreamId(entry.stream_id):
-                streamsFound[entry.stream_id] = True
-                expectedAttachment = OutAttachablePort.StreamAttachment(entry.connection_id, None, connectedPort)
-                if not streamAttachments.has_key(entry.stream_id):
-                    streamAttachments[entry.stream_id] = []
-                streamAttachments[entry.stream_id].append(expectedAttachment)
-
-        for entry in streamAttachments:
-            streamId = entry.streamId
-            foundStream = self.streamContainer.findByStreamId(streamId)
-            if foundStream:
-                foundStream.updateAttachments(entry)
-            else:
-                if self.logger:
-                    self.logger.warn("bulkio::OutVITA49Port, updateConnectionFilter() Unable to locate stream definition for streamId: " +streamId)
-
-        
-        if hasPortEntry:
-            # If there's a valid port entry, we need to detach unmentioned streams
-            for streamId,found in streamsFound.items():
-                if not found:
-                    stream = self.streamContainer.findByStreamId(streamId)
-                    if stream:
-                        stream.detachAll()
-        else:
-            # No port entry == All connections on
-            for connId, port in self.outConnections.items():
-                self.streamContainer.addConnectionToAllStreams(connId_,port)
-
-        self.port_lock.release()
+class OutVITA49Port(OutAttachablePort):
+    def __init__(self, name, max_attachments=None, logger=None ):
+        OutAttachablePort.__init__(self, name, max_attachments, logger, interface=BULKIO.dataVITA49)

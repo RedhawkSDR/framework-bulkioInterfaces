@@ -254,6 +254,8 @@ namespace bulkio {
                            typename PortType::_ptr_type input_port);
           StreamAttachment(const std::string& connection_id, 
                            typename PortType::_ptr_type input_port);
+          
+          void setLogger(LOGGER_PTR newLogger);
       
           // 
           // detach
@@ -278,6 +280,7 @@ namespace bulkio {
           std::string _connectionId;
           std::string _attachId;
           typename PortType::_var_type _inputPort;
+          LOGGER_PTR logger;
       };
   
       typedef StreamAttachment AttachmentType;
@@ -303,6 +306,19 @@ namespace bulkio {
                  const std::string stream_id,
                  BULKIO::StreamSRI sri,
                  BULKIO::PrecisionUTCTime time);
+          Stream(const Stream& obj);
+          Stream& operator=(const Stream& obj)
+          { 
+            _streamDefinition = obj._streamDefinition;
+            _name = obj._name;
+            _streamId = obj._streamId;
+            _streamAttachments = obj._streamAttachments;
+            _sri = obj._sri;
+            _time = obj._time;
+            return *this;
+          }
+          
+          void setLogger(LOGGER_PTR newLogger);
   
           //
           // detach
@@ -358,6 +374,8 @@ namespace bulkio {
           StreamAttachmentList _streamAttachments;
           BULKIO::StreamSRI _sri;
           BULKIO::PrecisionUTCTime _time;
+          MUTEX attachmentsUpdateLock;
+          LOGGER_PTR logger;
       };
       
       typedef typename std::vector<Stream> StreamList;
@@ -387,11 +405,14 @@ namespace bulkio {
           // State validators
           //
           bool hasStreamId(const std::string& streamId);
+          bool hasAttachments();
   
           //
           // Getters
           //
           std::vector<std::string> getStreamIds();
+          std::vector<std::string> getAttachIds();
+          StreamList getStreams();
          
           //
           // Add connections/attachments
@@ -417,6 +438,7 @@ namespace bulkio {
           // Search methods
           //
           Stream* findByStreamId(const std::string& streamId);
+          Stream* findByAttachId(const std::string& attachId);
           
           //
           // Debug helpers
@@ -426,7 +448,7 @@ namespace bulkio {
   
         private:
           StreamList _streams;
-          LOGGER_PTR _logger;
+          LOGGER_PTR logger;
       };
       
   private:
@@ -557,7 +579,14 @@ namespace bulkio {
     //                                is responsible for freeing the provided objects
     //
     virtual BULKIO::StringSequence* attachmentIds();
-
+    
+    //
+    // attachmentIds
+    //
+    // @return BULKIO::StringSequence Return the current list of attachment identifiers. The caller
+    //                                is responsible for freeing the provided objects
+    //
+    virtual BULKIO::StringSequence* attachmentIds(const std::string& streamId);
 
     //
     //  Attachable Interface
@@ -580,6 +609,22 @@ namespace bulkio {
     virtual void detach(const char* attach_id );
     virtual void detach(const char* attach_id, const char *connection_id );
 
+    //
+    // add
+    //
+    virtual bool addStream(const StreamDefinition& stream);
+    
+    //
+    // add
+    //
+    virtual bool updateStream(const StreamDefinition& stream);
+
+    //
+    // remove 
+    //
+    virtual void removeStream(const std::string& streamId);
+
+
   protected:
 
     typedef std::map<std::string, linkStatistics  >    _StatsMap;
@@ -590,18 +635,12 @@ namespace bulkio {
     // Connections List
     Connections   outConnections;
 
-    // maps a stream ID to a pair of Stream and userID
-    AttachedStreams   attachedGroup;
-
     MUTEX updatingPortsLock;
 
-    //  list of Ports and attached stream ids
-    AttachedPorts  attachedPorts;
-
+    // Provides housekeeping of streams->attachments->connections
     StreamContainer streamContainer;
 
     // track last attachment request made
-    StreamDefinition*  lastStreamData;
     std::string  user_id;
 
     // connection sequence object to interface with outside world

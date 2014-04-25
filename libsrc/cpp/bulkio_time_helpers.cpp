@@ -26,7 +26,7 @@ namespace  bulkio {
 	}
 	BULKIO::PrecisionUTCTime tstamp = BULKIO::PrecisionUTCTime();
 	tstamp.tcmode = tsrc;
-	tstamp.tcstatus = (short)1;
+	tstamp.tcstatus = BULKIO::TCS_VALID;
 	tstamp.toff = 0.0;
 	tstamp.twsec = wsec;
 	tstamp.tfsec = fsec;
@@ -35,6 +35,16 @@ namespace  bulkio {
 
       BULKIO::PrecisionUTCTime now() {
 	return create();
+      }
+
+      BULKIO::PrecisionUTCTime notSet() {
+        BULKIO::PrecisionUTCTime tstamp = BULKIO::PrecisionUTCTime();
+        tstamp.tcmode = BULKIO::TCM_OFF;
+        tstamp.tcstatus = BULKIO::TCS_INVALID;
+        tstamp.toff = 0.0;
+        tstamp.twsec = 0.0;
+        tstamp.tfsec = 0.0;
+        return tstamp;
       }
 
     };

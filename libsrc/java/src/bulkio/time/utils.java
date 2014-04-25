@@ -21,7 +21,7 @@ public class  utils {
 	}
 	PrecisionUTCTime tstamp = new PrecisionUTCTime();
 	tstamp.tcmode = tsrc;
-	tstamp.tcstatus = (short)1;
+	tstamp.tcstatus = BULKIO.TCS_VALID.value;
 	tstamp.toff = 0.0;
 	tstamp.twsec = wsec;
 	tstamp.tfsec = fsec;
@@ -31,6 +31,12 @@ public class  utils {
 
     public static PrecisionUTCTime now() {
 	return create(-1.0,-1.0,BULKIO.TCM_CPU.value);
+    }
+
+    public static PrecisionUTCTime notSet() {
+    PrecisionUTCTime tstamp = create(0.0,0.0,BULKIO.TCM_OFF.value);
+    tstamp.tcstatus = BULKIO.TCS_INVALID.value;
+    return tstamp;
     }
 
 }

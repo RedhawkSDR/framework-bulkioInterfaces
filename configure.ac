@@ -68,44 +68,14 @@ HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
   # configure was run with java enabled
 
-  # Ensure JAVA_HOME is set
-  AC_ARG_VAR([JAVA_HOME], [Java Development Kit (JDK) location])
-  test -r /usr/share/java-utils/java-functions && \
-    . /usr/share/java-utils/java-functions && \
-    set_jvm
-  AC_MSG_CHECKING([for a valid JAVA_HOME])
-  if test -n "$JAVA_HOME" -a -d "$JAVA_HOME"; then
-    AC_MSG_RESULT([$JAVA_HOME])
-  else
-    AC_MSG_RESULT([no])
-    AC_MSG_WARN([try setting the JAVA_HOME variable to the base of a valid Java install])
-    AC_SUBST([JAVA_HOME], [no])
-  fi
+  java_source_version=1.6
 
-  # Locate tools we need based on JAVA_HOME
-  java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
-  AC_PATH_PROG([JAVAC], [javac], [no], [$java_test_paths])
-  AC_PATH_PROG([JAR], [jar], [no], [$java_test_paths])
-  AC_PATH_PROG([IDLJ], [idlj], [no], [$java_test_paths])
+  RH_JAVA_HOME
+  RH_PROG_JAVAC([$java_source_version])
+  RH_PROG_JAR
+  RH_PROG_IDLJ
 
-  if test "$JAVA_HOME" != "no" -a \
-          "$JAVAC" != "no" -a \
-          "$JAR" != "no" -a \
-          "$IDLJ" != "no"; then
-    # Verify that we can include the JNI header; the platform-specific location is
-    # assumed to be Linux.
-    AC_LANG_PUSH([C++])
-    saved_CPPFLAGS="$CPPFLAGS"
-    JNI_CPPFLAGS="-I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
-    CPPFLAGS="$JNI_CPPFLAGS"
-    AC_CHECK_HEADER([jni.h],
-    [
-      HAVE_JNI_H="yes"
-      AC_SUBST([JNI_CPPFLAGS])
-    ])
-    CPPFLAGS="$saved_CPPFLAGS"
-    AC_LANG_POP([C++])
-  fi
+  RH_JAVA_JNI_H
 
   if test -n "$HAVE_JNI_H"; then
     # The omnijni package must be available to generate JNI stubs and skeletons.
@@ -130,6 +100,7 @@ if test "x$enable_java" != "xno"; then
       AC_MSG_RESULT([yes])
       JNI_LIBS="-L$ossie_libdir -lossiecfjni"
       AC_SUBST([JNI_LIBS])
+      AC_SUBST(JAVA_SOURCE_VERSION, "$java_source_version")
       HAVE_JAVASUPPORT="yes"
     else
       AC_MSG_RESULT([no])

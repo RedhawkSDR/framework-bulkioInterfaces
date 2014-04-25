@@ -147,6 +147,7 @@ public class OutVectorPort_Test {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
+	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
 	}
@@ -234,6 +235,7 @@ public class OutVectorPort_Test {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
+	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
 	}
@@ -319,6 +321,7 @@ public class OutVectorPort_Test {
 	try {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
+	    port.disconnectPort( ctx.cid );
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
@@ -407,6 +410,7 @@ public class OutVectorPort_Test {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
+	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
 	}
@@ -493,6 +497,7 @@ public class OutVectorPort_Test {
 	try {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
+	    port.disconnectPort( ctx.cid );
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
@@ -581,6 +586,7 @@ public class OutVectorPort_Test {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
+	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
 	}
@@ -666,6 +672,7 @@ public class OutVectorPort_Test {
 	try {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
+	    port.disconnectPort( ctx.cid );
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
@@ -753,6 +760,7 @@ public class OutVectorPort_Test {
 	try {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
+	    port.disconnectPort( ctx.cid );
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
@@ -842,6 +850,7 @@ public class OutVectorPort_Test {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
+	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
 	}
@@ -927,6 +936,7 @@ public class OutVectorPort_Test {
 	try {
 	    port.connectPort( p._this_object(orb), ctx.cid );
 
+	    port.disconnectPort( ctx.cid );
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){

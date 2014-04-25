@@ -15,6 +15,15 @@ def now():
                                    BULKIO.TCS_VALID, 0.0,
                                    int(ts), ts - int(ts))
 
+def notSet():
+    """
+    Generates a BULKIO.PrecisionUTCTime object with zero time 
+    and an invalid flag. This is used by the automatic EOS
+    """
+    return BULKIO.PrecisionUTCTime(BULKIO.TCM_OFF,
+                                   BULKIO.TCS_INVALID, 0.0,
+                                   0.0, 0.0)
+
 def cpuTimeStamp():
     return now()
 

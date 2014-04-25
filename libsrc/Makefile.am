@@ -165,7 +165,7 @@ $(JAVA_DIR)/java.files: $(JAVA_SRCS_ABS)
 # The jar depends on the file list, which depends on the .java files
 $(BINARY_JAR): $(JAVA_DIR)/java.files $(JAVA_DIR)/META-INF/MANIFEST.MF $(top_builddir)/BULKIOInterfaces.jar
 	@mkdir -p $(JAVA_BINDIR)
-	$(JAVAC) -cp $(CLASSPATH) -target 1.6 -source 1.6 -d $(JAVA_BINDIR) @$(JAVA_DIR)/java.files
+	$(JAVAC) -cp $(CLASSPATH) -target $(JAVA_SOURCE_VERSION) -source $(JAVA_SOURCE_VERSION) -d $(JAVA_BINDIR) @$(JAVA_DIR)/java.files
 	$(JAR) cmf $(JAVA_DIR)/META-INF/MANIFEST.MF $(BINARY_JAR) -C $(JAVA_BINDIR) .
 
 $(SOURCE_JAR): $(JAVA_DIR)/java.files $(JAVA_DIR)/META-INF/MANIFEST.MF.src

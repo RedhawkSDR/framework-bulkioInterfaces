@@ -187,9 +187,6 @@ namespace bulkio {
     throw (typename PortType::AttachError, typename PortType::StreamInputError) 
   {
     TRACE_ENTER(logger, "InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::attach" );
-
-    std::cout << "InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>:: RECEIVD ATTACH CALL!" << std::endl << std::flush;
-
     LOG_DEBUG( logger, "ATTACHABLE PORT: ATTACH REQUEST, STREAM/USER: " << stream.id <<  "/" << userid );
 
     std::string attachId("");
@@ -260,6 +257,7 @@ namespace bulkio {
 
     TRACE_EXIT(logger, "InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::detach" );
   }
+
 
   //
   // getStreamDefinition
@@ -371,6 +369,7 @@ namespace bulkio {
   }
 
 
+
   //
   // usageState
   //
@@ -417,6 +416,11 @@ namespace bulkio {
           _attachId("")
       {
           setInputPort(input_port);
+      }
+      
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamAttachment::setLogger(LOGGER_PTR newLogger) {
+          logger = newLogger;
       }
   
       // 
@@ -516,20 +520,38 @@ namespace bulkio {
       {
       }
 
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::Stream(const Stream& obj) :
+         _streamDefinition(obj._streamDefinition),
+         _name(obj._name),
+         _streamId(obj._streamId),
+         _streamAttachments(obj._streamAttachments),
+         _sri(obj._sri),
+         _time(obj._time)
+      {
+      }
+      
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::setLogger(LOGGER_PTR newLogger) {
+          logger = newLogger;
+      }
+      
       //
       // detach
       //
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::detachAll() {
+          boost::mutex::scoped_lock lock(attachmentsUpdateLock);
           StreamAttachmentIter iter;
-          for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); iter++) {
+          for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); /*NoIncrement*/) {
               iter->detach();
+              iter = _streamAttachments.erase(iter);
           }
-          _streamAttachments.clear();
       }
       
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::detachByConnectionId(const std::string& connectionId) {
+          boost::mutex::scoped_lock lock(attachmentsUpdateLock);
           StreamAttachmentIter iter;
           for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); /*NoIncrement*/) {
               if (iter->getConnectionId() == connectionId) {
@@ -543,6 +565,7 @@ namespace bulkio {
       
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::detachByAttachId(const std::string& attachId) {
+          boost::mutex::scoped_lock lock(attachmentsUpdateLock);
           StreamAttachmentIter iter;
           for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); /*NoIncrement*/) {
               if (iter->getAttachId() == attachId) {
@@ -556,6 +579,7 @@ namespace bulkio {
       
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::detachByAttachIdConnectionId(const std::string& attachId, const std::string& connectionId) {
+          boost::mutex::scoped_lock lock(attachmentsUpdateLock);
           StreamAttachmentIter iter;
           for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); /*NoIncrement*/) {
               if ((iter->getAttachId() == attachId) && (iter->getConnectionId() == connectionId)) {
@@ -626,6 +650,7 @@ namespace bulkio {
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::createNewAttachment(const std::string& connectionId, 
                                typename PortType::_ptr_type port) {
+          boost::mutex::scoped_lock lock(attachmentsUpdateLock);
           try {
               char* attachId = port->attach(_streamDefinition, _name.c_str()); 
               StreamAttachment attachment(connectionId, std::string(attachId), port);
@@ -711,20 +736,31 @@ namespace bulkio {
           std::vector<std::string> expectedConnectionIds;
           std::vector<std::string> connectionsToRemove;;
           std::vector<std::string>::iterator connIter;
+          bool validConnection;
           
-          std::cout << "expectedAttachments.size: " << expectedAttachments.size() << std::endl;
           // Add new attachments that do not already exist
           for (iter = expectedAttachments.begin(); iter != expectedAttachments.end(); iter++) {
-              if (not this->hasConnectionId(iter->getConnectionId())) {
-                  this->createNewAttachment(iter->getConnectionId(), iter->getInputPort());
-                  std::cout << "CREATING NEW ATTACHMENT FOR CONNECTIONID: " << iter->getConnectionId() << std::endl;
+              validConnection = this->hasConnectionId(iter->getConnectionId());
+              
+              // Attempt to create new attachment if one doesn't already exist
+              if (not validConnection) {
+                try {
+                    this->createNewAttachment(iter->getConnectionId(), iter->getInputPort());
+                    validConnection = true;
+                } catch (typename PortType::AttachError& ex) {
+                    LOG_ERROR( logger, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
+                } catch (typename PortType::StreamInputError& ex) {
+                    LOG_ERROR( logger, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
+                } catch(...) {
+                    LOG_ERROR( logger, __FUNCTION__ << ": Unknown attachment error occured: " << iter->getConnectionId() );
+                }
               }
-              expectedConnectionIds.push_back(iter->getConnectionId());
+
+              if (validConnection) {
+                  expectedConnectionIds.push_back(iter->getConnectionId());
+              }
           }
           
-          // Remove unnecessary attachments
-          std::cout << "currentAttachments.size: " << _streamAttachments.size() << std::endl;
-
           // Iterate through attachments and compare to expected connectionIds
           for (iter = this->_streamAttachments.begin(); iter != this->_streamAttachments.end(); iter++) {
               std::string existingConnectionId(iter->getConnectionId());
@@ -740,7 +776,6 @@ namespace bulkio {
                   // Store off and apply detach outside of this loop
                   // Removing now will mess up iterator
                   connectionsToRemove.push_back(existingConnectionId);
-                  std::cout << "DETACHING ATTACHMENT FOR CONNECTIONID: " << iter->getConnectionId() << std::endl;
               }
           }
 
@@ -762,7 +797,7 @@ namespace bulkio {
 
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::setLogger(LOGGER_PTR newLogger) {
-          _logger = newLogger;
+          logger = newLogger;
       }
 
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
@@ -776,7 +811,7 @@ namespace bulkio {
           for (iter = _streams.begin(); iter != _streams.end();) {
               if (iter->getStreamId() == streamId) {
                   iter->detachAll();
-                  _streams.erase(iter);  // Remove from container
+                  iter = _streams.erase(iter);  // Remove from container
               } else {
                   ++iter;
               }
@@ -793,6 +828,18 @@ namespace bulkio {
           }
           return false;
       }
+      
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      bool OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::hasAttachments() {
+          StreamIter iter;
+          for (iter=_streams.begin(); iter != _streams.end(); iter++) {
+              if (iter->getStreamAttachments().empty()) {
+                  continue;
+              }
+              return true;
+          }
+          return false;
+      }
 
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       std::vector<std::string> OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::getStreamIds() {
@@ -805,15 +852,42 @@ namespace bulkio {
       }
       
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      std::vector<std::string> OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::getAttachIds() {
+          std::vector<std::string> attachIds;
+          StreamIter iter;
+          StreamAttachmentIter attachedIter;
+          for (iter=_streams.begin(); iter != _streams.end(); iter++) {
+              StreamAttachmentList attached = iter->getStreamAttachments();
+              for (attachedIter= attached.begin(); attachedIter != attached.end(); attachedIter++)
+                  attachIds.push_back(attachedIter->getAttachId());
+          }
+          return attachIds;
+      }
+      
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      typename OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamList OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::getStreams() {
+          return _streams;
+      }
+
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::addConnectionToAllStreams(const std::string& connectionId, typename PortType::_ptr_type port) {
           StreamIter iter;
-          if (_streams.size() < 1) {
-             //LOG_INFO(this->_logger, "NO STREAMS DEFINED. NO ATTACHMENTS WERE MADE")
+          if (_streams.empty()) {
+             //LOG_INFO(this->logger, "NO STREAMS DEFINED. NO ATTACHMENTS WERE MADE")
           }
 
           for (iter=_streams.begin(); iter != _streams.end(); iter++) {
-              if (not iter->hasConnectionId(connectionId))
-                  iter->createNewAttachment(connectionId, port);
+              if (not iter->hasConnectionId(connectionId)) {
+                  try {
+                      iter->createNewAttachment(connectionId, port);
+                  } catch (typename PortType::AttachError& ex) {
+                      LOG_ERROR( logger, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
+                  } catch (typename PortType::StreamInputError& ex) {
+                      LOG_ERROR( logger, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
+                  } catch(...) {
+                      LOG_ERROR( logger, __FUNCTION__ << ": Unknown attachment error occured: " << connectionId );
+                  }
+              }
           }
       }
       
@@ -825,8 +899,17 @@ namespace bulkio {
               if (iter->getStreamId() != streamId) {
                   continue;
               }
-              if (not iter->hasConnectionId(connectionId))
-                  iter->createNewAttachment(connectionId, port);
+              if (not iter->hasConnectionId(connectionId)) {
+                  try {
+                      iter->createNewAttachment(connectionId, port);
+                  } catch (typename PortType::AttachError& ex) {
+                      LOG_ERROR( logger, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
+                  } catch (typename PortType::StreamInputError& ex) {
+                      LOG_ERROR( logger, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
+                  } catch(...) {
+                      LOG_ERROR( logger, __FUNCTION__ << ": Unknown attachment error occured: " << connectionId );
+                  }
+              }
           }
       }
 
@@ -921,41 +1004,53 @@ namespace bulkio {
           for (iter = _streams.begin(); iter != _streams.end(); iter++) {
               if (iter->getStreamId() == streamId) {
                   return &(*iter);
-              } else {
               }
           }
           return NULL;
       }
       
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      typename OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream* OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::findByAttachId(const std::string& attachId) {
+          StreamIter iter;
+          for (iter = _streams.begin(); iter != _streams.end(); iter++) {
+              if (iter->hasAttachId(attachId)) {
+                  return &(*iter);
+              }
+          }
+          return NULL;
+      }
+      
+      
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::printState(const std::string& title) {
           StreamIter iter;
           StreamAttachmentIter attachmentIter;
-          std::cout << " PORT STATE: " << title << std::endl;
+          LOG_DEBUG( logger, " PORT STATE: " << title)
           for (iter = _streams.begin(); iter != _streams.end(); iter++) {
+            
+              StreamAttachmentList streamAttachments = iter->getStreamAttachments();
               printBlock("Stream", iter->getStreamId(),0);
-              for (attachmentIter = iter->getStreamAttachments().begin();
-                   attachmentIter != iter->getStreamAttachments().end();
+              for (attachmentIter = streamAttachments.begin();
+                   attachmentIter != streamAttachments.end();
                    attachmentIter++) {
                   printBlock("Attachment", attachmentIter->getAttachId(), 1);
               }
           }
-          std::cout << std::endl;
+          LOG_DEBUG( logger, "")
       }
 
       template <typename StreamDefinition, typename PortType, typename StreamSequence>
       void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::StreamContainer::printBlock(const std::string& title, const std::string& id, size_t indents) {
-          std::string indent("");
-          if (indents > 0)
-            indent = "   ";
-          for (size_t ii=0; ii < indents; ii++)
-            indent.append(indent);  
+          std::string indentStr("");
+          for (size_t ii=0; ii < indents; ii++) {
+            indentStr.append("   ");
+          }
           std::string line("---------------");
 
-          std::cout << indent << " |" << line << std::endl;
-          std::cout << indent << " |" << title << std::endl;
-          std::cout << indent << " |   '" << id << "'" << std::endl;
-          std::cout << indent << " |" << line << std::endl;
+          LOG_DEBUG( logger, indentStr << " |" << line) ;
+          LOG_DEBUG( logger, indentStr << " |" << title);
+          LOG_DEBUG( logger, indentStr << " |   '" << id << "'");
+          LOG_DEBUG( logger, indentStr << " |" << line);
       }
   //
   // End StreamContainer
@@ -969,7 +1064,6 @@ namespace bulkio {
     _connectCB(),
     _disconnectCB()
   {
-    lastStreamData = NULL;
     recConnectionsRefresh = false;
     recConnections.length(0);
   }
@@ -992,11 +1086,11 @@ namespace bulkio {
       _disconnectCB = boost::shared_ptr< ConnectionEventListener >( disconnectCB, null_deleter() );
     }
 
-    lastStreamData = NULL;
     recConnectionsRefresh = false;
     recConnections.length(0);
 
     LOG_DEBUG( logger, "bulkio::OutAttachablePort<StreamDefinition,PortType,StreamSequence>::CTOR port:" << this->name );
+    this->streamContainer.setLogger(logger);
   }
 
   template <typename StreamDefinition, typename PortType, typename StreamSequence>
@@ -1009,6 +1103,7 @@ namespace bulkio {
   void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::setLogger( LOGGER_PTR newLogger )
   {
     logger = newLogger;
+    this->streamContainer.setLogger(logger);
   }
 
   //
@@ -1075,7 +1170,7 @@ namespace bulkio {
     {
       boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
       
-      this->streamContainer.printState("Before connectPort");
+      //this->streamContainer.printState("Before connectPort");
       typename PortType::_var_type port;
       try{
         port = PortType::_narrow(connection);
@@ -1099,7 +1194,7 @@ namespace bulkio {
         portListed = true;
         if (ftPtr->connection_id == connId) {
           OutPortSriMap::iterator sri_iter=  currentSRIs.find( ftPtr->stream_id );
-          if ( sri_iter == currentSRIs.end() ) {
+          if ( sri_iter != currentSRIs.end() ) {
             this->streamContainer.updateStreamSRI(ftPtr->stream_id, sri_iter->second.sri);
             this->streamContainer.updateStreamTime(ftPtr->stream_id, sri_iter->second.time);
           }
@@ -1117,7 +1212,6 @@ namespace bulkio {
       this->recConnectionsRefresh = true;
       this->refreshSRI = true;    
       LOG_DEBUG( logger, "CONNECTION ESTABLISHED,  PORT/CONNECTION_ID:" << this->name << "/" << connectionId );
-      LOG_INFO( logger, "CONNECTION ESTABLISHED,  PORT/CONNECTION_ID:" << this->name << "/" << connectionId );
     }
 
     if ( _connectCB ) (*_connectCB)(connectionId);
@@ -1133,6 +1227,7 @@ namespace bulkio {
       boost::mutex::scoped_lock lock(updatingPortsLock);   // don't want to process while command information is coming in
 
       try {
+        // Detach everything that's associated to connectionId
         std::string connId(connectionId);
         this->streamContainer.detachByConnectionId(connId);
       }
@@ -1143,14 +1238,6 @@ namespace bulkio {
       for (unsigned int i = 0; i < outConnections.size(); i++) {
         if (outConnections[i].second == connectionId) {
           LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << this->name << "/" << connectionId );
-      //    if (attachedPorts.find(outConnections[i].first) != attachedPorts.end()) {
-      //      try {
-      //        outConnections[i].first->detach(attachedPorts[outConnections[i].first].c_str());
-      //      }
-      //      catch(...) {
-      //        LOG_ERROR(logger," Unable to detach for CONNECTION: " << connectionId );
-      //      }
-      //    }
           outConnections.erase(outConnections.begin() + i);
           break;
         }
@@ -1204,7 +1291,7 @@ namespace bulkio {
     std::map<std::string, StreamAttachmentList> streamAttachmentsMap;
     typename std::map<std::string, StreamAttachmentList>::iterator streamAttachmentsIter;
 
-    this->streamContainer.printState("Before Filter Table Update");
+    //this->streamContainer.printState("Before Filter Table Update");
 
     // Populate found streams vector
     std::vector<std::string> knownStreamIds(this->streamContainer.getStreamIds());
@@ -1218,7 +1305,6 @@ namespace bulkio {
     for (ftPtr = filterTable.begin(); ftPtr != filterTable.end(); ftPtr++) {
       // Skip entries that unrelated to this port
       if (ftPtr->port_name != this->name) {
-          std::cout << "Ports names don't match: " << ftPtr->port_name << "!=" << this->name << std::endl;
           continue;
       }
       
@@ -1226,8 +1312,7 @@ namespace bulkio {
       hasPortEntry = true;
       typename PortType::_ptr_type connectedPort = this->getConnectedPort(ftPtr->connection_id);
       if (connectedPort->_is_nil()) {
-          std::cout << "Unable to find connected port with connectionId: " << ftPtr->connection_id << std::endl;
-          LOG_WARN( logger, "Unable to find connected port with connectionId: " << ftPtr->connection_id);
+          LOG_DEBUG( logger, "Unable to find connected port with connectionId: " << ftPtr->connection_id);
           continue;
       }
       
@@ -1243,7 +1328,6 @@ namespace bulkio {
     }
         
     // Iterate through all attachment associations defined by filterEntries
-    std::cout << "StreamAttachmentsMap.size " << streamAttachmentsMap.size() << std::endl;
     for (streamAttachmentsIter  = streamAttachmentsMap.begin();
          streamAttachmentsIter != streamAttachmentsMap.end();
          streamAttachmentsIter++) {
@@ -1253,7 +1337,6 @@ namespace bulkio {
             foundStream->updateAttachments(streamAttachmentsIter->second);
         } else {
             LOG_WARN( logger, "Unable to locate stream definition for streamId: " << streamId);
-            std::cout << "Unable to locate stream definition for streamId: " << streamId << std::endl;
         }
     }
 
@@ -1376,14 +1459,9 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence>
   StreamDefinition* OutAttachablePort<StreamDefinition,PortType,StreamSequence>::getStreamDefinition(const char* attachId)
   {
-    typename AttachedStreams::iterator groupIter;
-    groupIter = attachedGroup.begin();
-
-    while (groupIter != attachedGroup.end()) {
-      if (strcmp((*groupIter).first.c_str(), attachId) == 0) {
-        return (*groupIter).second.first;
-      }
-      groupIter++;
+    Stream* foundStream = this->streamContainer.findByAttachId(std::string(attachId));
+    if (foundStream != NULL) {
+        return new StreamDefinition(foundStream->getStreamDefinition());
     }
     return NULL;
   }
@@ -1398,14 +1476,7 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence>
   char* OutAttachablePort<StreamDefinition,PortType,StreamSequence>::getUser(const char* attachId)
   {
-    typename AttachedStreams::iterator groupIter;
-    groupIter = attachedGroup.begin();
-    while (groupIter != attachedGroup.end()) {
-      if (strcmp((*groupIter).first.c_str(), attachId) == 0) {
-        return CORBA::string_dup((*groupIter).second.second.c_str());
-      }
-      groupIter++;
-    }
+    // ADD DEPRECATED MESSAGE HERE
     return NULL;
   }
 
@@ -1424,7 +1495,7 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence>
   typename PortType::InputUsageState OutAttachablePort<StreamDefinition,PortType,StreamSequence>::usageState()
   {
-    if (attachedGroup.size() == 0) {
+    if (this->streamContainer.hasAttachments()) {
       return PortType::IDLE;
     } else {
       return PortType::ACTIVE;
@@ -1440,14 +1511,14 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence>
   StreamSequence* OutAttachablePort<StreamDefinition,PortType,StreamSequence>::attachedStreams()
   {
-    StreamSequence* seq = new StreamSequence();
-    typename AttachedStreams::iterator groupIter;
-    groupIter = attachedGroup.begin();
-    seq->length(attachedGroup.size());
     unsigned int i = 0;
-    while (groupIter != attachedGroup.end()) {
-        (*seq)[i++] = *((*groupIter).second.first);
-        groupIter++;
+    StreamIter iter;
+    StreamSequence* seq = new StreamSequence();
+
+    StreamList streams = this->streamContainer.getStreams();
+    seq->length(streams.size());
+    for (iter = streams.begin(); iter != streams.end(); iter++) {
+      (*seq)[i++] = iter->getStreamDefinition();
     }
 
     return seq;
@@ -1463,18 +1534,33 @@ namespace bulkio {
   BULKIO::StringSequence* OutAttachablePort<StreamDefinition,PortType,StreamSequence>::attachmentIds()
   {
     BULKIO::StringSequence* seq = new BULKIO::StringSequence();
-    seq->length(attachedGroup.size());
-    typename AttachedStreams::iterator groupIter;
-    groupIter = attachedGroup.begin();
-    unsigned int i = 0;
-    while (groupIter != attachedGroup.end()) {
-      (*seq)[i++] = CORBA::string_dup((*groupIter).first.c_str());
-      groupIter++;
-    }
+    std::vector<std::string> attachedIds = this->streamContainer.getAttachIds();
+    std::vector<std::string>::iterator iter;
 
+    seq->length(attachedIds.size());
+    unsigned int i = 0;
+    for (iter = attachedIds.begin(); iter != attachedIds.end(); iter++) {
+      (*seq)[i++] = CORBA::string_dup((*iter).c_str());
+    }
     return seq;
   }
 
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  BULKIO::StringSequence* OutAttachablePort<StreamDefinition,PortType,StreamSequence>::attachmentIds(const std::string& streamId)
+  {
+    BULKIO::StringSequence* seq = new BULKIO::StringSequence();
+    Stream* foundStream = this->streamContainer.findByStreamId(streamId);
+    unsigned int i = 0;
+    if (foundStream) {
+      StreamAttachmentIter iter;
+      StreamAttachmentList attachments = foundStream->getStreamAttachments();
+      seq->length(attachments.size());
+      for (iter = attachments.begin(); iter != attachments.end(); iter++) {
+        (*seq)[i++] = CORBA::string_dup(iter->getAttachId().c_str());
+      }
+    }
+    return seq;
+  }
 
   //
   //  Attachable Interface
@@ -1490,20 +1576,52 @@ namespace bulkio {
   char* OutAttachablePort<StreamDefinition,PortType,StreamSequence>::attach(const StreamDefinition& stream, const char* userid) 
       throw (typename PortType::AttachError, typename PortType::StreamInputError)
   {
-    TRACE_ENTER(logger, "OutAttachablePort<StreamDefinition,PortType,StreamSequence>::attach" );
-
-    boost::mutex::scoped_lock lock(updatingPortsLock);
-    std::string attachId;
-    user_id = userid;
-
-    this->streamContainer.printState("Beginning of Attach");
-
-    // Remove existing streams matching this stream id
-    // IMPLICITLY DETACHS ALL ATTACHMENTS ON STREAM
+    // TODO: ADD DEPRECATION WARNING HERE
     this->streamContainer.removeStreamByStreamId(std::string(stream.id));
+    user_id = userid;
+    this->addStream(stream); 
+    return CORBA::string_dup("");
+  }
+
+  //
+  // updateStream
+  //
+  // Allows users to update an active stream 
+  //
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  bool OutAttachablePort<StreamDefinition,PortType,StreamSequence>::updateStream(const StreamDefinition& stream) {
+    std::string streamId(stream.id);
+    if (not this->streamContainer.hasStreamId(streamId)) {
+      return false;
+    }
+
+    this->streamContainer.removeStreamByStreamId(std::string(stream.id));
+    return this->addStream(stream);
+  }
+
+
+  //
+  // addStream
+  //
+  // Registers stream definition as an active stream. Does NOT allow streams
+  // with identical stream.ids.  Returns false if stream already exists
+  //
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  bool OutAttachablePort<StreamDefinition,PortType,StreamSequence>::addStream(const StreamDefinition& stream)
+  {
+    TRACE_ENTER(logger, "OutAttachablePort<StreamDefinition,PortType,StreamSequence>::addStream" );
+    boost::mutex::scoped_lock lock(updatingPortsLock);
+    //this->streamContainer.printState("Before stream added");
+
+    std::string attachId;
+
+    // If the stream already exists, return false
+    if (this->streamContainer.hasStreamId(std::string(stream.id))) {
+        return false;
+    }
 
     // Create a new stream for attachment
-    Stream* newStream = new Stream(stream, std::string(userid), std::string(stream.id));
+    Stream* newStream = new Stream(stream, std::string(user_id), std::string(stream.id));
 
     // Iterate through connections and apply filterTable
     bool portListed = false;
@@ -1521,13 +1639,23 @@ namespace bulkio {
              try {
                 // Create a new attachment for valid filterTable entry
                 OutPortSriMap::iterator sri_iter=  currentSRIs.find( std::string(stream.id) );
-                if ( sri_iter == currentSRIs.end() ) {
-                   this->streamContainer.updateStreamSRI(std::string(stream.id), sri_iter->second.sri);
-                   this->streamContainer.updateStreamTime(std::string(stream.id), sri_iter->second.time);
+                if ( sri_iter != currentSRIs.end() ) {
+                    this->streamContainer.updateStreamSRI(std::string(stream.id), sri_iter->second.sri);
+                    this->streamContainer.updateStreamTime(std::string(stream.id), sri_iter->second.time);
                 }
-                newStream->createNewAttachment(i->second, i->first); 
+                
+                try {
+                    newStream->createNewAttachment(i->second, i->first);
+                } catch (typename PortType::AttachError& ex) {
+                    LOG_ERROR( logger, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
+                } catch (typename PortType::StreamInputError& ex) {
+                    LOG_ERROR( logger, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
+                } catch(...) {
+                    LOG_ERROR( logger, __FUNCTION__ << ": Unknown attachment error occured: " << this->name << "/" << i->second );
+                }
+
              } catch(...) {
-                LOG_ERROR( logger, "ATTACH FAILED, PORT/CONNECTION: " << this->name << "/" << i->second );
+                LOG_ERROR( logger, "UNABLE TO CREATE ATTACHMENT, PORT/CONNECTION: " << this->name << "/" << i->second );
              }
           }
        }
@@ -1535,29 +1663,45 @@ namespace bulkio {
     
     if (not portListed) {
       OutPortSriMap::iterator sri_iter=  currentSRIs.find( std::string(stream.id) );
-      if ( sri_iter == currentSRIs.end() ) {
+      if ( sri_iter != currentSRIs.end() ) {
          this->streamContainer.updateStreamSRI(std::string(stream.id), sri_iter->second.sri);
          this->streamContainer.updateStreamTime(std::string(stream.id), sri_iter->second.time);
       }
       // Route new stream to all connections
       for (ConnectionsIter i = outConnections.begin(); i != outConnections.end(); ++i) {
         try {
-          // Create a new attachment for valid filterTable entry
-          newStream->createNewAttachment(i->second, i->first); 
+            newStream->createNewAttachment(i->second, i->first);
+        } catch (typename PortType::AttachError& ex) {
+            LOG_ERROR( logger, __FUNCTION__ << ": AttachError occurred: " << ex.msg);
+        } catch (typename PortType::StreamInputError& ex) {
+            LOG_ERROR( logger, __FUNCTION__ << ": StreamInputError occurred: " << ex.msg);
         } catch(...) {
-          LOG_ERROR( logger, "ATTACH FAILED, PORT/CONNECTION: " << this->name << "/" << i->second );
+            LOG_ERROR( logger, __FUNCTION__ << ": Unknown attachment error occured: " << this->name << "/" << i->second );
         }
       }
     }
 
-    LOG_DEBUG(logger, "ATTACHABLE PORT: ATTACH COMPLETD ID:" << attachId << " NAME(user-id):" << user_id );
+    LOG_DEBUG(logger, "ATTACHABLE PORT: CREATED NEW STREAM :" << stream.id );
 
     this->streamContainer.addStream(*newStream);
     delete newStream;
     this->streamContainer.printState("End of Attach");
 
     TRACE_EXIT(logger, "OutAttachablePort<StreamDefinition,PortType,StreamSequence>::attach" );
-    return CORBA::string_dup(attachId.c_str());
+    return true;
+  }
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  void OutAttachablePort<StreamDefinition,PortType,StreamSequence>::removeStream(const std::string& streamId)
+  {
+    TRACE_ENTER(logger, "OutAttachablePort<StreamDefinition,PortType,StreamSequence>::removeStream" );
+    boost::mutex::scoped_lock lock(updatingPortsLock);
+
+    //this->streamContainer.printState("Beginning of RemoveStream");
+    this->streamContainer.removeStreamByStreamId(streamId);
+    this->streamContainer.printState("End of RemoveStream");
+
+    TRACE_EXIT(logger, "OutAttachablePort<StreamDefinition,PortType,StreamSequence>::removeStream" );
   }
 
   //
@@ -1570,11 +1714,12 @@ namespace bulkio {
   {
     TRACE_ENTER(logger, "OutAttachablePort<StreamDefinition,PortType,StreamSequence>::detach" );
     boost::mutex::scoped_lock lock(updatingPortsLock);
-
     std::string attachId(attach_id);
-    this->streamContainer.detachByAttachId(attachId);
-    LOG_DEBUG(logger, "ATTACHABLE PORT: DETACH COMPLETED ID:" << attachId  );
 
+    //this->streamContainer.printState("Beginning of Detach");
+    this->streamContainer.detachByAttachId(std::string(attachId));
+    this->streamContainer.printState("End of Detach");
+    
     TRACE_EXIT(logger, "OutAttachablePort<StreamDefinition,PortType,StreamSequence>::detach" );
   }
 
@@ -1584,7 +1729,7 @@ namespace bulkio {
     TRACE_ENTER(logger, "OutAttachablePort<StreamDefinition,PortType,StreamSequence>::detach" );
     boost::mutex::scoped_lock lock(updatingPortsLock);
 
-    this->streamContainer.printState("Beginning of Detach");
+    //this->streamContainer.printState("Beginning of Detach");
     std::string attachId(attach_id);
     std::string connectionId(connection_id);
 

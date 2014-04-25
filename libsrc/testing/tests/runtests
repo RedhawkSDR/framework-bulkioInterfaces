@@ -69,3 +69,11 @@ popd
 pushd ../components/TestLargePush/tests/
 ./test_TestLargePush.py
 popd
+
+#
+#  Run Attachable/Multiout Test
+#   
+#
+pushd ../components/multiout_attachable/tests/
+./test_multiout_attachable.py
+popd

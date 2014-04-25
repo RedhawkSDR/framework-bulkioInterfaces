@@ -24,12 +24,12 @@
 #undef TRACE_ENTER
 #undef TRACE_EXIT
 
-#define LOG_INFO(logger, expr )   if ( logger ) LOG4CXX_INFO(logger, expr );
-#define LOG_ERROR(logger, expr )  if ( logger ) LOG4CXX_ERROR(logger, expr );
-#define LOG_WARN(logger, expr )  if ( logger ) LOG4CXX_WARN(logger, expr );
-#define LOG_FATAL(logger, expr )  if ( logger ) LOG4CXX_FATAL(logger, expr );
-#define LOG_DEBUG(logger, expr )  if ( logger ) LOG4CXX_DEBUG(logger, expr );
-#define LOG_TRACE(logger, expr )  if ( logger ) LOG4CXX_TRACE(logger, expr );
+#define LOG_INFO(logger, expr )   if ( logger ) RH_INFO(logger, expr );
+#define LOG_ERROR(logger, expr )  if ( logger ) RH_ERROR(logger, expr );
+#define LOG_WARN(logger, expr )  if ( logger )  RH_WARN(logger, expr );
+#define LOG_FATAL(logger, expr )  if ( logger ) RH_FATAL(logger, expr );
+#define LOG_DEBUG(logger, expr )  if ( logger ) RH_DEBUG(logger, expr );
+#define LOG_TRACE(logger, expr )  if ( logger ) RH_TRACE(logger, expr );
 
 #ifdef TRACE_ENABLE
 #define TRACE_ENTER(logger, method)						\

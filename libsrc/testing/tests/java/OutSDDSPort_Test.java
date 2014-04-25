@@ -145,6 +145,7 @@ public class OutSDDSPort_Test {
 	    port.connectPort( p, ctx.cid );
 
 	    port.disconnectPort( ctx.cid );
+	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){
 	}
@@ -171,6 +172,7 @@ public class OutSDDSPort_Test {
 	assertTrue("Port Statistics Failed, connection id",  stats[0].connectionId == ctx.cid );
 
 	try {
+	    port.disconnectPort( ctx.cid );
 	    port.disconnectPort( ctx.cid );
 	}
 	catch(Exception e){

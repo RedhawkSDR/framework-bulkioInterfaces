@@ -1,13 +1,6 @@
 #include "Bulkio_InPort_Fixture.h"
 #include "bulkio.h"
 
-#include<log4cxx/logger.h>
-#include<log4cxx/propertyconfigurator.h>
-#include <log4cxx/logstring.h>
-#include <log4cxx/patternlayout.h>
-#include <log4cxx/consoleappender.h>
-#include <log4cxx/logmanager.h>
-
 // Registers the fixture into the 'registry'
 CPPUNIT_TEST_SUITE_REGISTRATION( Bulkio_InPort_Fixture );
 
@@ -38,8 +31,8 @@ public:
 void 
 Bulkio_InPort_Fixture::setUp()
 {
-   logger = log4cxx::Logger::getLogger("BulkioInPort");
-   logger->setLevel( log4cxx::Level::getInfo());
+   logger =rh_logger::Logger::getLogger("BulkioInPort");
+   logger->setLevel( rh_logger::Level::getInfo());
 }
 
 
@@ -51,7 +44,7 @@ Bulkio_InPort_Fixture::tearDown()
 template< typename T>
 void  Bulkio_InPort_Fixture::test_port_api( T *port  ) {
 
- LOG4CXX_INFO(logger, "Running tests port:" << port->getName() );
+ RH_DEBUG(logger, "Running tests port:" << port->getName() );
 
   BULKIO::PortStatistics *stats = port->statistics();
   CPPUNIT_ASSERT( stats != NULL );
@@ -283,14 +276,14 @@ void  Bulkio_InPort_Fixture::test_port_api( bulkio::InSDDSPort *port  ) {
   CPPUNIT_ASSERT( sss->length() == 1 );
   std::string paddr;
   paddr = (*sss)[0].multicastAddress;
-  std::cout << "port address " << paddr << std::endl;
+  //std::cout << "port address " << paddr << std::endl;
   
   CPPUNIT_ASSERT( strcmp( paddr.c_str(), "1.1.1.1") == 0  );
   delete sss;
 
   char *uid = port->getUser(aid);
   CPPUNIT_ASSERT( uid != NULL );
-  std::cout << "user id " << uid << std::endl;
+  //std::cout << "user id " << uid << std::endl;
   CPPUNIT_ASSERT( strcmp( uid, "test_sdds_port_api" ) == 0 );
 
 

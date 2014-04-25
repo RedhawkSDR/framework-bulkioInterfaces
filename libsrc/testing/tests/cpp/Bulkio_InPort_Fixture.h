@@ -2,7 +2,7 @@
 #define BULKIO_INPORT_FIXTURE_H
 
 #include <cppunit/extensions/HelperMacros.h>
-#include<log4cxx/logger.h>
+#include<ossie/debug.h>
 
 class Bulkio_InPort_Fixture : public CppUnit::TestFixture
 {
@@ -66,7 +66,7 @@ public:
 
   template < typename T > void test_port_api( T *port );
 
-  log4cxx::LoggerPtr logger;
+  rh_logger::LoggerPtr logger;
 };
 
 #endif  // BULKIO_InPort_FIXTURE_H

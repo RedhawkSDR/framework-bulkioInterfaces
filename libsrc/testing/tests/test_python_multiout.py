@@ -105,16 +105,16 @@ class BaseMultiOut(unittest.TestCase):
 
         self.desc_list=[];
         self.logger.info( "Setup - Multiout Connection Table " );
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_1", "stream-1-1" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_1", "stream-1-2" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_1", "stream-1-3" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_2", "stream-2-1" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_2", "stream-2-2" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_2", "stream-2-3" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_3", "stream-3-1" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_3", "stream-3-2" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_3", "stream-3-3" ) )
-        self.desc_list.append( bulkio.connection_descriptor_struct( "multiout_source", "connection_4", "stream-4-1" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_1", stream_id="stream-1-1" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_1", stream_id="stream-1-2" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_1", stream_id="stream-1-3" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_2", stream_id="stream-2-1" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_2", stream_id="stream-2-2" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_2", stream_id="stream-2-3" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_3", stream_id="stream-3-1" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_3", stream_id="stream-3-2" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_3", stream_id="stream-3-3" ) )
+        self.desc_list.append( bulkio.connection_descriptor_struct( port_name="multiout_source", connection_id="connection_4", stream_id="stream-4-1" ) )
 
 
     def tearDown(self):

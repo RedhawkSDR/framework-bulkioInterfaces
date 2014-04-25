@@ -223,9 +223,6 @@ public class VITA49Stream {
             for (VITA49StreamAttachment att: expectedAttachments){
                 if (!this.hasConnectionId(att.getConnectionId())){
                     this.createNewAttachment(att.getConnectionId(), att.getInputPort());
-                    if (logger != null){
-                        logger.info("CREATING NEW ATTACHMENT FOR CONNECTIONID: " + att.getConnectionId());
-                    }
                 }
                 expectedConnectionIds.add(att.getConnectionId());
             }
@@ -238,19 +235,16 @@ public class VITA49Stream {
                     VITA49StreamAttachment nextAttachment = streamAttIter.next();
                     String existingConnectionId = nextAttachment.getConnectionId();
 
-                    boolean detachConnection = false;
+                    boolean detachConnection = true;
                     Iterator expectedConnIdIter = expectedConnectionIds.iterator();
                     while (expectedConnIdIter.hasNext()){
                         if (existingConnectionId.equals(expectedConnIdIter.next())){
                             detachConnection = false;
                             break;
                         }
-                        if (detachConnection){
-                            connectionsToRemove.add(existingConnectionId);
-                            if (logger != null){
-                                logger.info("DETACHING ATTACHMENT FOR CONNECTIONID: " + existingConnectionId);
-                            }
-                        }
+                    }
+                    if (detachConnection){
+                        connectionsToRemove.add(existingConnectionId);
                     }
                 }
             }

@@ -48,7 +48,9 @@ public class SDDSStreamContainer {
                     }
                 }
             } 
-            System.out.println("");
+            if (logger != null){
+                logger.debug("");
+            }
         }
 
         public void printBlock(String title, String id, int indents){
@@ -61,17 +63,23 @@ public class SDDSStreamContainer {
                 indent += indent;
             }
 
-            System.out.println(indent + " |" + line);
-            System.out.println(indent + " |" + title);
-            System.out.println(indent + " |   '" + id + "'");
-            System.out.println(indent + " |" + line);
+            if (logger != null){
+                logger.debug(indent + " |" + line);
+                logger.debug(indent + " |" + title);
+                logger.debug(indent + " |   '" + id + "'");
+                logger.debug(indent + " |" + line);
+            }
         } 
 
         public void addStream(SDDSStream s){
             this.streamMap.put(s.streamId,s); 
         }
 
-        public void removeStreamByStreamId(String streamId){
+        public void removeStreamByStreamId(String streamId) throws DetachError, StreamInputError {
+            SDDSStream s = this.findByStreamId(streamId); 
+            if (s != null){
+                s.detachAll();
+            }
             this.streamMap.remove(streamId);
         }
 
@@ -126,6 +134,9 @@ public class SDDSStreamContainer {
         public void detach() throws DetachError, StreamInputError{
             for(Map.Entry<String, SDDSStream > entry: this.streamMap.entrySet()) {
                 SDDSStream stream = entry.getValue();
+                if (logger != null){
+                    logger.debug("SDDSStreamContainer:detach() calling detachAll for streamId  " + stream.getStreamId());
+                }
                 stream.detachAll();
             }
         }
@@ -369,6 +380,18 @@ public class SDDSStreamContainer {
             }
         }
 
+        public void updateStreamSRIAndTime(String streamId, StreamSRI sri, PrecisionUTCTime time) {
+            if (logger != null){
+                logger.trace("SDDSStreamContainer:updateStreamSRIAndTime() for streamId " + streamId);
+            }
+            for(Map.Entry<String, SDDSStream > entry: this.streamMap.entrySet()) {
+                SDDSStream s = entry.getValue();
+                if (s.streamId.equals(streamId)){
+                    s.setSRI(sri);
+                    s.setTime(time);
+                }
+            }
+        }
 
         public void setLogger( Logger newlogger ){
             logger = newlogger;

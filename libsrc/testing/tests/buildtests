@@ -32,6 +32,14 @@ pushd ../components/TestLargePush/python
 ./reconf; ./configure; make
 popd
 
+pushd ../components/multiout_attachable/cpp
+./reconf; ./configure; make
+popd
+
+pushd ../components/multiout_attachable/java
+./reconf; ./configure; make
+popd
+
 pushd cpp 
 ./reconf; ./configure;
 popd

@@ -1,11 +1,5 @@
 #include "Bulkio_OutPort_Fixture.h"
 #include "bulkio.h"
-#include<log4cxx/logger.h>
-#include<log4cxx/propertyconfigurator.h>
-#include <log4cxx/logstring.h>
-#include <log4cxx/patternlayout.h>
-#include <log4cxx/consoleappender.h>
-#include <log4cxx/logmanager.h>
 
 
 // Registers the fixture into the 'registry'
@@ -41,8 +35,8 @@ static void port_disconnected( const char* connectionId ) {
 void
 Bulkio_OutPort_Fixture::setUp()
 {
-   logger = log4cxx::Logger::getLogger("BulkioOutPort");
-   logger->setLevel( log4cxx::Level::getInfo());
+   logger = rh_logger::Logger::getLogger("BulkioOutPort");
+   logger->setLevel( rh_logger::Level::getInfo());
    orb = ossie::corba::CorbaInit(0,NULL);
 }
 
@@ -55,7 +49,7 @@ Bulkio_OutPort_Fixture::tearDown()
 template<  typename T, typename IP >
 void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
 
-  LOG4CXX_INFO(logger, "Running tests port:" << port->getName() );
+  RH_DEBUG(logger, "Running tests port:" << port->getName() );
 
   ExtendedCF::UsesConnectionSequence *clist = port->connections();
   CPPUNIT_ASSERT( clist != NULL );
@@ -66,13 +60,19 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
 
   {
     CORBA::Object_ptr p;
+    // narrowing exception expected here
+    // set logging level to Fatal to ignore port Error message
+    // and then set back to Info
+    logger->setLevel( rh_logger::Level::getFatal());
     CPPUNIT_ASSERT_THROW(port->connectPort( p, "connection_1"), CF::Port::InvalidPort );
+    logger->setLevel( rh_logger::Level::getInfo());
   }
 
   IP *p  = new IP("sink_1", logger );
   //PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
   port->connectPort( p->_this(), "connection_1");
 
+  port->disconnectPort( "connection_1");
   port->disconnectPort( "connection_1");
   //ossie::corba::RootPOA()->deactivate_object(p_oid);
 
@@ -121,6 +121,7 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutCharPort, bulkio::InChar
   port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
+  port->disconnectPort( "connection_1");
   ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
@@ -162,6 +163,7 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutFilePort, bulkio::InFile
   port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
+  port->disconnectPort( "connection_1");
   ossie::corba::RootPOA()->deactivate_object(p_oid);
 
   BULKIO::StreamSRI sri;
@@ -201,6 +203,7 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutXMLPort, bulkio::InXMLPo
   PortableServer::ObjectId_var p_oid = ossie::corba::RootPOA()->activate_object(p);
   port->connectPort( p->_this(), "connection_1");
 
+  port->disconnectPort( "connection_1");
   port->disconnectPort( "connection_1");
   ossie::corba::RootPOA()->deactivate_object(p_oid);
 
@@ -242,6 +245,7 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutSDDSPort, bulkio::InSDDS
   port->connectPort( p->_this(), "connection_1");
 
   port->disconnectPort( "connection_1");
+  port->disconnectPort( "connection_1");
   ossie::corba::RootPOA()->deactivate_object(p_oid);
 
 
@@ -267,7 +271,7 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutSDDSPort, bulkio::InSDDS
   stats = port->statistics();
   CPPUNIT_ASSERT( stats != NULL );
   int slen =   stats->length();
-  std::cout << " slen :" << slen << std::endl;
+  //std::cout << " slen :" << slen << std::endl;
   CPPUNIT_ASSERT( slen == 1 ) ;
   CPPUNIT_ASSERT( strcmp((*stats)[0].connectionId, "connection_1") == 0 );
   delete stats;
