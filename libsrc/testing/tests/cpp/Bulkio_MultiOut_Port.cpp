@@ -802,6 +802,7 @@ template < typename OUT_PORT, typename IN_PORT , typename STREAM_DEF >
 void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_multiout_sri_filtered( ) {
 
   RH_DEBUG(this->logger, "Multiout SRI Filtered - BEGIN " );
+  std::ostringstream msg;
 
   ExtendedCF::UsesConnectionSequence *clist = this->port->connections();
   CPPUNIT_ASSERT( clist != NULL );
@@ -813,6 +814,11 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
   this->port->connectPort( this->ip3->_this(), "connection_3");
   this->port->connectPort( this->ip4->_this(), "connection_4");
   this->port->updateConnectionFilter( this->desc_list );
+
+  this->ip1->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF>::newSriCallback);
+  this->ip2->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF>::newSriCallback);
+  this->ip3->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF>::newSriCallback);
+  this->ip4->setNewSriListener(this, &Bulkio_MultiOut_Attachable_Port<OUT_PORT,IN_PORT,STREAM_DEF>::newSriCallback);
 
   //
   // Push SRI for IP1
@@ -850,6 +856,13 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
   CPPUNIT_ASSERT_MESSAGE( "Multiout SRI Filtered  - Port 4, SRI was Received, Failed", streams->length() == 0 );
   delete streams;
 
+  // Check if SRI callbacks are firing off
+  msg.str(""); msg.clear();
+  msg << "Multiout SRI Filtered - SriCallbacksEvents=" << newSriEvents;
+  CPPUNIT_ASSERT_MESSAGE( msg.str().c_str(), newSriEvents == 1 ) ;
+  msg.str(""); msg.clear();
+  msg << "Multiout SRI Filtered - UpdateSRIEvents=" << updateSriEvents;
+  CPPUNIT_ASSERT_MESSAGE( msg.str(), updateSriEvents == 0 ) ;
 
   //
   // Push SRI for IP2
@@ -888,6 +901,13 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
   CPPUNIT_ASSERT_MESSAGE( "Multiout SRI Filtered  - Port 4, SRI was Received, Failed", streams->length() == 0 );
   delete streams;
 
+  // Check if SRI callbacks are firing off
+  msg.str(""); msg.clear();
+  msg << "Multiout SRI Filtered - SriCallbacksEvents=" << newSriEvents;
+  CPPUNIT_ASSERT_MESSAGE( msg.str().c_str(), newSriEvents == 2 ) ;
+  msg.str(""); msg.clear();
+  msg << "Multiout SRI Filtered - UpdateSRIEvents=" << updateSriEvents;
+  CPPUNIT_ASSERT_MESSAGE( msg.str(), updateSriEvents == 0 ) ;
 
   //
   // Push SRI for IP3
@@ -930,6 +950,14 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
   CPPUNIT_ASSERT_MESSAGE( "Multiout SRI Filtered  - Port 4, SRI was Received, Failed", streams->length() == 0 );
   delete streams;
 
+  // Check if SRI callbacks are firing off
+  msg.str(""); msg.clear();
+  msg << "Multiout SRI Filtered - SriCallbacksEvents=" << newSriEvents;
+  CPPUNIT_ASSERT_MESSAGE( msg.str().c_str(), newSriEvents == 3 ) ;
+  msg.str(""); msg.clear();
+  msg << "Multiout SRI Filtered - UpdateSRIEvents=" << updateSriEvents;
+  CPPUNIT_ASSERT_MESSAGE( msg.str(), updateSriEvents == 0 ) ;
+  
   //
   // Push SRI for IP4
   //
@@ -972,6 +1000,14 @@ void  Bulkio_MultiOut_Attachable_Port< OUT_PORT, IN_PORT, STREAM_DEF >::test_mul
   CPPUNIT_ASSERT_MESSAGE( "activeSRIs - StreamID Mismatch", strcmp( asri.streamID, "stream-4-1" ) == 0 );
   CPPUNIT_ASSERT_MESSAGE( "activeSRIs - SRI Mismatch:", asri.mode == 0 ) ;
   delete streams;
+  
+  // Check if SRI callbacks are firing off
+  msg.str(""); msg.clear();
+  msg << "Multiout SRI Filtered - SriCallbacksEvents=" << newSriEvents;
+  CPPUNIT_ASSERT_MESSAGE( msg.str().c_str(), newSriEvents == 4 ) ;
+  msg.str(""); msg.clear();
+  msg << "Multiout SRI Filtered - UpdateSRIEvents=" << updateSriEvents;
+  CPPUNIT_ASSERT_MESSAGE( msg.str(), updateSriEvents == 0 ) ;
 }
 
 //

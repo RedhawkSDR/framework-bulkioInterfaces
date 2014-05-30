@@ -5,7 +5,9 @@
 #include <ossie/Resource_impl.h>
 #include <ossie/ThreadedComponent.h>
 
-#include <bulkio/bulkio.h>
+//Need to comment this out to build locally 
+//#include <bulkio/bulkio.h>
+#include "bulkio.h"
 #include "struct_props.h"
 
 class multiout_attachable_base : public Resource_impl, protected ThreadedComponent
@@ -36,6 +38,7 @@ class multiout_attachable_base : public Resource_impl, protected ThreadedCompone
         // Ports
         bulkio::InSDDSPort *dataSDDS_in;
         bulkio::InVITA49Port *dataVITA49_in;
+        bulkio::InFloatPort *dataFloat_in;
         bulkio::OutSDDSPort *dataSDDS_out;
         bulkio::OutVITA49Port *dataVITA49_out;
 

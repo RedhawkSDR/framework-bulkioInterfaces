@@ -20,72 +20,96 @@ public class multiout_attachable extends multiout_attachable_base {
 
     public final static Logger logger = Logger.getLogger(multiout_attachable.class.getName());
 
-    public class SDDSCallback implements bulkio.InSDDSPort.Callback  {
+    public class SDDSAttachDetachCallback implements bulkio.InSDDSPort.Callback  {
 
-        SDDSCallback () {
+        SDDSAttachDetachCallback () {
         }
 
         public String attach(BULKIO.SDDSStreamDefinition streamDef, String userid) {
-            logger.debug("SDDSCallback.attach() streamId " + streamDef.id + " userid " + userid);
+            logger.debug("SDDSAttachDetachCallback.attach() streamId " + streamDef.id + " userid " + userid);
             multiout_attachable.this.callback_stats.getValue().num_sdds_attaches.setValue(multiout_attachable.this.callback_stats.getValue().num_sdds_attaches.getValue()+1);
-            logger.debug("SDDSCallback.attach() updated num_sdds_attaches " + multiout_attachable.this.callback_stats.getValue().num_sdds_attaches.getValue());
+            logger.debug("SDDSAttachDetachCallback.attach() updated num_sdds_attaches " + multiout_attachable.this.callback_stats.getValue().num_sdds_attaches.getValue());
             String aid = java.util.UUID.randomUUID().toString();
             sdds_attachment_struct newAttachment = new sdds_attachment_struct(streamDef.id, aid, new Integer(streamDef.port));
             multiout_attachable.this.received_sdds_attachments.getValue().add(newAttachment);
-            logger.debug("SDDSCallback.attach() number of attachments " + multiout_attachable.this.received_sdds_attachments.getValue().size());
-            logger.debug("SDDSCallback.attach() returning attachId " + aid);
+            logger.debug("SDDSAttachDetachCallback.attach() number of attachments " + multiout_attachable.this.received_sdds_attachments.getValue().size());
+            logger.debug("SDDSAttachDetachCallback.attach() returning attachId " + aid);
 
             return aid;
         }
 
         public void detach(String attachId)  {
-            logger.debug("SDDSCallback.detach() attachId " + attachId);
+            logger.debug("SDDSAttachDetachCallback.detach() attachId " + attachId);
             List<sdds_attachment_struct> attList = multiout_attachable.this.received_sdds_attachments.getValue();
             Iterator<sdds_attachment_struct> iter = attList.iterator();
             while (iter.hasNext()) {
                     sdds_attachment_struct nextStreamAttachment = iter.next();
-                    logger.debug("SDDSCallback.detach() checking stream attachment with attachId " + nextStreamAttachment.attachId.getValue());
+                    logger.debug("SDDSAttachDetachCallback.detach() checking stream attachment with attachId " + nextStreamAttachment.attachId.getValue());
                     if (nextStreamAttachment.attachId.getValue().equals(attachId)) {
                             iter.remove();
                             multiout_attachable.this.callback_stats.getValue().num_sdds_detaches.setValue(multiout_attachable.this.callback_stats.getValue().num_sdds_detaches.getValue()+1);
-                            logger.debug("SDDSCallback.detach() updated num_sdds_detaches " + multiout_attachable.this.callback_stats.getValue().num_sdds_detaches.getValue());
+                            logger.debug("SDDSAttachDetachCallback.detach() updated num_sdds_detaches " + multiout_attachable.this.callback_stats.getValue().num_sdds_detaches.getValue());
                             multiout_attachable.this.callback_stats.setValue(multiout_attachable.this.callback_stats.getValue());
                     }
             }
-            logger.debug("SDDSCallback.detach() updated number of attachments " + multiout_attachable.this.received_sdds_attachments.getValue().size());
+            logger.debug("SDDSAttachDetachCallback.detach() updated number of attachments " + multiout_attachable.this.received_sdds_attachments.getValue().size());
         }
     };
 
-    public class VITA49Callback implements bulkio.InVITA49Port.Callback  {
+    public class VITA49AttachDetachCallback implements bulkio.InVITA49Port.Callback  {
        
-        VITA49Callback () {
+        VITA49AttachDetachCallback () {
         }
 
         public String attach(BULKIO.VITA49StreamDefinition streamDef, String userid) {
-            logger.debug("VITA49Callback.attach() streamId " + streamDef.id + " userid " + userid);
+            logger.debug("VITA49AttachDetachCallback.attach() streamId " + streamDef.id + " userid " + userid);
             multiout_attachable.this.callback_stats.getValue().num_vita49_attaches.setValue(multiout_attachable.this.callback_stats.getValue().num_vita49_attaches.getValue()+1);
-            logger.debug("VITA49Callback.attach() updated num_vita49_attaches " + multiout_attachable.this.callback_stats.getValue().num_vita49_attaches.getValue());
+            logger.debug("VITA49AttachDetachCallback.attach() updated num_vita49_attaches " + multiout_attachable.this.callback_stats.getValue().num_vita49_attaches.getValue());
             String aid = java.util.UUID.randomUUID().toString();
             vita49_attachment_struct newAttachment = new vita49_attachment_struct(streamDef.id, aid, new Integer(streamDef.port));
             multiout_attachable.this.received_vita49_attachments.getValue().add(newAttachment);
-            logger.debug("VITA49Callback.attach() number of attachments " + multiout_attachable.this.received_vita49_attachments.getValue().size());
-            logger.debug("VITA49Callback.attach() returning attachId " + aid);
+            logger.debug("VITA49AttachDetachCallback.attach() number of attachments " + multiout_attachable.this.received_vita49_attachments.getValue().size());
+            logger.debug("VITA49AttachDetachCallback.attach() returning attachId " + aid);
 
             return aid;
         }
 
         public void detach(String attachId)  {
-            logger.debug("VITA49Callback.detach() attachId " + attachId);
+            logger.debug("VITA49AttachDetachCallback.detach() attachId " + attachId);
             Iterator<vita49_attachment_struct> iter = multiout_attachable.this.received_vita49_attachments.getValue().iterator();
             while (iter.hasNext()) {
                     vita49_attachment_struct nextStreamAttachment = iter.next();
                     if (nextStreamAttachment.attachId.getValue().equals(attachId)) {
                             iter.remove();
                             multiout_attachable.this.callback_stats.getValue().num_vita49_detaches.setValue(multiout_attachable.this.callback_stats.getValue().num_vita49_detaches.getValue()+1);
-                            logger.debug("VITA49Callback.detach() updated num_vita49_detaches " + multiout_attachable.this.callback_stats.getValue().num_vita49_detaches.getValue());
+                            logger.debug("VITA49AttachDetachCallback.detach() updated num_vita49_detaches " + multiout_attachable.this.callback_stats.getValue().num_vita49_detaches.getValue());
                     }
             }
-            logger.debug("VITA49Callback.detach() updated number of attachments " + multiout_attachable.this.received_vita49_attachments.asList().size());
+            logger.debug("VITA49AttachDetachCallback.detach() updated number of attachments " + multiout_attachable.this.received_vita49_attachments.asList().size());
+        }
+    };
+
+    public class SriCallback implements bulkio.SriListener  {
+        SriCallback() {
+        }
+
+        public void newSRI( BULKIO.StreamSRI sri){
+            // Query SRIs to ensure deadlock doesn't occur
+            BULKIO.StreamSRI[] sddsSriList = multiout_attachable.this.port_dataSDDS_in.activeSRIs();
+            BULKIO.StreamSRI[] vita49SriList = multiout_attachable.this.port_dataVITA49_in.activeSRIs();
+
+            multiout_attachable.this.callback_stats.getValue().num_new_sri_callbacks.setValue(multiout_attachable.this.callback_stats.getValue().num_new_sri_callbacks.getValue()+1);
+            logger.debug("SriCallback.newSRI() num_new_sri_callbacks " + multiout_attachable.this.callback_stats.getValue().num_new_sri_callbacks.getValue());
+        }
+
+        public boolean changedSRI (BULKIO.StreamSRI sri){
+            // Query SRIs to ensure deadlock doesn't occur
+            BULKIO.StreamSRI[] sddsSriList = multiout_attachable.this.port_dataSDDS_in.activeSRIs();
+            BULKIO.StreamSRI[] vita49SriList = multiout_attachable.this.port_dataVITA49_in.activeSRIs();
+
+            multiout_attachable.this.callback_stats.getValue().num_sri_change_callbacks.setValue(multiout_attachable.this.callback_stats.getValue().num_sri_change_callbacks.getValue()+1);
+            logger.debug("SriCallback.changedSRI() num_sri_change_callbacks " + multiout_attachable.this.callback_stats.getValue().num_sri_change_callbacks.getValue());
+            return true;
         }
     };
 
@@ -141,9 +165,10 @@ public class multiout_attachable extends multiout_attachable_base {
 
         this.port_dataSDDS_in.setLogger(this.logger);
         this.port_dataSDDS_out.setLogger(this.logger);
-        this.port_dataSDDS_in.setAttachDetachCallback(new SDDSCallback());
-        this.port_dataVITA49_in.setAttachDetachCallback(new VITA49Callback());
-
+        this.port_dataSDDS_in.setAttachDetachCallback(new SDDSAttachDetachCallback());
+        this.port_dataVITA49_in.setAttachDetachCallback(new VITA49AttachDetachCallback());
+        this.port_dataSDDS_in.setSriListener(new SriCallback());
+        this.port_dataVITA49_in.setSriListener(new SriCallback());
     }
 
     /**
@@ -256,7 +281,13 @@ public class multiout_attachable extends multiout_attachable_base {
      *
      */
     protected int serviceFunction() {
-        logger.debug("serviceFunction() example log message");
+
+        bulkio.InFloatPort.Packet data = this.port_dataFloat_in.getPacket(125);
+        if (data != null && data.sriChanged()) {
+            logger.debug("serviceFunction() pushing out new SRI for streamId " + data.getSRI().streamID);
+            this.port_dataSDDS_out.pushSRI(data.getSRI(), bulkio.time.utils.now());
+            this.port_dataVITA49_out.pushSRI(data.getSRI(), bulkio.time.utils.now());
+        }
 
         return NOOP;
     }
@@ -274,7 +305,7 @@ public class multiout_attachable extends multiout_attachable_base {
         while(iter.hasNext()){
             oldStreamIds.add(iter.next().id.getValue());
         }
-        for (String sid: newStreamIds){
+        for (String sid: oldStreamIds){
             logger.debug("vita49StreamDefChanged(): oldStreamId: " + sid);
         }
         while(iter2.hasNext()){
@@ -319,8 +350,13 @@ public class multiout_attachable extends multiout_attachable_base {
                 while (iter2.hasNext()) {
                         VITA49StreamDefinition_struct oldStreamDef = iter2.next();
                         if (oldStreamDef.id.getValue().equals(nextNewDef.id.getValue())) {
-                                logger.debug("vita49StreamDefChanged() streamId " + nextNewDef.id.getValue() + " is updated");
-                                isUpdated = (nextNewDef.port.getValue() != oldStreamDef.port.getValue());
+                                long val1 = nextNewDef.port.getValue();
+                                long val2 = oldStreamDef.port.getValue();
+                                
+                                logger.debug("Incoming streamId " + nextNewDef.id.getValue() + " - port: " + val1);
+                                logger.debug("     Old streamId " + oldStreamDef.id.getValue() + " - port: " + val2);
+                                isUpdated = (val1 != val2);
+                                logger.debug("vita49StreamDefChanged() streamId " + nextNewDef.id.getValue() + " is updated?: " + isUpdated);
                         }
                 }
 
@@ -456,7 +492,6 @@ public class multiout_attachable extends multiout_attachable_base {
         }
         this.SDDSStreamDefinitions.setValue(newValue);
     }
-
 
     /**
      * Set additional options for ORB startup. For example:

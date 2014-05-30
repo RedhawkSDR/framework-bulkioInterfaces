@@ -17,11 +17,17 @@ multiout_attachable_i::multiout_attachable_i(const char *uuid, const char *label
     addPropertyChangeListener("SDDSStreamDefinitions", this, &multiout_attachable_i::sddsStreamDefChanged);
     addPropertyChangeListener("VITA49StreamDefinitions", this, &multiout_attachable_i::vita49StreamDefChanged);
 
-    this->dataSDDS_in->setLogger(this->__logger);
     this->dataSDDS_out->setLogger(this->__logger);
-	this->reattaches = 0;
+    this->dataSDDS_in->setLogger(this->__logger);
     this->dataSDDS_in->setNewAttachDetachCallback(this);
+    this->dataSDDS_in->setNewSriListener(this, &multiout_attachable_i::newSriCallback);
+    this->dataSDDS_in->setSriChangeListener(this, &multiout_attachable_i::sriChangeCallback);
+
+    this->dataVITA49_out->setLogger(this->__logger);
+    this->dataVITA49_in->setLogger(this->__logger);
     this->dataVITA49_in->setNewAttachDetachCallback(this);
+    this->dataVITA49_in->setNewSriListener(this, &multiout_attachable_i::newSriCallback);
+    this->dataVITA49_in->setSriChangeListener(this, &multiout_attachable_i::sriChangeCallback);
 }
 
 multiout_attachable_i::~multiout_attachable_i()
@@ -86,6 +92,15 @@ void multiout_attachable_i::detach(const char* attachId) {
 int multiout_attachable_i::serviceFunction()
 {
     LOG_DEBUG(multiout_attachable_i, "serviceFunction() example log message");
+
+            bulkio::InFloatPort::dataTransfer *tmp = dataFloat_in->getPacket(bulkio::Const::BLOCKING);
+            if (not tmp) { // No data is available
+                return NOOP;
+            }
+            if (tmp->sriChanged) {
+                dataSDDS_out->pushSRI(tmp->SRI, bulkio::time::utils::now());
+                dataVITA49_out->pushSRI(tmp->SRI, bulkio::time::utils::now());
+            }
 
     return NOOP;
 }
@@ -197,4 +212,32 @@ void multiout_attachable_i::sddsStreamDefChanged(SddsStreamDefs *oldValue,
 		}
 
 		this->SDDSStreamDefinitions = *newValue;
+}
+
+void multiout_attachable_i::newSriCallback(const BULKIO::StreamSRI& sri) {
+    BULKIO::StreamSRISequence* sriList;
+    
+    // Query SRIs to ensure deadlock doesn't occur
+    sriList = this->dataSDDS_in->activeSRIs();
+    delete sriList;
+
+    // Query SRIs to ensure deadlock doesn't occur
+    sriList = this->dataVITA49_in->activeSRIs();
+    delete sriList;
+
+	this->callback_stats.num_new_sri_callbacks++;
+}
+
+void multiout_attachable_i::sriChangeCallback(const BULKIO::StreamSRI& sri) {
+    BULKIO::StreamSRISequence* sriList;
+    
+    // Query SRIs to ensure deadlock doesn't occur
+    sriList = this->dataSDDS_in->activeSRIs();
+    delete sriList;
+
+    // Query SRIs to ensure deadlock doesn't occur
+    sriList = this->dataVITA49_in->activeSRIs();
+    delete sriList;
+
+	this->callback_stats.num_sri_change_callbacks++;
 }

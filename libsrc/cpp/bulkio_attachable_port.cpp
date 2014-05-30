@@ -3,18 +3,51 @@
 
 namespace bulkio {
   
+  /**
+   * Wrap Callback functions as SriListerer objects
+   */
+  class StaticSriCallback : public SriListener
+  {
+  public:
+    virtual void operator() ( BULKIO::StreamSRI& sri)
+    {
+      (*func_)(sri);
+    }
+
+    StaticSriCallback ( SriListenerCallbackFn func) :
+      func_(func)
+    {
+    }
+
+  private:
+
+    SriListenerCallbackFn func_;
+  };
+  
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::InAttachablePort(std::string port_name, 
                                      InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::Callback *attach_detach_cb,
                                      bulkio::sri::Compare  sriCmp,
-                                     bulkio::time::Compare timeCmp):
+                                     bulkio::time::Compare timeCmp,
+                                     SRICallback *newSriCB,
+                                     SRICallback *sriChangeCB):
       Port_Provides_base_impl(port_name),
       sriChanged(false),
       sri_cmp(sriCmp),
       time_cmp(timeCmp),
-      attach_detach_callback(attach_detach_cb)
+      attach_detach_callback(attach_detach_cb),
+      newSRICallback(),
+      sriChangeCallback()
   {
     this->stats = new linkStatistics(port_name);
+
+    if ( newSriCB ) {
+      newSRICallback = *newSriCB;
+    }
+    
+    if ( sriChangeCB ) {
+      sriChangeCallback = *sriChangeCB;
+    }
   }
 
 
@@ -23,16 +56,28 @@ namespace bulkio {
                                      LOGGER_PTR    logger,
                                      InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::Callback *attach_detach_cb,
                                      bulkio::sri::Compare sriCmp,
-                                     bulkio::time::Compare timeCmp): 
+                                     bulkio::time::Compare timeCmp,
+                                     SRICallback *newSriCB,
+                                     SRICallback *sriChangeCB): 
       Port_Provides_base_impl(port_name),
       sriChanged(false),
       sri_cmp(sriCmp),
       time_cmp(timeCmp),
       attach_detach_callback(attach_detach_cb),
-      logger(logger)
+      logger(logger),
+      newSRICallback(),
+      sriChangeCallback()
   {
       stats = new linkStatistics(port_name);
       LOG_DEBUG( logger, "bulkio::InAttachablePort CTOR port:" << port_name );
+
+      if ( newSriCB ) {
+        newSRICallback = *newSriCB;
+      }
+      
+      if ( sriChangeCB ) {
+        sriChangeCallback = *sriChangeCB;
+      }
   }
 
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
@@ -44,6 +89,26 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   bool InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::hasSriChanged () {
     return sriChanged;
+  }
+  
+  template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
+  void InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::setNewSriListener( SRICallback newCallback ) {
+    newSRICallback = newCallback;
+  }
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
+  void InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::setNewSriListener( SRICallbackFn newCallback ) {
+    newSRICallback = SRICallback(newCallback);
+  }
+  
+  template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
+  void InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::setSriChangeListener( SRICallback newCallback ) {
+    newSRICallback = newCallback;
+  }
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
+  void InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::setSriChangeListener( SRICallbackFn newCallback ) {
+    newSRICallback = SRICallback(newCallback);
   }
 
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
@@ -92,6 +157,9 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   BULKIO::PortUsageType InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::state()
   {
+    // Blocks when values are updating
+    READ_LOCK lock(attachmentLock);
+    
     if (attachedStreamMap.size() == 0) {
       return BULKIO::IDLE;
     } else if (attachedStreamMap.size() == 1) {
@@ -115,7 +183,7 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   BULKIO::StreamSRISequence * InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::activeSRIs()
   {
-    SCOPED_LOCK lock(sriUpdateLock);
+    READ_LOCK lock(sriUpdateLock);
     BULKIO::StreamSRISequence seq_rtn;
     SriMap::iterator currH;
     int i = 0;
@@ -136,7 +204,10 @@ namespace bulkio {
   {
     TRACE_ENTER(logger, "InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::pushSRI" );
 
-    boost::mutex::scoped_lock lock(sriUpdateLock);
+    // Shared mutex allows concurrent reads
+    //   Upgrades to unique lock while modifying values
+    boost::upgrade_lock< boost::shared_mutex > lock(sriUpdateLock);
+    
     bool foundSRI = false;
     BULKIO::StreamSRI tmpH = H;
     SriMap::iterator sriIter;
@@ -150,8 +221,19 @@ namespace bulkio {
       sriIter++;
     }
     if (!foundSRI) {
-      currentHs.insert(std::make_pair(CORBA::string_dup(H.streamID), std::make_pair(H, T)));
-      sriChanged = true;
+      if ( newSRICallback ) { 
+        LOG_DEBUG(logger, "pushSRI: About to call user-defined 'newSRICallback' method")
+        newSRICallback(tmpH);
+        LOG_DEBUG(logger, "pushSRI: Returned from user-defined 'newSRICallback' method")
+      }
+
+      {
+        // Upgrade lock to unique - Blocks all reads
+        boost::upgrade_to_unique_lock< boost::shared_mutex > uniqueLock(lock);
+        currentHs.insert(std::make_pair(CORBA::string_dup(H.streamID), std::make_pair(H, T)));
+        sriChanged = true;
+      }
+
     } else {
       bool schanged = false;
       if ( sri_cmp != NULL ) {
@@ -162,9 +244,18 @@ namespace bulkio {
         tchanged = time_cmp( (*sriIter).second.second, T );
       }
       sriChanged = !schanged || !tchanged;
+ 
+      if ( sriChanged && sriChangeCallback ) {
+        LOG_DEBUG(logger, "pushSRI: About to call user-defined 'sriChangeCallback' method")
+        sriChangeCallback(tmpH);
+        LOG_DEBUG(logger, "pushSRI: Returned from user-defined 'sriChangeCallback' method")
+      } 
   
-  
-      (*sriIter).second = std::make_pair(H, T);
+      {
+        // Upgrade lock to unique - Blocks all reads
+        boost::upgrade_to_unique_lock< boost::shared_mutex > uniqueLock(lock);
+        (*sriIter).second = std::make_pair(H, T);
+      }
     }
 
     TRACE_EXIT(logger, "InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::pushSRI" );
@@ -205,6 +296,9 @@ namespace bulkio {
       attachId = ossie::generateUUID();
     }
 
+    // Unique lock of shared_mutex - Blocks all other reads/writes
+    boost::unique_lock< boost::shared_mutex > lock(attachmentLock);
+
     attachedStreamMap.insert(std::make_pair(attachId, new StreamDefinition(stream)));
     attachedUsers.insert(std::make_pair(attachId, std::string(userid)));
 
@@ -231,12 +325,19 @@ namespace bulkio {
       try {
         LOG_DEBUG( logger, "ATTACHABLE PORT: CALLING DETACH CALLBACK, ID:" << attachId );
         attach_detach_callback->detach(attachId);
+        LOG_DEBUG( logger, "ATTACHABLE PORT: RETURNED FROM DETACH CALLBACK, ID:" << attachId );
+      }
+      catch(typename PortType::DetachError &ex) {
+        throw ex;
       }
       catch(...) {
         LOG_ERROR( logger, "ATTACHABLE PORT: DETACH CALLBACK EXCEPTION ID:" << attachId  );
-        throw typename PortType::DetachError();
+        throw typename PortType::DetachError("Unknown issue occured in the detach callback!");
       }
     }
+    
+    // Unique lock of shared_mutex - Blocks all other reads/writes
+    boost::unique_lock< boost::shared_mutex > lock(attachmentLock);
 
     //
     // remove item from attachStreamMap
@@ -268,6 +369,9 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   StreamDefinition* InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::getStreamDefinition(const char* attachId)
   {
+    // Blocks when values are updating
+    READ_LOCK lock(attachmentLock);
+
     typename AttachedStreams::iterator portIter2;
     portIter2 = attachedStreamMap.begin();
     // use: attachedPorts[(*portIter).first] :instead
@@ -289,6 +393,9 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   char* InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::getUser(const char* attachId)
   {
+    // Blocks when values are updating
+    READ_LOCK lock(attachmentLock);
+
     AttachedUsers::iterator portIter2;
     portIter2 = attachedUsers.begin();
     while (portIter2 != attachedUsers.end()) {
@@ -310,7 +417,7 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   BULKIO::StreamSRISequence* InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::attachedSRIs()
   {
-    boost::mutex::scoped_lock lock(sriUpdateLock);
+    READ_LOCK lock(sriUpdateLock);
     BULKIO::StreamSRISequence_var sris = new BULKIO::StreamSRISequence();
     sris->length(currentHs.size());
     SriMap::iterator sriIter;
@@ -333,6 +440,9 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   StreamSequence* InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::attachedStreams()
   {
+    // Blocks when values are updating
+    READ_LOCK lock(attachmentLock);
+    
     StreamSequence* seq = new StreamSequence();
     seq->length(attachedStreamMap.size());
     typename AttachedStreams::iterator portIter2;
@@ -355,8 +465,10 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   BULKIO::StringSequence* InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::attachmentIds()
   {
-    BULKIO::StringSequence* seq = new BULKIO::StringSequence();
+    // Blocks when values are updating
+    READ_LOCK lock(attachmentLock);
     
+    BULKIO::StringSequence* seq = new BULKIO::StringSequence();
     seq->length(attachedStreamMap.size());
     typename AttachedStreams::iterator portIter2;
     portIter2 = attachedStreamMap.begin();
@@ -385,6 +497,9 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   typename PortType::InputUsageState InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::usageState()
   {
+    // Blocks when values are updating
+    READ_LOCK lock(attachmentLock);
+    
     if (attachedStreamMap.size() == 0) {
       return PortType::IDLE;
     } else if (attachedStreamMap.size() == 1) {
@@ -432,6 +547,8 @@ namespace bulkio {
               try {
                   _inputPort->detach(_attachId.c_str());
                   _attachId = "";
+              } catch( typename PortType::DetachError& ex) { 
+                  std::cout << "A detach error occured - msg: " << ex.msg << std::endl; 
               } catch (std::exception& ex) {
                   std::cout << "An unknown error occurred while attaching: " << ex.what() << std::endl;
               } catch( CORBA::SystemException& ex ) {
@@ -622,6 +739,16 @@ namespace bulkio {
           return _time;
       }
       
+      template <typename StreamDefinition, typename PortType, typename StreamSequence>
+      std::set<std::string> OutAttachablePort<StreamDefinition,PortType,StreamSequence>::Stream::getConnectionIds() {
+          StreamAttachmentIter iter;
+          std::set<std::string> connIds;
+          for (iter = _streamAttachments.begin(); iter != _streamAttachments.end(); iter++) {
+              connIds.insert(iter->getConnectionId());
+          }
+          return connIds;
+      }
+      
       //
       // Setters
       //
@@ -655,7 +782,7 @@ namespace bulkio {
               char* attachId = port->attach(_streamDefinition, _name.c_str()); 
               StreamAttachment attachment(connectionId, std::string(attachId), port);
               _streamAttachments.push_back(attachment);
-              port->pushSRI(_sri, _time);
+              //port->pushSRI(_sri, _time);
           } catch (typename PortType::AttachError& ex) {
               std::cout << "AttachError occurred: " << ex.msg << std::endl;
           } catch (typename PortType::StreamInputError& ex) {
@@ -987,10 +1114,10 @@ namespace bulkio {
           for (iter = _streams.begin(); iter != _streams.end(); iter++) {
               try {
                   iter->detachByAttachId(attachId);
-                  //LOG_DEBUG(logger, "ATTACHABLE PORT: DETACH COMPLETD ID:" << attachId  );
+                  LOG_DEBUG(logger, "ATTACHABLE PORT: DETACH COMPLETD ID: " << attachId  );
               }
               catch(...) {
-                  //LOG_WARN(logger, "UNABLE TO DETACH ATTACHID/CONNECTIONID: " << attachId << "/" << connectionId);
+                  LOG_WARN(logger, "UNABLE TO DETACH ATTACHID: " << attachId );
               }
           }
       }
@@ -1355,9 +1482,57 @@ namespace bulkio {
         }
     }
        
-    
+    this->updateSRIForAllConnections();    
     this->streamContainer.printState("After Filter Table Update");
   };
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  void  OutAttachablePort<StreamDefinition,PortType,StreamSequence>::updateSRIForAllConnections() {
+    // Iterate through stream objects in container
+    //   Check if currentSRI has stream entry
+    //     Yes: Check that ALL connections are listed in currentSRI entry
+    //          Update currentSRI
+    //     No:  PushSRI on all attachment ports
+    //          Update currentSRI
+
+    // Initialize variables
+    std::string streamId;
+    std::set<std::string> streamConnIds;
+    std::set<std::string> currentSRIConnIds;
+    std::set<std::string>::iterator connIdIter;
+    OutPortSriMap::iterator sriMapIter;
+    StreamList streams = this->streamContainer.getStreams(); // Returns copy of stream objects
+   
+    // Iterate through all registered streams
+    for (StreamIter iter = streams.begin(); iter != streams.end(); iter++) {
+      streamId = iter->getStreamId();
+      streamConnIds = iter->getConnectionIds();
+
+      // Check if currentSRIs has entry for StreamId
+      sriMapIter = this->currentSRIs.find(streamId);
+      if (sriMapIter != currentSRIs.end()) {
+
+        // Check if all connections on the streams have pushed SRI
+        currentSRIConnIds = sriMapIter->second.connections;
+        for (connIdIter = streamConnIds.begin(); connIdIter != streamConnIds.end(); connIdIter++) {
+           
+          // If not found, pushSRI and update currentSRIs container
+          if (currentSRIConnIds.find(*connIdIter) == currentSRIConnIds.end()) {
+
+            // Grab the port
+            typename PortType::_ptr_type connectedPort = this->getConnectedPort(*connIdIter);
+            if (connectedPort->_is_nil()) {
+                LOG_DEBUG( logger, "Unable to find connected port with connectionId: " << (*connIdIter));
+                continue;
+            }
+            // Push sri and update sriMap 
+            connectedPort->pushSRI(sriMapIter->second.sri, sriMapIter->second.time);
+            sriMapIter->second.connections.insert(*connIdIter);
+          }
+        }
+      }
+    }
+  }
   
   //
   // Attach listener interfaces for connect and disconnect events
@@ -1590,12 +1765,18 @@ namespace bulkio {
   //
   template <typename StreamDefinition, typename PortType, typename StreamSequence>
   bool OutAttachablePort<StreamDefinition,PortType,StreamSequence>::updateStream(const StreamDefinition& stream) {
-    std::string streamId(stream.id);
-    if (not this->streamContainer.hasStreamId(streamId)) {
-      return false;
-    }
+    
+    {
+      // Scope lock all BUT addStream to avoid deadlock
+      boost::mutex::scoped_lock lock(updatingPortsLock);
 
-    this->streamContainer.removeStreamByStreamId(std::string(stream.id));
+      std::string streamId(stream.id);
+      if (not this->streamContainer.hasStreamId(streamId)) {
+        return false;
+      }
+
+      this->streamContainer.removeStreamByStreamId(std::string(stream.id));
+    }
     return this->addStream(stream);
   }
 
@@ -1640,8 +1821,8 @@ namespace bulkio {
                 // Create a new attachment for valid filterTable entry
                 OutPortSriMap::iterator sri_iter=  currentSRIs.find( std::string(stream.id) );
                 if ( sri_iter != currentSRIs.end() ) {
-                    this->streamContainer.updateStreamSRI(std::string(stream.id), sri_iter->second.sri);
-                    this->streamContainer.updateStreamTime(std::string(stream.id), sri_iter->second.time);
+                    newStream->setSRI(sri_iter->second.sri);
+                    newStream->setTime(sri_iter->second.time);
                 }
                 
                 try {
@@ -1664,8 +1845,8 @@ namespace bulkio {
     if (not portListed) {
       OutPortSriMap::iterator sri_iter=  currentSRIs.find( std::string(stream.id) );
       if ( sri_iter != currentSRIs.end() ) {
-         this->streamContainer.updateStreamSRI(std::string(stream.id), sri_iter->second.sri);
-         this->streamContainer.updateStreamTime(std::string(stream.id), sri_iter->second.time);
+         newStream->setSRI(sri_iter->second.sri);
+         newStream->setTime(sri_iter->second.time);
       }
       // Route new stream to all connections
       for (ConnectionsIter i = outConnections.begin(); i != outConnections.end(); ++i) {

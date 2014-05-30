@@ -8,7 +8,9 @@
 *******************************************************************************************/
 
 #include <ossie/CorbaUtils.h>
-#include <bulkio/bulkio.h>
+//Need to comment this out to build locally 
+//#include <bulkio/bulkio.h>
+#include "bulkio.h"
 typedef bulkio::connection_descriptor_struct connection_descriptor_struct;
 
 struct callback_stats_struct {
@@ -18,6 +20,8 @@ struct callback_stats_struct {
         num_sdds_detaches = 0;
         num_vita49_attaches = 0;
         num_vita49_detaches = 0;
+        num_new_sri_callbacks = 0;
+        num_sri_change_callbacks = 0;
     };
 
     static std::string getId() {
@@ -28,6 +32,8 @@ struct callback_stats_struct {
     unsigned short num_sdds_detaches;
     unsigned short num_vita49_attaches;
     unsigned short num_vita49_detaches;
+    unsigned short num_new_sri_callbacks;
+    unsigned short num_sri_change_callbacks;
 };
 
 inline bool operator>>= (const CORBA::Any& a, callback_stats_struct& s) {
@@ -47,13 +53,19 @@ inline bool operator>>= (const CORBA::Any& a, callback_stats_struct& s) {
         else if (!strcmp("num_vita49_detaches", props[idx].id)) {
             if (!(props[idx].value >>= s.num_vita49_detaches)) return false;
         }
+        else if (!strcmp("num_new_sri_callbacks", props[idx].id)) {
+            if (!(props[idx].value >>= s.num_new_sri_callbacks)) return false;
+        }
+        else if (!strcmp("num_sri_change_callbacks", props[idx].id)) {
+            if (!(props[idx].value >>= s.num_sri_change_callbacks)) return false;
+        }
     }
     return true;
 };
 
 inline void operator<<= (CORBA::Any& a, const callback_stats_struct& s) {
     CF::Properties props;
-    props.length(4);
+    props.length(6);
     props[0].id = CORBA::string_dup("num_sdds_attaches");
     props[0].value <<= s.num_sdds_attaches;
     props[1].id = CORBA::string_dup("num_sdds_detaches");
@@ -62,6 +74,10 @@ inline void operator<<= (CORBA::Any& a, const callback_stats_struct& s) {
     props[2].value <<= s.num_vita49_attaches;
     props[3].id = CORBA::string_dup("num_vita49_detaches");
     props[3].value <<= s.num_vita49_detaches;
+    props[4].id = CORBA::string_dup("num_new_sri_callbacks");
+    props[4].value <<= s.num_new_sri_callbacks;
+    props[5].id = CORBA::string_dup("num_sri_change_callbacks");
+    props[5].value <<= s.num_sri_change_callbacks;
     a <<= props;
 };
 
@@ -73,6 +89,10 @@ inline bool operator== (const callback_stats_struct& s1, const callback_stats_st
     if (s1.num_vita49_attaches!=s2.num_vita49_attaches)
         return false;
     if (s1.num_vita49_detaches!=s2.num_vita49_detaches)
+        return false;
+    if (s1.num_new_sri_callbacks!=s2.num_new_sri_callbacks)
+        return false;
+    if (s1.num_sri_change_callbacks!=s2.num_sri_change_callbacks)
         return false;
     return true;
 };

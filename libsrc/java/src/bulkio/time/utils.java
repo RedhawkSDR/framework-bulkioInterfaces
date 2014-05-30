@@ -17,7 +17,7 @@ public class  utils {
 	if ( wsec < 0.0 || fsec < 0.0 ) {
 	    long tmp_time = System.currentTimeMillis();
 	    wsec = tmp_time /1000;
-	    fsec = tmp_time % 1000;
+	    fsec = (tmp_time % 1000)/1000.0;
 	}
 	PrecisionUTCTime tstamp = new PrecisionUTCTime();
 	tstamp.tcmode = tsrc;
@@ -39,4 +39,15 @@ public class  utils {
     return tstamp;
     }
 
+    public static PrecisionUTCTime addSampleOffset(final PrecisionUTCTime T, int numSamples, double xdelta) {
+	PrecisionUTCTime tstamp = new PrecisionUTCTime();
+        tstamp = T;
+	tstamp.twsec += (int)(numSamples*xdelta);
+	tstamp.tfsec += numSamples*xdelta-(int)(numSamples*xdelta);
+        if (tstamp.tfsec >= 1.0){
+	    tstamp.twsec += 1;
+	    tstamp.tfsec -= 1.0;
+        }
+	return tstamp;
+    }
 }

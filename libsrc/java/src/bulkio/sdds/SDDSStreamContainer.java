@@ -314,7 +314,7 @@ public class SDDSStreamContainer {
             }
             if (this.streamMap.size() < 1){
                 if (this.logger != null){
-                    this.logger.info("SDDSStreamContainer:addConnectionToAllStreams() NO STREAMS DEFINED. NO ATTACHMENTS WERE MADE");
+                    this.logger.trace("SDDSStreamContainer:addConnectionToAllStreams() NO STREAMS DEFINED. NO ATTACHMENTS WERE MADE");
                 }
             }
             for(Map.Entry<String, SDDSStream > entry: this.streamMap.entrySet()) {

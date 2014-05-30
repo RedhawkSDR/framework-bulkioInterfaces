@@ -5,14 +5,27 @@ import os
 import time
 from omniORB import any
 from ossie.utils import sb
+import bulkio
+from bulkio.bulkioInterfaces import BULKIO
 
 from ossie.utils.sandbox import debugger
 #from ossie.utils.log4py import logging
 #logging.basicConfig()
 #logging.getLogger().setLevel(logging.DEBUG)
 
+# Add the local search paths to find local IDL files
+from ossie.utils import model
+from ossie.utils.idllib import IDLLibrary
+model._idllib = IDLLibrary()
+model._idllib.addSearchPath('../../../../../idl')
+model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
+
 class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all resource implementations in multiout_attachable"""
+
+    # ##############
+    # Setup/Teardown 
+    # ##############
 
     def setUp(self):
         ossie.utils.testing.ScaComponentTestCase.setUp(self)
@@ -23,6 +36,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.sink2 = sb.launch("../multiout_attachable.spd.xml", impl=self.impl)
         self.sink3 = sb.launch("../multiout_attachable.spd.xml", impl=self.impl)
         self.sink4 = sb.launch("../multiout_attachable.spd.xml", impl=self.impl)
+        sb.start()
 
     def tearDown(self):
         #ossie.utils.testing.ScaComponentTestCase.tearDown(self)
@@ -36,6 +50,11 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         del self.sink2
         del self.sink3
         del self.sink4
+
+
+    # ##############
+    # Helper Methods 
+    # ##############
 
     def connectAllSdds(self):
         self.source.connect(self.sink1, 'dataSDDS_in', connectionId="conn1")
@@ -103,6 +122,34 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
     def removeAllConnectionTableEntries(self):
         self.source.connectionTable = []
 
+    def pushSRI(self, streamId = "defaultStreamId",xstart=0.0):
+        sri = bulkio.sri.create(streamId)
+        sri.xstart = xstart
+        ts = time.time()
+        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0.0, int(ts), ts - int(ts))
+        inFloatPort = self.source.getPort("dataFloat_in")
+        inFloatPort.pushSRI(sri)
+        inFloatPort.pushPacket(range(1,100),T,False,streamId)
+        # add sleep to make sure SRI is received by all connections
+        time.sleep(1)
+    
+    def assertNumNewSRICallbacks(self, num):
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, num)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, num)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, num)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, num)
+
+    def assertNumSRIChangeCallbacks(self, num):
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, num)
+        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, num)
+        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, num)
+        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, num)
+
+
+    # ##############
+    #     Tests
+    # ##############
+    
     def testSddsConnectionsWithNoStreams(self):
         self.connectAllSdds()       
  
@@ -396,6 +443,127 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
         self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
         self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+
+    #
+    # Test updating streams
+    #
+    def testUpdatingActiveVITAStreamsSF(self):
+        self.addVitaStream("Stream1")
+        self.addVitaStream("Stream2")
+        self.addVitaStream("Stream3")
+        self.assertEquals(len(self.source.VITA49StreamDefinitions), 3)
+        self.connectAllVita()
+       
+        self.source.VITA49StreamDefinitions[0].port = 123L
+        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 1)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 1)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 1)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 1)
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 4)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 4)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 4)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 4)
+        
+        self.source.VITA49StreamDefinitions[1].port = 456L
+        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 2)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 2)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 2)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 2)
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 5)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 5)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 5)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 5)
+        
+        self.source.VITA49StreamDefinitions[2].port = 789L
+        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        
+        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        
+        self.assertEquals(self.sink1.received_vita49_attachments[0].port, 123)
+        self.assertEquals(self.sink1.received_vita49_attachments[1].port, 456)
+        self.assertEquals(self.sink1.received_vita49_attachments[2].port, 789)
+        
+        self.assertEquals(self.sink2.received_vita49_attachments[0].port, 123)
+        self.assertEquals(self.sink2.received_vita49_attachments[1].port, 456)
+        self.assertEquals(self.sink2.received_vita49_attachments[2].port, 789)
+        
+        self.assertEquals(self.sink3.received_vita49_attachments[0].port, 123)
+        self.assertEquals(self.sink3.received_vita49_attachments[1].port, 456)
+        self.assertEquals(self.sink3.received_vita49_attachments[2].port, 789)
+    
+    def testUpdatingActiveVITAStreamsCF(self):
+        self.connectAllVita()
+        self.addVitaStream("Stream1")
+        self.addVitaStream("Stream2")
+        self.addVitaStream("Stream3")
+        self.assertEquals(len(self.source.VITA49StreamDefinitions), 3)
+       
+        self.source.VITA49StreamDefinitions[0].port = 123L
+        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 1)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 1)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 1)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 1)
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 4)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 4)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 4)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 4)
+        
+        self.source.VITA49StreamDefinitions[1].port = 456L
+        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 2)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 2)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 2)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 2)
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 5)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 5)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 5)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 5)
+        
+        self.source.VITA49StreamDefinitions[2].port = 789L
+        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        
+        self.assertEquals(self.sink1.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_detaches, 3)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_detaches, 3)
+        
+        self.assertEquals(self.sink1.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink2.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink3.callback_stats.num_vita49_attaches, 6)
+        self.assertEquals(self.sink4.callback_stats.num_vita49_attaches, 6)
+        
+        self.assertEquals(self.sink1.received_vita49_attachments[0].port, 123)
+        self.assertEquals(self.sink1.received_vita49_attachments[1].port, 456)
+        self.assertEquals(self.sink1.received_vita49_attachments[2].port, 789)
+        
+        self.assertEquals(self.sink2.received_vita49_attachments[0].port, 123)
+        self.assertEquals(self.sink2.received_vita49_attachments[1].port, 456)
+        self.assertEquals(self.sink2.received_vita49_attachments[2].port, 789)
+        
+        self.assertEquals(self.sink3.received_vita49_attachments[0].port, 123)
+        self.assertEquals(self.sink3.received_vita49_attachments[1].port, 456)
+        self.assertEquals(self.sink3.received_vita49_attachments[2].port, 789)
     
     #
     # Test reconnecting streams
@@ -546,6 +714,538 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(self.sink2.received_vita49_attachments[0].port, newPortValue)
         self.assertEquals(self.sink3.received_vita49_attachments[0].port, newPortValue)
         self.assertEquals(self.sink4.received_vita49_attachments[0].port, newPortValue)
+
+    def testSRIBeforeAddStreamSDDS(self):
+        self.connectAllSdds()
+        self.pushSRI("Stream1")
+        self.addSddsStream("Stream1")
+
+        inPort1 = self.sink1.getPort("dataSDDS_in")
+        inPort2 = self.sink2.getPort("dataSDDS_in")
+        inPort3 = self.sink3.getPort("dataSDDS_in")
+        inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+
+        self.assertNumNewSRICallbacks(1)
+        self.assertNumSRIChangeCallbacks(0)
+
+
+    def testSRIAfterAddStreamSDDS(self):
+        self.connectAllSdds()
+        self.addSddsStream("Stream1")
+        self.pushSRI("Stream1")
+
+        inPort1 = self.sink1.getPort("dataSDDS_in")
+        inPort2 = self.sink2.getPort("dataSDDS_in")
+        inPort3 = self.sink3.getPort("dataSDDS_in")
+        inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        
+        self.assertNumNewSRICallbacks(1)
+        self.assertNumSRIChangeCallbacks(0)
+
+    def testSRIUpdateBeforeAddStreamSDDS(self):
+        self.connectAllSdds()
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+        self.addSddsStream("Stream1")
+
+        inPort1 = self.sink1.getPort("dataSDDS_in")
+        inPort2 = self.sink2.getPort("dataSDDS_in")
+        inPort3 = self.sink3.getPort("dataSDDS_in")
+        inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
+       
+        self.assertNumNewSRICallbacks(1)
+        self.assertNumSRIChangeCallbacks(1)
+
+    def testSRIUpdateAfterAddStreamSDDS(self):
+        self.connectAllSdds()
+        self.addSddsStream("Stream1")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+
+        inPort1 = self.sink1.getPort("dataSDDS_in")
+        inPort2 = self.sink2.getPort("dataSDDS_in")
+        inPort3 = self.sink3.getPort("dataSDDS_in")
+        inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
+        
+        self.assertNumNewSRICallbacks(1)
+        self.assertNumSRIChangeCallbacks(1)
+
+    def testSRIBeforeAddStreamVITA(self):
+        self.connectAllVita()
+        self.pushSRI("Stream1")
+        self.addVitaStream("Stream1")
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        
+        self.assertNumNewSRICallbacks(1)
+        self.assertNumSRIChangeCallbacks(0)
+
+    def testSRIAfterAddStreamVITA(self):
+        self.connectAllVita()
+        self.addVitaStream("Stream1")
+        self.pushSRI("Stream1")
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        
+        self.assertNumNewSRICallbacks(1)
+        self.assertNumSRIChangeCallbacks(0)
+
+    def testSRIUpdateBeforeAddStreamVITA(self):
+        self.connectAllVita()
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+        self.addVitaStream("Stream1")
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
+        
+        self.assertNumNewSRICallbacks(1)
+        self.assertNumSRIChangeCallbacks(1)
+
+    def testSRIUpdateAfterAddStreamVITA(self):
+        self.connectAllVita()
+        self.addVitaStream("Stream1")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort4._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort4._get_attachedSRIs()[0].xstart, 1234.0)
+        
+        self.assertNumNewSRICallbacks(1)
+        self.assertNumSRIChangeCallbacks(1)
+
+    def testSRIBeforeAddStreamSDDSWithConnectionTable(self):
+        self.connectAllSdds()
+        self.addConnectionTableEntry("conn1","Stream1","dataSDDS_out")
+        self.addConnectionTableEntry("conn2","Stream2","dataSDDS_out")
+        self.addConnectionTableEntry("conn3","Stream3","dataSDDS_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataSDDS_out")
+        self.pushSRI("Stream1")
+        self.addSddsStream("Stream1")
+        self.pushSRI("Stream3")
+        self.addSddsStream("Stream3")
+        self.pushSRI("UnusedStream")
+        self.addSddsStream("UnusedStream")
+
+        inPort1 = self.sink1.getPort("dataSDDS_in")
+        inPort2 = self.sink2.getPort("dataSDDS_in")
+        inPort3 = self.sink3.getPort("dataSDDS_in")
+        inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs(), [])
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEquals(inPort4._get_attachedSRIs(), [])
+
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+
+    def testSRIAfterAddStreamSDDSWithConnectionTable(self):
+        self.connectAllSdds()
+        self.addConnectionTableEntry("conn1","Stream1","dataSDDS_out")
+        self.addConnectionTableEntry("conn2","Stream2","dataSDDS_out")
+        self.addConnectionTableEntry("conn3","Stream3","dataSDDS_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataSDDS_out")
+        self.pushSRI("Stream3")
+        self.addSddsStream("Stream3")
+        self.pushSRI("UnusedStream")
+        self.addSddsStream("UnusedStream")
+        self.addSddsStream("Stream1")
+        self.pushSRI("Stream1")
+
+        inPort1 = self.sink1.getPort("dataSDDS_in")
+        inPort2 = self.sink2.getPort("dataSDDS_in")
+        inPort3 = self.sink3.getPort("dataSDDS_in")
+        inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs(),[])
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+
+    def testSRIUpdateBeforeAddStreamSDDSWithConnectionTable(self):
+        self.connectAllSdds()
+        self.addConnectionTableEntry("conn1","Stream1","dataSDDS_out")
+        self.addConnectionTableEntry("conn2","Stream2","dataSDDS_out")
+        self.addConnectionTableEntry("conn3","Stream3","dataSDDS_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataSDDS_out")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+        self.addSddsStream("Stream1")
+        self.pushSRI("Stream3")
+        self.pushSRI("Stream3",xstart=987.0)
+        self.addSddsStream("Stream3")
+        self.pushSRI("UnusedStream")
+        self.pushSRI("UnusedStream",xstart=777.0)
+        self.addSddsStream("UnusedStream")
+
+        inPort1 = self.sink1.getPort("dataSDDS_in")
+        inPort2 = self.sink2.getPort("dataSDDS_in")
+        inPort3 = self.sink3.getPort("dataSDDS_in")
+        inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort2._get_attachedSRIs(),[])
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 987.0)
+        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+
+    def testSRIUpdateAfterAddStreamSDDSWithConnectionTable(self):
+        self.connectAllSdds()
+        self.addConnectionTableEntry("conn1","Stream1","dataSDDS_out")
+        self.addConnectionTableEntry("conn2","Stream2","dataSDDS_out")
+        self.addConnectionTableEntry("conn3","Stream3","dataSDDS_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataSDDS_out")
+        self.addSddsStream("Stream1")
+        self.addSddsStream("Stream3")
+        self.addSddsStream("UnusedStream")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+        self.pushSRI("Stream3")
+        self.pushSRI("Stream3",xstart=987.0)
+        self.pushSRI("UnusedStream")
+        self.pushSRI("UnusedStream",xstart=777.0)
+
+        inPort1 = self.sink1.getPort("dataSDDS_in")
+        inPort2 = self.sink2.getPort("dataSDDS_in")
+        inPort3 = self.sink3.getPort("dataSDDS_in")
+        inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort2._get_attachedSRIs(),[])
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 987.0)
+        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+
+    def testSRIBeforeAddStreamVITAWithConnectionTable(self):
+        self.connectAllVita()
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
+        self.addConnectionTableEntry("vita2","Stream2","dataVITA49_out")
+        self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataVITA49_out")
+        self.pushSRI("Stream1")
+        self.addVitaStream("Stream1")
+        self.pushSRI("Stream3")
+        self.addVitaStream("Stream3")
+        self.pushSRI("UnusedStream")
+        self.addVitaStream("UnusedStream")
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs(), [])
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEquals(inPort4._get_attachedSRIs(), [])
+        
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+
+    def testSRIAfterAddStreamVITAWithConnectionTable(self):
+        self.connectAllVita()
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
+        self.addConnectionTableEntry("vita2","Stream2","dataVITA49_out")
+        self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataVITA49_out")
+        self.pushSRI("Stream3")
+        self.addVitaStream("Stream3")
+        self.pushSRI("UnusedStream")
+        self.addVitaStream("UnusedStream")
+        self.addVitaStream("Stream1")
+        self.pushSRI("Stream1")
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort2._get_attachedSRIs(),[])
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+
+    def testSRIUpdateBeforeAddStreamVITAWithConnectionTable(self):
+        self.connectAllVita()
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
+        self.addConnectionTableEntry("vita2","Stream2","dataVITA49_out")
+        self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataVITA49_out")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+        self.addVitaStream("Stream1")
+        self.pushSRI("Stream3")
+        self.pushSRI("Stream3",xstart=987.0)
+        self.addVitaStream("Stream3")
+        self.pushSRI("UnusedStream")
+        self.pushSRI("UnusedStream",xstart=777.0)
+        self.addVitaStream("UnusedStream")
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort2._get_attachedSRIs(),[])
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 987.0)
+        self.assertEquals(inPort4._get_attachedSRIs(),[])
+        
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+
+    def testSRIUpdateAfterAddStreamVITAWithConnectionTable(self):
+        self.connectAllVita()
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
+        self.addConnectionTableEntry("vita2","Stream2","dataVITA49_out")
+        self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataVITA49_out")
+        self.addVitaStream("Stream1")
+        self.addVitaStream("Stream3")
+        self.addVitaStream("UnusedStream")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+        self.pushSRI("Stream3")
+        self.pushSRI("Stream3",xstart=987.0)
+        self.pushSRI("UnusedStream")
+        self.pushSRI("UnusedStream",xstart=777.0)
+        self.pushSRI("Stream4")
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
+        self.assertEquals(inPort2._get_attachedSRIs(),[])
+        self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
+        self.assertEquals(inPort3._get_attachedSRIs()[0].xstart, 987.0)
+        
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 0)
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 1)
+        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+    
+    def testSRIConnectionTableAddedAfterPushSRI(self):
+        self.connectAllVita()
+        self.addConnectionTableEntry("vita1","Stream2","dataVITA49_out")
+        self.addVitaStream("Stream1")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(len(inPort1._get_attachedSRIs()),1)
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 0)
+    
+    def testSRIPushWithoutValidStream(self):
+        self.connectAllVita()
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream1",xstart=1234.0)
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(len(inPort1._get_attachedSRIs()),1)
+        self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 1)
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 1)
+    
+    def testSRIConnectionTableAddedRemoved(self):
+        self.connectAllVita()
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
+        self.addConnectionTableEntry("vita2","Stream2","dataVITA49_out")
+        self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataVITA49_out")
+        self.addVitaStream("Stream1")
+        self.addVitaStream("Stream3")
+        self.addVitaStream("UnusedStream")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream3")
+        self.pushSRI("UnusedStream")
+        self.pushSRI("UnusedStream",xstart=777.0)
+        self.removeAllConnectionTableEntries()
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+      
+        self.assertEquals(len(inPort1._get_attachedSRIs()),3)
+        self.assertEquals(len(inPort2._get_attachedSRIs()),3)
+        self.assertEquals(len(inPort3._get_attachedSRIs()),3)
+        self.assertEquals(len(inPort4._get_attachedSRIs()),3)
+
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
+    
+    def testSRIConnectionTableAddedRemovedAdded(self):
+        self.connectAllVita()
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
+        self.addConnectionTableEntry("vita2","Stream2","dataVITA49_out")
+        self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataVITA49_out")
+        self.addVitaStream("Stream1")
+        self.addVitaStream("Stream3")
+        self.addVitaStream("UnusedStream")
+        self.pushSRI("Stream1")
+        self.pushSRI("Stream3")
+        self.pushSRI("UnusedStream")
+        self.pushSRI("UnusedStream",xstart=777.0)
+
+        self.removeAllConnectionTableEntries()
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
+        self.addConnectionTableEntry("vita2","Stream2","dataVITA49_out")
+        self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
+        self.addConnectionTableEntry("someconn","Stream5","dataVITA49_out")
+        self.pushSRI("UnusedStream",xstart=888.0)
+
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.assertEquals(len(inPort1._get_attachedSRIs()),3)
+        self.assertEquals(len(inPort2._get_attachedSRIs()),3)
+        self.assertEquals(len(inPort3._get_attachedSRIs()),3)
+        self.assertEquals(len(inPort4._get_attachedSRIs()),3)
+        
+        self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink2.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink3.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink4.callback_stats.num_new_sri_callbacks, 3)
+        self.assertEquals(self.sink1.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink2.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, 0)
+        self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, 0)
 
 if __name__ == "__main__":
     ossie.utils.testing.main("../multiout_attachable.spd.xml") # By default tests all implementations

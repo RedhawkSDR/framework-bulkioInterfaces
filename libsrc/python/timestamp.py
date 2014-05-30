@@ -1,4 +1,5 @@
 import time
+import copy
 
 try:
     from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
@@ -43,4 +44,31 @@ def create( whole_secs=-1.0, fractional_secs=-1.0, tsrc=BULKIO.TCM_CPU ):
                                    BULKIO.TCS_VALID, 0.0,
                                    wsec, fsec )
 
+def compare(T1, T2):
+    """
+    Will compare two BULKIO.PrecisionUTCTime objects and return True
+    if they are both equal, and false otherwise
+    """
+    if not T1 or not T2:
+        return False
 
+    if T1.tcmode != T2.tcmode:
+        return False
+    if T1.tcstatus != T2.tcstatus:
+        return False
+    if T1.tfsec != T2.tfsec:
+        return False
+    if T1.toff != T2.toff:
+        return False
+    if T1.twsec != T2.twsec:
+        return False
+    return True
+
+def addSampleOffset(T, numSamples=0, xdelta=0.0):
+    tstamp = copy.deepcopy(T)
+    tstamp.twsec += int(numSamples*xdelta)
+    tstamp.tfsec += numSamples*xdelta - int(numSamples*xdelta)
+    if tstamp.tfsec >= 1.0:
+        tstamp.twsec += 1
+        tstamp.tfsec -= 1.0
+    return tstamp

@@ -102,6 +102,12 @@
     <simple id="num_vita49_detaches" type="ushort">
       <value>0</value>
     </simple>
+    <simple id="num_new_sri_callbacks" type="ushort">
+      <value>0</value>
+    </simple>
+    <simple id="num_sri_change_callbacks" type="ushort">
+      <value>0</value>
+    </simple>
     <configurationkind kindtype="configure"/>
   </struct>
 </properties>

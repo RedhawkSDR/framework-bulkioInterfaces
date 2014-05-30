@@ -5,6 +5,9 @@ bin_PROGRAMS = TestLargePush
 xmldir = $(prefix)/dom/components/TestLargePush/
 dist_xml_DATA = ../TestLargePush.scd.xml ../TestLargePush.prf.xml ../TestLargePush.spd.xml
 
+# this is use to build against local bulkio interface and library and not installed version
+bulkio_top=../../../../../
+bulkio_libsrc_top=$(bulkio_top)/libsrc
 
 distclean-local:
 	rm -f config.*
@@ -26,6 +29,8 @@ distclean-local:
 include $(srcdir)/Makefile.am.ide
 TestLargePush_SOURCES = $(redhawk_SOURCES_auto)
 TestLargePush_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
-TestLargePush_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
-TestLargePush_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
+#TestLargePush_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
+TestLargePush_CXXFLAGS = -Wall -I$(bulkio_libsrc_top)/cpp -I$(bulkio_top)/src/cpp $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
+TestLargePush_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs
+TestLargePush_LDFLAGS += $(BIO_LIBS)
 

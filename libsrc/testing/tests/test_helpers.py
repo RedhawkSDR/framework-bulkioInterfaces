@@ -5,6 +5,13 @@ import time
 import types
 from ossie.utils import sb
 
+# Add the local search paths to find local IDL files
+from ossie.utils import model
+from ossie.utils.idllib import IDLLibrary
+model._idllib = IDLLibrary()
+model._idllib.addSearchPath('../../../idl')
+model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
+
 # add local build path to test out api, issue with bulkio.<library> and bulkio.bulkioInterfaces... __init__.py
 # differs during build process
 sys.path = [ '../../build/lib' ] + sys.path

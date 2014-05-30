@@ -61,6 +61,12 @@ class multiout_attachable_i(multiout_attachable_base):
         self.port_dataSDDS_in.setNewAttachDetachListener(self.sddsCallback)
         self.port_dataVITA49_in.setNewAttachDetachListener(self.vitaCallback)
 
+        self.port_dataSDDS_in.setNewSriListener(self.newSriCallback)
+        self.port_dataVITA49_in.setNewSriListener(self.newSriCallback)
+
+        self.port_dataSDDS_in.setSriChangeListener(self.sriChangeCallback)
+        self.port_dataVITA49_in.setSriChangeListener(self.sriChangeCallback)
+
     def onconfigure_prop_SDDSStreamDefinitions(self, oldVal, newVal):
         oldAttachIds = []
         newAttachIds = []
@@ -149,7 +155,27 @@ class multiout_attachable_i(multiout_attachable_base):
         self.VITA49StreamDefinitions = newVal;
 
     def process(self):
+        data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.port_dataFloat_in.getPacket()
+        if sriChanged:
+            logging.debug("process() sri changed : " + str(sri) + " T: " + str(T))
+            self.port_dataSDDS_out.pushSRI(sri,T)
+            self.port_dataVITA49_out.pushSRI(sri,T)
+
         return NOOP
+
+    def newSriCallback(self,sri):
+        # Query SRIs to ensure deadlock doesn't occur
+        sddsSriList = self.port_dataSDDS_in._get_activeSRIs()
+        vita49SriList = self.port_dataVITA49_in._get_activeSRIs()
+
+        self.callback_stats.num_new_sri_callbacks += 1
+
+    def sriChangeCallback(self,sri):
+        # Query SRIs to ensure deadlock doesn't occur
+        sddsSriList = self.port_dataSDDS_in._get_activeSRIs()
+        vita49SriList = self.port_dataVITA49_in._get_activeSRIs()
+
+        self.callback_stats.num_sri_change_callbacks += 1
   
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)

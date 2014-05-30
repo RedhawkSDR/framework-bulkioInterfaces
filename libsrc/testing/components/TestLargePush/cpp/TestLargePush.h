@@ -10,6 +10,8 @@ class TestLargePush_i : public TestLargePush_base
         TestLargePush_i(const char *uuid, const char *label);
         ~TestLargePush_i();
         int serviceFunction();
+        void serviceAsBuffers();
+        void serviceAsVectors();
 };
 
 #endif

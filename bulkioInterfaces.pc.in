@@ -3,6 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 idldir=${prefix}/share/idl
+javadir=@javadir@
+classpath=${javadir}/BULKIOInterfaces.jar
 
 Name: bulkioInterfaces
 Description: bulkioInterfaces for REDHAWK

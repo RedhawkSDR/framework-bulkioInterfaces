@@ -141,7 +141,7 @@ public class InSDDSPort_Test {
 
 	bulkio.InSDDSPort port = new bulkio.InSDDSPort(ctx.port_name );
 
-	port.setNewStreamListener( new test_stream_cb( ctx ) );
+	port.setSriListener( new test_stream_cb( ctx ) );
 	port.setAttachDetachCallback( new test_sdds_cb( ctx ) );
 
 	port.setLogger(logger);

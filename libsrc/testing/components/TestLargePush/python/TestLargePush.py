@@ -28,13 +28,24 @@ class TestLargePush_i(TestLargePush_base):
         EOS         = True
         streamID    = "test"
 
+        sri         = bulkio.sri.create(streamID)
+        sri.xdelta  = 0.001
+
+        self.port_dataFloat.pushSRI(sri)
         self.port_dataFloat.pushPacket(     outData, T, EOS, streamID)
+        self.port_dataDouble.pushSRI(sri)
         self.port_dataDouble.pushPacket(    outData, T, EOS, streamID)
+        self.port_dataShort.pushSRI(sri)
         self.port_dataShort.pushPacket(     outData, T, EOS, streamID)
+        self.port_dataUshort.pushSRI(sri)
         self.port_dataUshort.pushPacket(    outData, T, EOS, streamID)
+        self.port_dataLong.pushSRI(sri)
         self.port_dataLong.pushPacket(      outData, T, EOS, streamID)
+        self.port_dataUlong.pushSRI(sri)
         self.port_dataUlong.pushPacket(     outData, T, EOS, streamID)
+        self.port_dataLongLong.pushSRI(sri)
         self.port_dataLongLong.pushPacket(  outData, T, EOS, streamID)
+        self.port_dataUlongLong.pushSRI(sri)
         self.port_dataUlongLong.pushPacket( outData, T, EOS, streamID)
 
         return FINISH

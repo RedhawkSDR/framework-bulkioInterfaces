@@ -102,9 +102,6 @@ public class SDDSStream {
             SDDSStreamAttachment newAttachment = new SDDSStreamAttachment(connectionId, inputPort);
             newAttachment.attachId = newAttachment.inputPort.attach(this.streamDef, this.name);
             this.streamAttachments.add(newAttachment);
-            if (this.sri != null && this.time != null){
-                inputPort.pushSRI(this.sri, this.time);
-            }
         }
 
         public String[] getAttachIds(){
@@ -135,6 +132,15 @@ public class SDDSStream {
 
         public PrecisionUTCTime getTime(){
             return this.time;
+        }
+
+        public Set<String> getConnectionIds() {
+            Set<String> connIds = new HashSet<String>();
+            Iterator<SDDSStreamAttachment> iterator = this.streamAttachments.iterator();
+            while (iterator.hasNext()){
+                connIds.add(iterator.next().getConnectionId());
+            }
+            return connIds;
         }
 
         public void setStreamDefinition(BULKIO.SDDSStreamDefinition def){

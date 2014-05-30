@@ -172,7 +172,27 @@ namespace  bulkio {
    */
   template < typename PortTraits >
   void OutPort< PortTraits>::_pushOversizedPacket(
-          const DataBufferType &      data,
+          const DataBufferType &    data,
+          BULKIO::PrecisionUTCTime& T,
+          bool                      EOS,
+          const std::string&        streamID)
+  {
+      // Use const alias to point to the start of the current sub-packet's data
+      const TransportType* buffer = static_cast<const TransportType*>(&data[0]);
+      size_t size = data.size();
+      _pushOversizedPacket(buffer, size, T, EOS, streamID);
+  }
+  
+  /**
+   * Push a packet whose payload cannot fit within the CORBA limit.
+   * The packet is broken down into sub-packets and sent via multiple pushPacket
+   * calls.  The EOS is set to false for all of the sub-packets, except for
+   * the last sub-packet, who uses the input EOS argument.
+   */
+  template < typename PortTraits >
+  void OutPort< PortTraits>::_pushOversizedPacket(
+          const TransportType*      buffer,
+          size_t                    size,
           BULKIO::PrecisionUTCTime& T,
           bool                      EOS,
           const std::string&        streamID)
@@ -180,15 +200,27 @@ namespace  bulkio {
       // Multiply by some number < 1 to leave some margin for the CORBA header
       const size_t maxPayloadSize    = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
 
-      const size_t maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
+      size_t maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
+      // make sure maxSamplesPerPush is even so that complex data case is handled properly
+      if (maxSamplesPerPush%2 != 0){
+          maxSamplesPerPush--;
+      }
       
-      // Use const alias to point to the start of the current sub-packet's data
-      const TransportType* buffer = static_cast<const TransportType*>(&data[0]);
-
+      // Determine xdelta for this streamID to be used for time increment for subpackets
+      typename OutPortSriMap::iterator sri_iter;
+      sri_iter=  currentSRIs.find( streamID );
+      double xdelta = 0.0;
+      if ( sri_iter != currentSRIs.end() ) {
+          xdelta = sri_iter->second.sri.xdelta;
+      }
 
       // Always do at least one push (may be empty), ensuring that all samples
       // are pushed
-      size_t samplesRemaining = data.size();
+      size_t samplesRemaining = size;
+
+      // Initialize time of first subpacket
+      BULKIO::PrecisionUTCTime packetTime = T;
+      
       do {
           // Don't send more samples than are remaining
           const size_t pushSize = std::min(samplesRemaining, maxSamplesPerPush);
@@ -205,7 +237,9 @@ namespace  bulkio {
           // Wrap a non-owning CORBA sequence (last argument is whether to free
           // the buffer on destruction) around this sub-packet's data
           const PortSequenceType subPacket(pushSize, pushSize, const_cast<TransportType*>(buffer), false);
-          _pushPacket(subPacket, T, packetEOS, streamID );
+          LOG_TRACE(logger,"_pushOversizedPacket calling pushPacket with pushSize " << pushSize << " and packetTime twsec: " << packetTime.twsec << " tfsec: " << packetTime.tfsec)
+          _pushPacket(subPacket, packetTime, packetEOS, streamID );
+          packetTime = bulkio::time::utils::addSampleOffset(packetTime, pushSize, xdelta);
 
           // Advance buffer to next sub-packet boundary
           buffer += pushSize;
@@ -233,6 +267,31 @@ namespace  bulkio {
     // don't want to process while command information is coming in
     SCOPED_LOCK lock(updatingPortsLock);
     _pushOversizedPacket(data, T, EOS, streamID);
+
+    TRACE_EXIT(logger, "OutPort::pushPacket" );
+  }
+  
+  template < typename PortTraits >
+  void OutPort< PortTraits >::pushPacket(
+          TransportType*            data,
+          size_t                    size,
+          BULKIO::PrecisionUTCTime& T,
+          bool                      EOS,
+          const std::string&        streamID) {
+
+    TRACE_ENTER(logger, "OutPort::pushPacket" );
+
+
+    // check if sri has been pushed... 
+    typename OutPortSriMap::iterator sri_iter =  currentSRIs.find( streamID );
+    if ( sri_iter == currentSRIs.end() ) {
+      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
+      pushSRI( H );
+    }
+
+    // don't want to process while command information is coming in
+    SCOPED_LOCK lock(updatingPortsLock);
+    _pushOversizedPacket(data, size, T, EOS, streamID);
 
     TRACE_EXIT(logger, "OutPort::pushPacket" );
   }
@@ -573,12 +632,56 @@ namespace  bulkio {
   {
 
   }
-
+  
   template <typename PortTraits>
-  void OutInt8Port< PortTraits >::pushPacket( std::vector< Int8 >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
+  void OutInt8Port< PortTraits >::pushPacket( Int8* buffer, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
 
     TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
 
+    PortTypes::CharSequence seq = PortTypes::CharSequence(size, size, (CORBA::Char *)(buffer), false);
+    _pushPacket(seq, T, EOS, streamID);
+
+    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
+  }
+  
+  template <typename PortTraits>
+  void OutInt8Port< PortTraits >::pushPacket( char* buffer, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
+
+    TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
+
+    PortTypes::CharSequence seq = PortTypes::CharSequence(size, size, (CORBA::Char *)(buffer), false);
+    _pushPacket(seq, T, EOS, streamID);
+
+    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
+  }
+  
+
+  template <typename PortTraits>
+  void OutInt8Port< PortTraits >::pushPacket( std::vector< Int8 >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
+    
+    TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
+    
+    PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
+    _pushPacket(seq, T, EOS, streamID);
+
+    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
+  }
+
+  template <typename PortTraits>
+  void OutInt8Port< PortTraits >::pushPacket( std::vector< Char >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
+
+    TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
+
+    // CORBA is allowed to delete the buffer when the sequence is destroyed.
+    PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
+    _pushPacket(seq, T, EOS, streamID);
+
+    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
+  }
+
+  template <typename PortTraits>
+  void OutInt8Port< PortTraits >::_pushPacket( PortTypes::CharSequence& seq, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
+    
     // check if sri has been pushed... 
     typename OutInt8Port::OutPortSriMap::iterator sri_iter =  this->currentSRIs.find( streamID );
     if ( sri_iter == this->currentSRIs.end() ) {
@@ -587,11 +690,7 @@ namespace  bulkio {
     }
 
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
-    // Magic is below, make a new sequence using the data from the Iterator
-    // as the data for the sequence.  The 'false' at the end is whether or not
-    // CORBA is allowed to delete the buffer when the sequence is destroyed.
-    sri_iter =  this->currentSRIs.find( streamID );
-    PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
+    
     if (this->active) {
       bool portListed = false;
       typename  OutInt8Port::ConnectionsList::iterator port;
@@ -611,7 +710,7 @@ namespace  bulkio {
               if ( this->stats.count((*port).second) == 0 ) {
                 this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
               }
-              this->stats[(*port).second].update(data.size(), 0, 0, streamID);
+              this->stats[(*port).second].update(seq.length(), 0, 0, streamID);
             } catch(...) {
               LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
             }
@@ -630,7 +729,7 @@ namespace  bulkio {
             if ( this->stats.count((*port).second) == 0 ) {
               this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
             }
-            this->stats[(*port).second].update(data.size(), 0, 0, streamID);
+            this->stats[(*port).second].update(seq.length(), 0, 0, streamID);
           } catch(...) {
             LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
           }
@@ -646,84 +745,8 @@ namespace  bulkio {
     }
 
 
-    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
-  }
+    TRACE_EXIT(this->logger, "OutInt8Port::_pushPacket" );
 
-
-  template <typename PortTraits>
-  void OutInt8Port< PortTraits >::pushPacket( std::vector< Char >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID) {
-
-    TRACE_ENTER(this->logger, "OutInt8Port::pushPacket" );
-
-    // check if sri has been pushed... 
-    typename OutInt8Port::OutPortSriMap::iterator sri_iter =  this->currentSRIs.find( streamID );
-    if ( sri_iter == this->currentSRIs.end() ) {
-      BULKIO::StreamSRI H = bulkio::sri::create( streamID );
-      this->pushSRI( H );
-    }
-
-    SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
-    // Magic is below, make a new sequence using the data from the Iterator
-    // as the data for the sequence.  The 'false' at the end is whether or not
-    // CORBA is allowed to delete the buffer when the sequence is destroyed.
-    PortTypes::CharSequence seq = PortTypes::CharSequence(data.size(), data.size(), (CORBA::Char *)&(data[0]), false);
-    // grab SRI context 
-    sri_iter =  this->currentSRIs.find( streamID );
-    if (this->active) {
-      bool portListed = false;
-      typename  OutInt8Port::ConnectionsList::iterator port;
-      std::vector<connection_descriptor_struct >::iterator ftPtr;
-      for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
-        for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
-
-          if (ftPtr->port_name == this->name) portListed = true;
-
-          if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == port->second) and (ftPtr->stream_id == streamID)) {
-	    if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	      this->_pushSRI( port, sri_iter->second );
-	    }
-
-            try {
-              port->first->pushPacket(seq, T, EOS, streamID.c_str());
-              if ( this->stats.count((*port).second) == 0 ) {
-                this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
-              }
-              this->stats[(*port).second].update(data.size(), 0, 0, streamID);
-            } catch(...) {
-              LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
-            }
-          }
-        }
-      }
-      if (!portListed) {
-	for (port = this->outConnections.begin(); port != this->outConnections.end(); port++) {
-
-	  if ( sri_iter != this->currentSRIs.end() && sri_iter->second.connections.count( port->second ) == 0 ) {
-	    this->_pushSRI( port, sri_iter->second );
-	  }
-
-          try {
-            port->first->pushPacket(seq, T, EOS, streamID.c_str());
-            if ( this->stats.count((*port).second) == 0 ) {
-              this->stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( this->name, sizeof(Int8) ) ) );
-            }
-            this->stats[(*port).second].update(data.size(), 0, 0, streamID);
-          } catch(...) {
-            LOG_ERROR( this->logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << this->name << "/" << port->second );
-          }
-        }
-      }
-    }
-
-    // if we have end of stream removed old sri
-    try {
-      if ( EOS ) this->currentSRIs.erase(streamID);
-    }
-    catch(...){
-    }
-
-
-    TRACE_EXIT(this->logger, "OutInt8Port::pushPacket" );
   }
 
 

@@ -8,6 +8,7 @@ import time
 from ossie.utils import uuid
 from bulkio.statistics import InStats
 from bulkio import sri
+from bulkio import timestamp
 from ossie.cf.CF import Port
 
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA #@UnusedImport 
@@ -22,7 +23,7 @@ class InPort:
     SRI_CHG=5
     QUEUE_FLUSH=6
     _TYPE_ = 'c'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None,  maxsize=100, PortTransferType=_TYPE_ ):
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None,  maxsize=100, PortTransferType=_TYPE_ ):
         self.name = name
         self.logger = logger
         self.queue = Queue.Queue(maxsize)
@@ -30,25 +31,36 @@ class InPort:
         self.stats =  InStats(name, PortTransferType)
         self.blocking = False
         self.sri_cmp = sriCompare
-        self.newStreamCallback = newStreamCallback
+        self.newSriCallback = newSriCallback
+        self.sriChangeCallback = sriChangeCallback
         self.sriDict = {} # key=streamID, value=StreamSRI
 
         _cmpMsg  = "DEFAULT"
-        _sriMsg  = "EMPTY"
+        _newSriMsg  = "EMPTY"
+        _sriChangeMsg  = "EMPTY"
         if sriCompare != sri.compare:
             _cmpMsg  = "USER_DEFINED"
-        if newStreamCallback:
-            _sriMsg  = "USER_DEFINED"
+        if newSriCallback:
+            _newSriMsg  = "USER_DEFINED"
+        if sriChangeCallback:
+            _sriChangeMsg  = "USER_DEFINED"
 
         if self.logger:
             self.logger.debug( "bulkio::InPort CTOR port:" + str(name) + 
                           " Blocking/MaxInputQueueSize " + str(self.blocking) + "/"  + str(maxsize) + 
-                          " SriCompare/NewStreamCallback " +  _cmpMsg + "/" + _sriMsg );
+                          " SriCompare/NewSriCallback/SriChangeCallback " +  _cmpMsg + "/" + _newSriMsg + "/" + _sriChangeMsg );
 
-    def setNewStreamListener(self, newStreamCallback):
+    def setNewSriListener(self, newSriCallback):
         self.port_lock.acquire()
         try:
-            self.newStreamCallback = newStreamCallback
+            self.newSriCallback = newSriCallback
+        finally:
+            self.port_lock.release()
+
+    def setSriChangeListener(self, sriChangeCallback):
+        self.port_lock.acquire()
+        try:
+            self.sriChangeCallback = sriChangeCallback
         finally:
             self.port_lock.release()
 
@@ -119,8 +131,8 @@ class InPort:
             if H.streamID not in self.sriDict:
                 if self.logger:
                     self.logger.debug( "pushSRI PORT:" + str(self.name) + " NEW SRI:" + str(H.streamID) )
-                if self.newStreamCallback:
-                    self.newStreamCallback( H ) 
+                if self.newSriCallback:
+                    self.newSriCallback( H ) 
                 self.sriDict[H.streamID] = (copy.deepcopy(H), True)
                 if H.blocking:
                     self.blocking = True
@@ -131,6 +143,8 @@ class InPort:
                         self.sriDict[H.streamID] = (copy.deepcopy(H), True)
                         if H.blocking:
                             self.blocking = True
+                        if self.sriChangeCallback:
+                            self.sriChangeCallback( H )
         finally:
             self.port_lock.release()
 
@@ -225,63 +239,63 @@ class InPort:
 
 class InCharPort(InPort, BULKIO__POA.dataChar):
     _TYPE_ = 'c'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InCharPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InCharPort._TYPE_ )
 
 class InOctetPort(InPort, BULKIO__POA.dataOctet):
     _TYPE_ = 'B'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InOctetPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InOctetPort._TYPE_ )
 
 class InShortPort(InPort, BULKIO__POA.dataShort):
     _TYPE_ = 'h'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InShortPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InShortPort._TYPE_ )
 
 class InUShortPort(InPort, BULKIO__POA.dataUshort):
     _TYPE_ = 'H'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InUShortPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InUShortPort._TYPE_ )
 
 class InLongPort(InPort, BULKIO__POA.dataLong):
     _TYPE_ = 'i'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InLongPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InLongPort._TYPE_ )
 
 class InULongPort(InPort, BULKIO__POA.dataUlong):
     _TYPE_ = 'I'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InULongPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InULongPort._TYPE_ )
 
 class InLongLongPort(InPort, BULKIO__POA.dataLongLong):
     _TYPE_ = 'q'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InLongLongPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InLongLongPort._TYPE_ )
 
 
 class InULongLongPort(InPort, BULKIO__POA.dataUlongLong):
     _TYPE_ = 'Q'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InULongLongPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InULongLongPort._TYPE_ )
 
 
 class InFloatPort(InPort, BULKIO__POA.dataFloat):
     _TYPE_ = 'f'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InFloatPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InFloatPort._TYPE_ )
 
 
 class InDoublePort(InPort, BULKIO__POA.dataDouble):
     _TYPE_ = 'd'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InDoublePort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InDoublePort._TYPE_ )
 
 
 
 class InFilePort(InPort, BULKIO__POA.dataFile):
     _TYPE_ = 'd'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InFilePort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InFilePort._TYPE_ )
 
 
     def pushPacket(self, URL, T, EOS, streamID):
@@ -344,8 +358,8 @@ class InFilePort(InPort, BULKIO__POA.dataFile):
 
 class InXMLPort(InPort, BULKIO__POA.dataXML):
     _TYPE_ = 'd'
-    def __init__(self, name, logger=None, sriCompare=sri.compare, newStreamCallback=None, maxsize=100 ):
-        InPort.__init__(self, name, logger, sriCompare, newStreamCallback, maxsize, InXMLPort._TYPE_ )
+    def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
+        InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InXMLPort._TYPE_ )
 
 
     def pushPacket(self, xml_string, EOS, streamID):
@@ -406,15 +420,17 @@ class InXMLPort(InPort, BULKIO__POA.dataXML):
     
 class InAttachablePort:
     _TYPE_='b'
-    def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=None, timeCmp=None, PortType = _TYPE_, newStreamCallback=None,interface=None):
+    def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=sri.compare, timeCmp=timestamp.compare, PortType = _TYPE_, newSriCallback=None, sriChangeCallback=None,interface=None):
         self.name = name
         self.logger = logger
         self.port_lock = threading.Lock()
+        self.sri_query_lock = threading.Lock()
         self._attachedStreams = {} # key=attach_id, value = (streamDef, userid) 
         self.stats = InStats(name, PortType )
         self.sriDict = {} # key=streamID, value=(StreamSRI, PrecisionUTCTime)
         self.attachDetachCallback = attachDetachCallback
-        self.newStreamCallback = newStreamCallback
+        self.newSriCallback = newSriCallback
+        self.sriChangeCallback = sriChangeCallback
         self.sri_cmp = sriCmp
         self.time_cmp = timeCmp
         self.sriChanged = False
@@ -423,7 +439,7 @@ class InAttachablePort:
                 self.logger.error("InAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
             raise Port.InvalidPort(1, "InAttachablePort __init__ - an interface must be specified, set to BULKIO.dataSDDS or BULKIO.dataVITA49")
         self.interface=interface # BULKIO port interface (valid options are BULKIO.dataSDDS or BULKIO.dataVITA49)
-        self.setNewAttachDetachListener(newStreamCallback)
+        self.setNewAttachDetachListener(attachDetachCallback)
         if self.logger:
             self.logger.debug("bulkio::InAttachablePort CTOR port:" + str(self.name) + " using interface " + str(self.interface))
 
@@ -451,10 +467,17 @@ class InAttachablePort:
         finally:
             self.port_lock.release()
 
-    def setNewStreamListener(self, newStreamCallback):
+    def setNewSriListener(self, newSriCallback):
         self.port_lock.acquire()
         try:
-            self.newStreamCallback = newStreamCallback
+            self.newSriCallback = newSriCallback
+        finally:
+            self.port_lock.release()
+
+    def setSriChangeListener(self, sriChangeCallback):
+        self.port_lock.acquire()
+        try:
+            self.sriChangeCallback = sriChangeCallback
         finally:
             self.port_lock.release()
 
@@ -495,12 +518,13 @@ class InAttachablePort:
 
     def _get_attachedSRIs(self):
         sris = []
-        self.port_lock.acquire()
+        self.sri_query_lock.acquire()
         try:
             for entry in self.sriDict:
-                sris.append(copy.deepcopy(self.sriDict[entry]))
+                # First value of sriDict entry is the StreamSRI object
+                sris.append(copy.deepcopy(self.sriDict[entry][0]))
         finally:
-            self.port_lock.release()
+            self.sri_query_lock.release()
         return sris
 
     def _get_usageState(self):
@@ -529,16 +553,6 @@ class InAttachablePort:
             self.logger.trace("bulkio::InAttachablePort attach ENTER  (port=" + str(self.name) +")" )
             self.logger.debug("InAttachablePort.attach() - ATTACH REQUEST, STREAM/USER"  + str(streamDef) + '/' + str(userid))
 
-        #if self._get_usageState() == self.interface.BUSY:
-        #    if self.logger:
-        #        self.logger.error("InAttachablePort.attach() - No Capacity to satisfy request. STREAM/USER"  + str(streamDef) + '/' + str(userid))
-        #    raise self.interface.AttachError("No capacity")
-
-        #
-        # Allocate capacities here if applicable
-        #
-
-        # The attachment succeeded so generate a attachId
         attachId = None
         self.port_lock.acquire()
         try:
@@ -623,11 +637,11 @@ class InAttachablePort:
             raise self.interface.StreamInputError("Stream %s not attached" % attachId)
 
     def _get_activeSRIs(self):
-        self.port_lock.acquire()
+        self.sri_query_lock.acquire()
         try:
             activeSRIs = [self.sriDict[entry][0] for entry in self.sriDict]
         finally:
-            self.port_lock.release()
+            self.sri_query_lock.release()
         return activeSRIs
 
     def pushSRI(self, H, T):
@@ -638,9 +652,14 @@ class InAttachablePort:
         self.port_lock.acquire()
         try:
             if H.streamID not in self.sriDict:
-                if self.newStreamCallback:
-                    self.newStreamCallback( H ) 
-                self.sriDict[H.streamID] = (copy.deepcopy(H), copy.deepcopy(T))
+                if self.newSriCallback:
+                    self.newSriCallback( H )
+                # Disable querying while adding a new SRI
+                self.sri_query_lock.acquire()
+                try:
+                    self.sriDict[H.streamID] = (copy.deepcopy(H), copy.deepcopy(T))
+                finally:
+                    self.sri_query_lock.release()
             else:
                 cur_H, cur_T = self.sriDict[H.streamID]
                 s_same = False
@@ -652,7 +671,14 @@ class InAttachablePort:
                     t_same = self.time_cmp(cur_T, T)
                 
                 self.sriChanged = ( s_same == False )  or  ( t_same == False )
-                self.sriDict[H.streamID] = (copy.deepcopy(H), copy.deepcopy(T))
+                if self.sriChanged and self.sriChangeCallback:
+                    self.sriChangeCallback( H )
+                # Disable querying while adding a new SRI
+                self.sri_query_lock.acquire()
+                try:
+                    self.sriDict[H.streamID] = (copy.deepcopy(H), copy.deepcopy(T))
+                finally:
+                    self.sri_query_lock.release()
 
         finally:
             self.port_lock.release()
@@ -661,9 +687,9 @@ class InAttachablePort:
             self.logger.trace("bulkio::InAttachablePort pushSRI EXIT (port=" + str(self.name) +")" )
 
 class InSDDSPort(BULKIO__POA.dataSDDS,InAttachablePort):
-    def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=None, timeCmp=None, PortType = 'b', newStreamCallback=None ):
-        InAttachablePort.__init__(self, name, logger, attachDetachCallback, sriCmp, timeCmp, PortType, newStreamCallback, interface=BULKIO.dataSDDS)
+    def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=None, timeCmp=None, PortType = 'b', newSriCallback=None, sriChangeCallback=None ):
+        InAttachablePort.__init__(self, name, logger, attachDetachCallback, sriCmp, timeCmp, PortType, newSriCallback, sriChangeCallback, interface=BULKIO.dataSDDS)
 
 class InVITA49Port(BULKIO__POA.dataVITA49,InAttachablePort):
-    def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=None, timeCmp=None, PortType = 'b', newStreamCallback=None ):
-        InAttachablePort.__init__(self, name, logger, attachDetachCallback, sriCmp, timeCmp, PortType, newStreamCallback, interface=BULKIO.dataVITA49)
+    def __init__(self, name, logger=None, attachDetachCallback=None, sriCmp=None, timeCmp=None, PortType = 'b', newSriCallback=None, sriChangeCallback=None ):
+        InAttachablePort.__init__(self, name, logger, attachDetachCallback, sriCmp, timeCmp, PortType, newSriCallback, sriChangeCallback, interface=BULKIO.dataVITA49)

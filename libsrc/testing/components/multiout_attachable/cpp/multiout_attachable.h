@@ -26,10 +26,11 @@ class multiout_attachable_i : public multiout_attachable_base,
         // Applicable for both SDDS and VITA callback interface
 	    virtual void detach(const char* attachId);
 
-	    int reattaches;
-
 	    void vita49StreamDefChanged(Vita49StreamDefs *oldValue, Vita49StreamDefs *newValue);
 	    void sddsStreamDefChanged(SddsStreamDefs *oldValue, SddsStreamDefs *newValue);
+
+	    void newSriCallback(const BULKIO::StreamSRI& sri);
+	    void sriChangeCallback(const BULKIO::StreamSRI& sri);
 };
 
 #endif // MULTIOUT_ATTACHABLE_CPP_IMPL_H

@@ -2,6 +2,8 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
+javadir=@javadir@
+classpath=${javadir}/bulkio.jar:${javadir}/BULKIOInterfaces.jar
 
 Name: bulkio
 Description: BULKIO base class library

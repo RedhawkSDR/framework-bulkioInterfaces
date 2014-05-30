@@ -1,7 +1,7 @@
 
 Java_Ports.jar: $(Java_Ports_jar_SOURCES)
 	@mkdir -p bin
-	$(JAVAC) -cp $(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_libsrc_top)/java/bulkio.jar:$(bulkio_top)/BULKIOInterfaces.jar -d bin $(Java_Ports_jar_SOURCES)
+	$(JAVAC) -cp $(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_libsrc_top)/bulkio.jar:$(bulkio_top)/BULKIOInterfaces.jar -d bin $(Java_Ports_jar_SOURCES)
 	$(JAR) cf ./Java_Ports.jar -C bin .
 
 

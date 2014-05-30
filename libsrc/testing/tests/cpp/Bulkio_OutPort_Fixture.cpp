@@ -79,6 +79,7 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
   BULKIO::StreamSRI sri;
   port->pushSRI( sri );
 
+  // Push using sequences
   typename T::NativeSequenceType v;
   BULKIO::PrecisionUTCTime TS;
   port->pushPacket( v, TS, false, "test_port_api" );
@@ -86,6 +87,16 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
   port->pushPacket( v, TS, true, "test_port_api" );
 
   port->pushPacket( v, TS, true, "unknown_stream_id" );
+ 
+  // Push using pointers
+  size_t size = 100; 
+  typename T::TransportType* buff = new typename T::TransportType[size];
+  port->pushPacket( buff, size, TS, false, "test_port_api" );
+
+  port->pushPacket( buff, size, TS, true, "test_port_api" );
+
+  port->pushPacket( buff, size, TS, true, "unknown_stream_id" );
+  delete[] buff;
 
   BULKIO::UsesPortStatisticsSequence *stats = port->statistics();
   CPPUNIT_ASSERT( stats != NULL );
@@ -127,13 +138,23 @@ void  Bulkio_OutPort_Fixture::test_port_api< bulkio::OutCharPort, bulkio::InChar
   BULKIO::StreamSRI sri;
   port->pushSRI( sri );
 
+  // Push packets using sequence
   std::vector< bulkio::OutCharPort::NativeType > v;
   BULKIO::PrecisionUTCTime TS;
   port->pushPacket( v, TS, false, "test_port_api" );
 
-
   std::vector< bulkio::Char > v1;
   port->pushPacket( v1, TS, false, "test_port_api" );
+  
+  // Push packets using pointers
+  size_t size = 100; 
+  char* buff = new char[size];
+  port->pushPacket( buff, size, TS, false, "test_port_api" );
+  delete[] buff;
+
+  bulkio::Int8* buff1 = new bulkio::Int8[size];
+  port->pushPacket( buff1, size, TS, false, "test_port_api" );
+  delete[] buff1;
 
   BULKIO::UsesPortStatisticsSequence *stats = port->statistics();
   CPPUNIT_ASSERT( stats != NULL );

@@ -102,9 +102,6 @@ public class VITA49Stream {
             VITA49StreamAttachment newAttachment = new VITA49StreamAttachment(connectionId, inputPort);
             newAttachment.attachId = newAttachment.inputPort.attach(this.streamDef, this.name);
             this.streamAttachments.add(newAttachment);
-            if (this.sri != null && this.time != null){
-                inputPort.pushSRI(this.sri, this.time);
-            }
         }
 
         public String[] getAttachIds(){
@@ -135,6 +132,15 @@ public class VITA49Stream {
 
         public PrecisionUTCTime getTime(){
             return this.time;
+        }
+
+        public Set<String> getConnectionIds() {
+            Set<String> connIds = new HashSet<String>();
+            Iterator<VITA49StreamAttachment> iterator = this.streamAttachments.iterator();
+            while (iterator.hasNext()){
+                connIds.add(iterator.next().getConnectionId());
+            }
+            return connIds;
         }
 
         public void setStreamDefinition(BULKIO.VITA49StreamDefinition def){

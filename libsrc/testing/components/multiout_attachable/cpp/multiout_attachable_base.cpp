@@ -20,6 +20,8 @@ multiout_attachable_base::multiout_attachable_base(const char *uuid, const char 
     addPort("dataSDDS_in", dataSDDS_in);
     dataVITA49_in = new bulkio::InVITA49Port("dataVITA49_in");
     addPort("dataVITA49_in", dataVITA49_in);
+    dataFloat_in = new bulkio::InFloatPort("dataFloat_in");
+    addPort("dataFloat_in", dataFloat_in);
     dataSDDS_out = new bulkio::OutSDDSPort("dataSDDS_out");
     addPort("dataSDDS_out", dataSDDS_out);
     dataVITA49_out = new bulkio::OutVITA49Port("dataVITA49_out");
@@ -34,6 +36,8 @@ multiout_attachable_base::~multiout_attachable_base()
     dataSDDS_in = 0;
     delete dataVITA49_in;
     dataVITA49_in = 0;
+    delete dataFloat_in;
+    dataFloat_in = 0;
     delete dataSDDS_out;
     dataSDDS_out = 0;
     delete dataVITA49_out;

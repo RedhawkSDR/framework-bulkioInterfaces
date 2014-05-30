@@ -5,7 +5,7 @@ bulkio_idl_java_dir=$(bulkio_top_dir)
 bulkio_libsrc_dir=$(bulkio_top_dir)/libsrc
 bulkio_libsrc_java_dir=$(bulkio_libsrc_dir)/java
 OSSIE_HOME=$(shell echo $(OSSIEHOME))
-BULKIO_JARS=$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_libsrc_java_dir)/bulkio.jar:$(bulkio_idl_java_dir)/BULKIOInterfaces.jar 
+BULKIO_JARS=$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_libsrc_dir)/bulkio.jar:$(bulkio_idl_java_dir)/BULKIOInterfaces.jar 
 
 JAVA = /usr/java/latest/bin/java
 JAVAC = /usr/java/latest/bin/javac

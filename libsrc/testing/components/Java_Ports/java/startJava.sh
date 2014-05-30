@@ -24,7 +24,7 @@ done
 
 #Sun ORB start line
 # JNI
-exec $JAVA_HOME/bin/java -cp ::$myDir/Java_Ports.jar:$myDir/bin:$bulkio_libsrc_top/java/bulkio.jar:$bulkio_top/BULKIOInterfaces.jar:$CLASSPATH Java_Ports.java.Java_Ports "$@"
+exec $JAVA_HOME/bin/java -cp ::$myDir/Java_Ports.jar:$myDir/bin:$bulkio_libsrc_top/bulkio.jar:$bulkio_top/BULKIOInterfaces.jar:$CLASSPATH Java_Ports.java.Java_Ports "$@"
 #exec $JAVA_HOME/bin/java -cp ::$myDir/Java_Ports.jar:$myDir/bin:$CLASSPATH Java_Ports.java.Java_Ports "$@"
 
 #JacORB start lines

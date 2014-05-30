@@ -21,7 +21,8 @@ AC_SUBST(JAVAH)
 AC_SUBST(JAR)
 AC_SUBST(JAVA)
 
-#PKG_CHECK_MODULES([INTERFACEDEPS], [bulkio >= 1.0 bulkioInterfaces >= 1.8])
+export PKG_CONFIG_PATH="../../../..:../../../../.."
+PKG_CHECK_MODULES([BIO], [bulkio >= 1.10])
 
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

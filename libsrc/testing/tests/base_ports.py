@@ -8,6 +8,13 @@ from bulkio.bulkioInterfaces.BULKIO import *
 # remove when sandbox support for relative path works
 test_dir='../'
 
+# Add the local search paths to find local IDL files
+from ossie.utils import model
+from ossie.utils.idllib import IDLLibrary
+model._idllib = IDLLibrary()
+model._idllib.addSearchPath('../../../idl')
+model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
+
 def str_to_class(s):
     if s in globals() and isinstance(globals()[s], types.ClassType):
         return globals()[s]

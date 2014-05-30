@@ -291,6 +291,23 @@ namespace bulkio {
      *  streamID: stream identifier
      */
     void pushPacket( NativeSequenceType & data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    
+    /*
+     * pushPacket
+     *     maps to data<Type> BULKIO method call for passing vectors of data
+     *
+     *  data: pointer to a buffer of data
+     *  size: number of data points in the buffer
+     *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
+     *    tcmode: timecode mode
+     *    tcstatus: timecode status
+     *    toff: fractional sample offset
+     *    twsec: J1970 GMT
+     *    tfsec: fractional seconds: 0.0 to 1.0
+     *  EOS: end-of-stream flag
+     *  streamID: stream identifier
+     */
+    void pushPacket( TransportType* data, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
     /*
      * pushPacket
@@ -417,12 +434,16 @@ namespace bulkio {
   public:
     virtual void   setLogger( LOGGER_PTR newLogger );
 
-
-
-  private:
+  protected:
 
     void _pushOversizedPacket(
             const DataBufferType &      data,
+            BULKIO::PrecisionUTCTime&   T,
+            bool                        EOS,
+            const std::string&          streamID);
+    void _pushOversizedPacket(
+            const TransportType*        buffer,
+            size_t                      size,
             BULKIO::PrecisionUTCTime&   T,
             bool                        EOS,
             const std::string&          streamID);
@@ -498,6 +519,13 @@ namespace bulkio {
     void pushPacket( std::vector< Int8 >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
     void pushPacket( std::vector< Char >& data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    
+    void pushPacket( Int8* buffer, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+
+    void pushPacket( Char* buffer, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
+    
+  protected:
+    void _pushPacket( PortTypes::CharSequence& seq, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
   };
 

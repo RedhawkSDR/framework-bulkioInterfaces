@@ -7,10 +7,15 @@
 #include <vector>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/function.hpp>
+#include <boost/bind.hpp>
 
 #include "bulkio_base.h"
 #include "bulkio_traits.h"
 #include "ossie/ossieSupport.h"
+
+#include "bulkio_in_port.h" // For SriListener Definition
 
 namespace bulkio {
   
@@ -42,6 +47,12 @@ namespace bulkio {
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   class InAttachablePort : public Port_Provides_base_impl, public virtual POAType {
 
+  protected:
+    
+    typedef void (SRICallbackFn)(const BULKIO::StreamSRI&);
+
+    typedef boost::function<SRICallbackFn> SRICallback;
+
   public:
 
     //
@@ -71,14 +82,18 @@ namespace bulkio {
     InAttachablePort(std::string port_name, 
                      InAttachablePort::Callback *attach_detach_cb = NULL,
                      bulkio::sri::Compare  sriCmp = bulkio::sri::DefaultComparator,
-                     bulkio::time::Compare timeCmp = bulkio::time::DefaultComparator);
+                     bulkio::time::Compare timeCmp = bulkio::time::DefaultComparator,
+                     SRICallback *newSriCB = NULL,
+                     SRICallback *sriUpdatedCB = NULL );
 
 
     InAttachablePort(std::string port_name, 
                      LOGGER_PTR    logger,
                      InAttachablePort::Callback *attach_detach_cb = NULL,
                      bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator, 
-                     bulkio::time::Compare timeCmp = bulkio::time::DefaultComparator );
+                     bulkio::time::Compare timeCmp = bulkio::time::DefaultComparator,
+                     SRICallback *newSriCB = NULL,
+                     SRICallback *sriUpdatedCB = NULL );
 
     virtual ~InAttachablePort();
 
@@ -90,7 +105,35 @@ namespace bulkio {
 
     void setLogger( LOGGER_PTR newLogger ); 
     void setNewAttachDetachCallback( Callback *newCallback);
+    
+    template <typename T> inline
+    void setNewSriListener(T &target, void (T::*func)( const BULKIO::StreamSRI &) ) {
+        newSRICallback = boost::bind(func, &target, _1);
+    }
+  
+    template <typename T> inline
+    void setNewSriListener(T *target, void (T::*func)( const BULKIO::StreamSRI &) ) {
+        newSRICallback = boost::bind(func, target, _1);
+    }
+    
+    template <typename T> inline
+    void setSriChangeListener(T &target, void (T::*func)( const BULKIO::StreamSRI &) ) {
+        sriChangeCallback = boost::bind(func, &target, _1);
+    }
+  
+    template <typename T> inline
+    void setSriChangeListener(T *target, void (T::*func)( const BULKIO::StreamSRI &) ) {
+        sriChangeCallback = boost::bind(func, target, _1);
+    }
 
+    void setNewSriListener( SRICallback newCallback );
+
+    void setNewSriListener( SRICallbackFn newCallback );
+    
+    void setSriChangeListener( SRICallback newCallback );
+
+    void setSriChangeListener( SRICallbackFn newCallback );
+    
     //
     // Port Statistics Interface
     //
@@ -200,6 +243,11 @@ namespace bulkio {
 
     typedef std::map<std::string, std::pair<BULKIO::StreamSRI, BULKIO::PrecisionUTCTime> >   SriMap;
 
+    typedef boost::upgrade_lock< boost::shared_mutex >   UPGRADE_LOCK;
+    
+    typedef boost::shared_lock< boost::shared_mutex >    READ_LOCK;
+
+
     // maps a stream ID to a pair of Stream and userID
     AttachedStreams      attachedStreamMap;
 
@@ -213,18 +261,24 @@ namespace bulkio {
 
     MUTEX                statUpdateLock;
 
-    MUTEX                sriUpdateLock;
+    boost::shared_mutex  sriUpdateLock;
+
+    boost::shared_mutex  attachmentLock;
 
     bulkio::sri::Compare     sri_cmp;
 
     bulkio::time::Compare    time_cmp;
 
     Callback                 *attach_detach_callback;
-
+    
     // statistics
     linkStatistics           *stats;
 
     LOGGER_PTR               logger;
+    
+    SRICallback          newSRICallback;
+
+    SRICallback          sriChangeCallback;
   };
 
 
@@ -337,6 +391,7 @@ namespace bulkio {
           StreamAttachmentList getStreamAttachments();
           BULKIO::StreamSRI getSRI();
           BULKIO::PrecisionUTCTime getTime();
+          std::set<std::string> getConnectionIds();
           
           //
           // Setters
@@ -658,7 +713,9 @@ namespace bulkio {
     boost::shared_ptr< ConnectionEventListener >    _connectCB;
     boost::shared_ptr< ConnectionEventListener >    _disconnectCB;
 
-    typename PortType::_ptr_type getConnectedPort(const std::string& connectionId); 
+    typename PortType::_ptr_type getConnectedPort(const std::string& connectionId);
+
+    void updateSRIForAllConnections(); 
   };
 
 

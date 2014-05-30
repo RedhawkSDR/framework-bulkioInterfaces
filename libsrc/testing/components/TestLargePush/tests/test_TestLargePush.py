@@ -7,6 +7,13 @@ import time
 from ossie.utils.testing.unit_test_helpers import getImplId
 from ossie.utils import sb
 
+# Add the local search paths to find local IDL files
+from ossie.utils import model
+from ossie.utils.idllib import IDLLibrary
+model._idllib = IDLLibrary()
+model._idllib.addSearchPath('../../../../../idl')
+model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
+
 PAUSE = .1
 MAX_WAIT_TIME = 10
 EXPECTED_EOS = True

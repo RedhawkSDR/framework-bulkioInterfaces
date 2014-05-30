@@ -65,9 +65,27 @@ class Bulkio_MultiOut_Attachable_Port : public Bulkio_MultiOut_Port<OUT_PORT,IN_
   CPPUNIT_TEST_SUITE_END();
 
 public:
+  Bulkio_MultiOut_Attachable_Port() :
+    Bulkio_MultiOut_Port<OUT_PORT,IN_PORT>(),
+    newSriEvents(0),
+    updateSriEvents(0)
+  {}
+
   virtual void test_multiout_sri();
   virtual void test_multiout_sri_filtered();
   virtual void test_multiout_attach();
+
+  void newSriCallback(const BULKIO::StreamSRI& sri) {
+    newSriEvents++;
+  }
+
+  void sriUpdateCallback(const BULKIO::StreamSRI& sri) {
+    updateSriEvents++;
+  }
+
+  int newSriEvents;
+  int updateSriEvents;
+
 };
 
 

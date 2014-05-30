@@ -80,16 +80,36 @@ public abstract class multiout_attachable_base extends ThreadedResource {
                 Action.EXTERNAL, //action
                 new Kind[] {Kind.CONFIGURE} //kind
                 );
+        public final UShortProperty num_new_sri_callbacks =
+            new UShortProperty(
+                "num_new_sri_callbacks", //id
+                null, //name
+                (short)0, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE} //kind
+                );
+        public final UShortProperty num_sri_change_callbacks =
+            new UShortProperty(
+                "num_sri_change_callbacks", //id
+                null, //name
+                (short)0, //default value
+                Mode.READWRITE, //mode
+                Action.EXTERNAL, //action
+                new Kind[] {Kind.CONFIGURE} //kind
+                );
     
         /**
          * @generated
          */
-        public callback_stats_struct(Short num_sdds_attaches, Short num_sdds_detaches, Short num_vita49_attaches, Short num_vita49_detaches) {
+        public callback_stats_struct(Short num_sdds_attaches, Short num_sdds_detaches, Short num_vita49_attaches, Short num_vita49_detaches, Short num_new_sri_callbacks, Short num_sri_change_callbacks) {
             this();
             this.num_sdds_attaches.setValue(num_sdds_attaches);
             this.num_sdds_detaches.setValue(num_sdds_detaches);
             this.num_vita49_attaches.setValue(num_vita49_attaches);
             this.num_vita49_detaches.setValue(num_vita49_detaches);
+            this.num_new_sri_callbacks.setValue(num_new_sri_callbacks);
+            this.num_sri_change_callbacks.setValue(num_sri_change_callbacks);
         }
     
         /**
@@ -100,6 +120,8 @@ public abstract class multiout_attachable_base extends ThreadedResource {
             addElement(this.num_sdds_detaches);
             addElement(this.num_vita49_attaches);
             addElement(this.num_vita49_detaches);
+            addElement(this.num_new_sri_callbacks);
+            addElement(this.num_sri_change_callbacks);
         }
     
         public String getId() {
@@ -594,6 +616,11 @@ public abstract class multiout_attachable_base extends ThreadedResource {
      */
     public bulkio.InVITA49Port port_dataVITA49_in;
 
+    /**
+     * @generated
+     */
+    public bulkio.InFloatPort port_dataFloat_in;
+
     // Uses/outputs
     /**
      * @generated
@@ -625,6 +652,8 @@ public abstract class multiout_attachable_base extends ThreadedResource {
         this.addPort("dataSDDS_in", this.port_dataSDDS_in);
         this.port_dataVITA49_in = new bulkio.InVITA49Port("dataVITA49_in");
         this.addPort("dataVITA49_in", this.port_dataVITA49_in);
+        this.port_dataFloat_in = new bulkio.InFloatPort("dataFloat_in");
+        this.addPort("dataFloat_in", this.port_dataFloat_in);
 
         // Uses/outputs
         this.port_dataSDDS_out = new bulkio.OutSDDSPort("dataSDDS_out");

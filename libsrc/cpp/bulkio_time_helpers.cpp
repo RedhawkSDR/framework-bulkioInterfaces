@@ -47,6 +47,16 @@ namespace  bulkio {
         return tstamp;
       }
 
+      BULKIO::PrecisionUTCTime addSampleOffset( const BULKIO::PrecisionUTCTime &T, const size_t numSamples, const double xdelta  ){
+	BULKIO::PrecisionUTCTime tstamp = BULKIO::PrecisionUTCTime(T);
+        tstamp.twsec += (long)(numSamples*xdelta);
+        tstamp.tfsec += numSamples*xdelta-(long)(numSamples*xdelta);
+        if (tstamp.tfsec >= 1.0){
+            tstamp.twsec += 1;
+            tstamp.tfsec -= 1.0;
+        }
+        return tstamp;
+      }
     };
 
     bool DefaultComparator( const BULKIO::PrecisionUTCTime &T1, const BULKIO::PrecisionUTCTime &T2  ){
@@ -64,7 +74,6 @@ namespace  bulkio {
     }
 
   }  // end of timestamp namespace
-
 
 
 

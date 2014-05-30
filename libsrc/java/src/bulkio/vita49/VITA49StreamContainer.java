@@ -314,7 +314,7 @@ public class VITA49StreamContainer {
             }
             if (this.streamMap.size() < 1){
                 if (this.logger != null){
-                    this.logger.info("VITA49StreamContainer:addConnectionToAllStreams() NO STREAMS DEFINED. NO ATTACHMENTS WERE MADE");
+                    this.logger.trace("VITA49StreamContainer:addConnectionToAllStreams() NO STREAMS DEFINED. NO ATTACHMENTS WERE MADE");
                 }
             }
             for(Map.Entry<String, VITA49Stream > entry: this.streamMap.entrySet()) {

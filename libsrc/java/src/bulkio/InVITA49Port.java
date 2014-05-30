@@ -94,7 +94,7 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
 
     protected bulkio.time.Comparator   time_cmp;
 
-    protected bulkio.SriListener       streamCB;
+    protected bulkio.SriListener       sriCallback;
 
     public InVITA49Port( String portName ) {
 	this( portName, 
@@ -133,7 +133,7 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
 	attach_detach_callback = actionCB;
 	sri_cmp = sriCmp;
 	time_cmp = timeCmp;
-	streamCB = null;
+	sriCallback = null;
 	logger = logger;
 
 	if ( logger != null  ){
@@ -152,9 +152,9 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
     /**
      * 
      */
-    public void setNewStreamListener( bulkio.SriListener streamCB ) {
+    public void setSriListener( bulkio.SriListener sriCallback ) {
         synchronized(this.sriUpdateLock) {
-	    this.streamCB = streamCB;
+	    this.sriCallback = sriCallback;
 	}
     }
 
@@ -225,15 +225,15 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
      */
     public class streamTimePair {
         /** @generated */
-        StreamSRI stream;
+        StreamSRI sri;
         /** @generated */
         PrecisionUTCTime time;
 
         /**
          * @generated
          */
-        public streamTimePair(final StreamSRI stream, final PrecisionUTCTime time) {
-            this.stream = stream;
+        public streamTimePair(final StreamSRI sri, final PrecisionUTCTime time) {
+            this.sri = sri;
             this.time = time;
         }
     }
@@ -242,10 +242,17 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
      * @generated
      */
     public StreamSRI[] activeSRIs() {
+        StreamSRI[] sris = new StreamSRI[0];
         synchronized (this.sriUpdateLock) {
-            return this.currentHs.keySet().toArray(new StreamSRI[0]);
+            sris = new StreamSRI[this.currentHs.size()];
+            int idx = 0;
+
+            for (streamTimePair vals : this.currentHs.values()) {
+                sris[idx++] = vals.sri;
+            }
         }
-    }
+        return sris;
+   }
 
 
     /**
@@ -260,11 +267,9 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
         synchronized (this.sriUpdateLock) {
             streamTimePair tmpH = this.currentHs.get(H.streamID);
             if (tmpH != null) {
-                tmpH.stream = H;
-                tmpH.time = T;
 		boolean s_same = false;
 		if ( this.sri_cmp != null )  {
-		    s_same = this.sri_cmp.compare(tmpH.stream, H);
+		    s_same = this.sri_cmp.compare(tmpH.sri, H);
 		}
 		boolean t_same = false;
 		if ( this.time_cmp != null )  {
@@ -273,12 +278,12 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
                 this.sriChanged = ( s_same == false ) || ( t_same == false ) ;
 		if ( this.sriChanged )  {
 		    this.currentHs.put(H.streamID, new streamTimePair(H, T));		
-		    if ( streamCB != null ) { streamCB.changedSRI(H); }
+		    if ( sriCallback != null ) { sriCallback.changedSRI(H); }
 		}
             } else {
                 this.currentHs.put(H.streamID, new streamTimePair(H, T));
                 this.sriChanged = true;
-                if ( streamCB != null ) { streamCB.newSRI(H); }
+                if ( sriCallback != null ) { sriCallback.newSRI(H); }
             }
         }
 
@@ -367,16 +372,7 @@ public class InVITA49Port extends BULKIO.jni.dataVITA49POA {
      * @generated
      */
     public StreamSRI[] attachedSRIs() {
-        StreamSRI[] sris = new StreamSRI[0];
-        synchronized (this.sriUpdateLock) {
-            sris = new StreamSRI[this.currentHs.size()];
-            int idx = 0;
-
-            for (streamTimePair vals : this.currentHs.values()) {
-                sris[idx++] = vals.stream;
-            }
-        }
-        return sris;
+        return this.activeSRIs();
     }
 
     /**

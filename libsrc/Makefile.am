@@ -76,12 +76,10 @@ clean-python:
 
 if HAVE_JAVASUPPORT
 
+@rh_jarfile_rules@
+
 JAVA_DIR := java
 JAVA_SRCDIR := $(JAVA_DIR)/src
-JAVA_BINDIR := $(JAVA_DIR)/bin
-CLASSPATH := $(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/ossie.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(top_builddir)/BULKIOInterfaces.jar
-BINARY_JAR := $(JAVA_DIR)/bulkio.jar
-SOURCE_JAR := $(JAVA_DIR)/bulkio.src.jar
 
 JAVA_SRCS := Const.java \
 DataTransfer.java \
@@ -150,34 +148,20 @@ sri/utils.java \
 time/Comparator.java \
 time/DefaultComparator.java \
 time/utils.java
-JAVA_SRCS_ABS := $(addprefix $(JAVA_SRCDIR)/bulkio/, $(JAVA_SRCS))
 
-javalibdir = $(prefix)/lib
-javalib_DATA = $(BINARY_JAR) $(SOURCE_JAR)
+java_JARFILES = bulkio.jar
+java_DATA = bulkio.src.jar
 
-# An intermediate file (used to get from *.java to a .jar). Intermediate
-# indicates it's not important in and of itself - only necessary to get to the
-# .jar
-.INTERMEDIATE: $(JAVA_DIR)/java.files
-$(JAVA_DIR)/java.files: $(JAVA_SRCS_ABS)
-	echo $(JAVA_SRCS_ABS) > $@
+bulkio_jar_SOURCE = $(addprefix $(JAVA_SRCDIR)/bulkio/,$(JAVA_SRCS))
+bulkio_jar_CLASSPATH = $(OSSIE_CLASSPATH):$(top_builddir)/BULKIOInterfaces.jar
+bulkio_jar_MANIFEST = $(JAVA_DIR)/META-INF/MANIFEST.MF
 
-# The jar depends on the file list, which depends on the .java files
-$(BINARY_JAR): $(JAVA_DIR)/java.files $(JAVA_DIR)/META-INF/MANIFEST.MF $(top_builddir)/BULKIOInterfaces.jar
-	@mkdir -p $(JAVA_BINDIR)
-	$(JAVAC) -cp $(CLASSPATH) -target $(JAVA_SOURCE_VERSION) -source $(JAVA_SOURCE_VERSION) -d $(JAVA_BINDIR) @$(JAVA_DIR)/java.files
-	$(JAR) cmf $(JAVA_DIR)/META-INF/MANIFEST.MF $(BINARY_JAR) -C $(JAVA_BINDIR) .
+bulkio.jar: $(top_builddir)/BULKIOInterfaces.jar
 
-$(SOURCE_JAR): $(JAVA_DIR)/java.files $(JAVA_DIR)/META-INF/MANIFEST.MF.src
-	$(JAR) cmf $(JAVA_DIR)/META-INF/MANIFEST.MF.src $(SOURCE_JAR) -C $(JAVA_SRCDIR) .
+bulkio.src.jar: $(JAVA_DIR)/META-INF/MANIFEST.MF.src $(bulkio_jar_SOURCE)
+	$(RH_V_JAR)$(JAR) cmf $< $@ -C $(JAVA_SRCDIR) .
 
-clean-java:
-	rm -rf $(JAVA_BINDIR) $(BINARY_JAR)
-
-else
-
-clean-java:
-	@echo "Java support is disabled"
+CLEANFILES = bulkio.src.jar
 
 endif
 
@@ -185,13 +169,13 @@ endif
 # General
 #
 
-.PHONY: all-local all-python build-python install-python clean-python all-java install-java clean-java reallyclean reallyclean-java
+.PHONY: all-local all-python build-python install-python clean-python reallyclean
 
 all-local: all-python
 
 install-exec-hook: install-python
 
-clean-local: clean-python clean-java
+clean-local: clean-python
 
 reallyclean: distclean
 	rm -f Makefile.in

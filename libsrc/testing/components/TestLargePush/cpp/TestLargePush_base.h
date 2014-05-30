@@ -5,7 +5,9 @@
 #include <boost/thread.hpp>
 #include <ossie/Resource_impl.h>
 
-#include "bulkio/bulkio.h"
+//Need to comment this out to build locally 
+//#include "bulkio/bulkio.h"
+#include "bulkio.h"
 
 #define NOOP 0
 #define FINISH -1

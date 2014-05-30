@@ -2,7 +2,9 @@
 # Runs relative to bulkio project
 #
 
-bulkio_top=../../../
+# can't use relative path for subdir's
+# must get actual path so that subdir's use the correct path
+bulkio_top=$(cd ../../..;pwd)
 bulkio_libsrc_top=$bulkio_top/libsrc
 export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:$bulkio_top/jni/.libs:${LD_LIBRARY_PATH}
 export PYTHONPATH=$bulkio_libsrc_top/build/lib:${PYTHONPATH}
@@ -33,9 +35,6 @@ else
        python $pt
     done
 fi
-
-
-rm $bulkio_libsrc_top/build/lib/bulkio/bulkioInterfaces
 
 #
 #  Run Java based testing
@@ -77,3 +76,5 @@ popd
 pushd ../components/multiout_attachable/tests/
 ./test_multiout_attachable.py
 popd
+
+rm $bulkio_libsrc_top/build/lib/bulkio/bulkioInterfaces

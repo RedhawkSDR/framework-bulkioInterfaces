@@ -1,4 +1,7 @@
 .deps
+.idlj/
+.idljni/
+.jars/
 Makefile
 Makefile.in
 autom4te.cache/
@@ -22,6 +25,7 @@ build
 *.pc
 *.la
 *.pyc
+/setup.py
 /jni/ossie/
 /libsrc/java/bin/
 /libsrc/cpp/.dirstamp

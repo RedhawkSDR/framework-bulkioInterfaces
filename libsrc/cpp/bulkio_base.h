@@ -245,6 +245,12 @@ namespace bulkio {
       // Create a time stamp object from the current time of day reported by the system
       //
       BULKIO::PrecisionUTCTime notSet();
+
+      //
+      // Return a new time stamp object which increments a given time stamp by numSamples*xdelta seconds
+      //
+      BULKIO::PrecisionUTCTime addSampleOffset( const BULKIO::PrecisionUTCTime &T, const size_t numSamples, const double xdelta  );
+
     };
 
 

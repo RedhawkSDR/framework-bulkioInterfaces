@@ -36,6 +36,7 @@ class multiout_attachable_base(CF__POA.Resource, Resource, ThreadedComponent):
             # Instantiate the default implementations for all ports on this component
             self.port_dataSDDS_in = bulkio.InSDDSPort("dataSDDS_in")
             self.port_dataVITA49_in = bulkio.InVITA49Port("dataVITA49_in")
+            self.port_dataFloat_in = bulkio.InFloatPort("dataFloat_in", maxsize=self.DEFAULT_QUEUE_SIZE)
             self.port_dataSDDS_out = bulkio.OutSDDSPort("dataSDDS_out")
             self.port_dataVITA49_out = bulkio.OutVITA49Port("dataVITA49_out")
 
@@ -74,6 +75,10 @@ class multiout_attachable_base(CF__POA.Resource, Resource, ThreadedComponent):
                                           repid="IDL:BULKIO/dataVITA49:1.0",
                                           type_="control")
 
+        port_dataFloat_in = providesport(name="dataFloat_in",
+                                         repid="IDL:BULKIO/dataFloat:1.0",
+                                         type_="control")
+
         port_dataSDDS_out = usesport(name="dataSDDS_out",
                                      repid="IDL:BULKIO/dataSDDS:1.0",
                                      type_="control")
@@ -100,6 +105,12 @@ class multiout_attachable_base(CF__POA.Resource, Resource, ThreadedComponent):
             num_vita49_detaches = simple_property(id_="num_vita49_detaches",
                                                   type_="ushort")
         
+            num_new_sri_callbacks = simple_property(id_="num_new_sri_callbacks",
+                                                    type_="ushort")
+        
+            num_sri_change_callbacks = simple_property(id_="num_sri_change_callbacks",
+                                                       type_="ushort")
+        
             def __init__(self, **kw):
                 """Construct an initialized instance of this struct definition"""
                 for attrname, classattr in type(self).__dict__.items():
@@ -115,6 +126,8 @@ class multiout_attachable_base(CF__POA.Resource, Resource, ThreadedComponent):
                 d["num_sdds_detaches"] = self.num_sdds_detaches
                 d["num_vita49_attaches"] = self.num_vita49_attaches
                 d["num_vita49_detaches"] = self.num_vita49_detaches
+                d["num_new_sri_callbacks"] = self.num_new_sri_callbacks
+                d["num_sri_change_callbacks"] = self.num_sri_change_callbacks
                 return str(d)
         
             def getId(self):
@@ -124,7 +137,7 @@ class multiout_attachable_base(CF__POA.Resource, Resource, ThreadedComponent):
                 return True
         
             def getMembers(self):
-                return [("num_sdds_attaches",self.num_sdds_attaches),("num_sdds_detaches",self.num_sdds_detaches),("num_vita49_attaches",self.num_vita49_attaches),("num_vita49_detaches",self.num_vita49_detaches)]
+                return [("num_sdds_attaches",self.num_sdds_attaches),("num_sdds_detaches",self.num_sdds_detaches),("num_vita49_attaches",self.num_vita49_attaches),("num_vita49_detaches",self.num_vita49_detaches),("num_new_sri_callbacks",self.num_new_sri_callbacks),("num_sri_change_callbacks",self.num_sri_change_callbacks)]
         
         callback_stats = struct_property(id_="callback_stats",
                                          structdef=CallbackStats,

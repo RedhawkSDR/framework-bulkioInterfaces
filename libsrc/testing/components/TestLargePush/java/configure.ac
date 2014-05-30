@@ -10,10 +10,21 @@ CLASSPATH_SOFTPKG_DEP=""
 AC_SUBST(CLASSPATH_SOFTPKG_DEP)
 PKG_CHECK_MODULES([OSSIE], [ossie >= 1.9])
 
+AC_CHECK_PROG([IDLJ], [idlj], [idlj], [AC_MSG_ERROR([cannot find idlj program])])
 AC_CHECK_PROG([JAVAC], [javac], [javac], [AC_MSG_ERROR([cannot find Java compiler])])
 AC_CHECK_PROG([JAR], [jar], [jar], [AC_MSG_ERROR([cannot find jar program])])
 
-PKG_CHECK_MODULES([INTERFACEDEPS], [bulkio >= 1.0 bulkioInterfaces >= 1.9])
+AC_PATH_PROG(JAVAC, javac, [not found], [${JAVA_HOME}/bin])
+AC_PATH_PROG(JAVAH, javah, [not found], [${JAVA_HOME}/bin])
+AC_PATH_PROG(JAVA, java, [not found], [${JAVA_HOME}/bin])
+AC_PATH_PROG(JAR, jar, [not found], [${JAVA_HOME}/bin])
+AC_SUBST(JAVAC)
+AC_SUBST(JAVAH)
+AC_SUBST(JAR)
+AC_SUBST(JAVA)
+
+export PKG_CONFIG_PATH="../../../..:../../../../.."
+PKG_CHECK_MODULES([BIO], [bulkio >= 1.10])
 
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

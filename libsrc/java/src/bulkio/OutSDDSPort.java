@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.HashSet;
 import org.omg.CORBA.TCKind;
 import org.ossie.properties.AnyUtils;
 import org.ossie.component.QueryableUsesPort;
@@ -135,6 +137,7 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
     public void setLogger( Logger newlogger ){
         synchronized (this.updatingPortsLock) {
 	    logger = newlogger;
+            this.streamContainer.setLogger(logger);
 	}
     }
 
@@ -454,6 +457,55 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
                 }
             }
         }
+        this.updateSRIForAllConnections();
+        this.streamContainer.printState("After Filter Table Update");
+    }
+
+    public void  updateSRIForAllConnections() {
+        // Iterate through stream objects in container
+        //   Check if currentSRI has stream entry
+        //     Yes: Check that ALL connections are listed in currentSRI entry
+        //          Update currentSRI
+        //     No:  PushSRI on all attachment ports
+        //          Update currentSRI
+
+        // Initialize variables
+        String streamId;
+        Set<String> streamConnIds = new HashSet<String>(); 
+        Set<String> currentSRIConnIds = new HashSet<String>();
+        Iterator connIdIter;
+
+        // Iterate through all registered streams
+        for (SDDSStream s: this.streamContainer.getStreams()){
+            streamId = s.getStreamId();
+            streamConnIds = s.getConnectionIds();
+
+            // Check if currentSRIs has entry for StreamId
+            if (this.currentSRIs.containsKey(streamId)){
+                SriMapStruct sriMap = this.currentSRIs.get(streamId);
+
+                // Check if all connections on the streams have pushed SRI
+                currentSRIConnIds = sriMap.connections;
+                for (String connId:streamConnIds) {
+
+                    // If not found, pushSRI and update currentSRIs container
+                    if (!currentSRIConnIds.contains(connId)) {
+
+                        // Grab the port
+                        dataSDDSOperations connectedPort = this.outConnections.get(connId);
+                        if (connectedPort == null) {
+		            if ( logger != null ) {
+                                logger.debug("updateSRIForAllConnections() Unable to find connected port with connectionId: " + connId);
+                            }
+                            continue;
+                        }
+                        // Push sri and update sriMap 
+                        connectedPort.pushSRI(sriMap.sri, sriMap.time);
+                        sriMap.connections.add(connId);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -528,6 +580,7 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
 		logger.debug("bulkio::OutPort CONNECT PORT: " + name + " CONNECTION '" + connectionId + "'");
 	    }
         }
+        this.streamContainer.printState("After connectPort");
 
     }
 
@@ -548,7 +601,7 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
                 // PASS
             }
 
-            dataSDDSOperations port = this.outConnections.remove(connectionId);
+            this.outConnections.remove(connectionId);
             this.stats.remove(connectionId);
             this.active = (this.outConnections.size() != 0);
 
@@ -682,11 +735,13 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
      */
     public boolean updateStream(final BULKIO.SDDSStreamDefinition streamDef) throws AttachError, StreamInputError, DetachError
     {
-        if (!this.streamContainer.hasStreamId(streamDef.id)){
-            return false;
+        synchronized (this.updatingPortsLock) {
+            if (!this.streamContainer.hasStreamId(streamDef.id)){
+                return false;
+            }
+            this.streamContainer.removeStreamByStreamId(streamDef.id);
+            return this.addStream(streamDef);
         }
-        this.streamContainer.removeStreamByStreamId(streamDef.id);
-        return this.addStream(streamDef);
     }
 
     /**
@@ -751,6 +806,7 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
             }
 	    logger.trace("bulkio.OutPort addStream() EXIT (port=" + name +")" );
 	}
+        this.streamContainer.printState("After addStream");
         return true;
     }
 
@@ -760,6 +816,7 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
     public void removeStream(String streamId) throws AttachError, StreamInputError, DetachError
     {
         this.streamContainer.removeStreamByStreamId(streamId);
+        this.streamContainer.printState("After removeStream");
     }
 
     /**
@@ -786,6 +843,7 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
 	if ( logger != null ) {
 	    logger.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
 	}
+        this.streamContainer.printState("After detach");
     }
 
     public void detach(String attachId) throws DetachError, StreamInputError
@@ -801,25 +859,7 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
 	if ( logger != null ) {
 	    logger.trace("bulkio.OutPort detach ENTER (port=" + name +")" );
 	}
-    }
-
-
-    /**
-     * @generated
-     */
-    public class streamTimePair {
-        /** @generated */
-        StreamSRI stream;
-        /** @generated */
-        PrecisionUTCTime time;
-        
-        /** 
-         * @generated
-         */
-        public streamTimePair(final BULKIO.StreamSRI stream, final BULKIO.PrecisionUTCTime time) {
-            this.stream = stream;
-            this.time = time;
-        }
+        this.streamContainer.printState("After detach");
     }
 
     /**
