@@ -17,7 +17,7 @@ public class  utils {
 	if ( wsec < 0.0 || fsec < 0.0 ) {
 	    long tmp_time = System.currentTimeMillis();
 	    wsec = tmp_time /1000;
-	    fsec = tmp_time % 1000;
+	    fsec = (tmp_time % 1000)/1000.0;
 	}
 	PrecisionUTCTime tstamp = new PrecisionUTCTime();
 	tstamp.tcmode = tsrc;

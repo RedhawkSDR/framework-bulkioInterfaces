@@ -133,7 +133,7 @@ namespace  bulkio {
 
     if (refreshSRI) {
       if (currentSRIs.find(streamID) != currentSRIs.end()) {
-	pushSRI(currentSRIs[streamID].first);
+	this->pushSRI(currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(updatingPortsLock);   
@@ -147,6 +147,9 @@ namespace  bulkio {
       for (port = outConnections.begin(); port != outConnections.end(); port++) {
 	try {
 	  port->first->pushPacket(seq, T, EOS, streamID.c_str());
+	  if ( stats.count((*port).second) == 0 ) {
+	    stats.insert( std::pair< std::string, linkStatistics>((*port).second, linkStatistics( name, sizeof(TransportType) ) ) );
+	  }
 	  stats[(*port).second].update(data.size(), 0, EOS, streamID);
 	} catch(...) {
 	  LOG_ERROR( logger, "PUSH-PACKET FAILED, PORT/CONNECTION: " << name << "/" << port->second );
@@ -173,7 +176,7 @@ namespace  bulkio {
 
     if (refreshSRI) {
       if (currentSRIs.find(streamID) != currentSRIs.end()) {
-	pushSRI(currentSRIs[streamID].first);
+	this->pushSRI(currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(updatingPortsLock);   // don't want to process while command information is coming in
@@ -271,6 +274,9 @@ namespace  bulkio {
       PortVarType port;
       try {
 	port = PortType::_narrow(connection);
+        if (CORBA::is_nil(port)) {
+            throw CF::Port::InvalidPort(1, "Unable to narrow");
+        }
       }
       catch(...) {
 	LOG_ERROR( logger, "CONNECT FAILED: UNABLE TO NARROW ENDPOINT,  USES PORT:" << name );
@@ -549,7 +555,7 @@ namespace  bulkio {
     TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-	pushSRI(this->currentSRIs[streamID].first);
+	this->pushSRI(this->currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in
@@ -582,7 +588,7 @@ namespace  bulkio {
     TRACE_ENTER(this->logger, "OutStringPort::pushPacket" );
     if (this->refreshSRI) {
       if (this->currentSRIs.find(streamID) != this->currentSRIs.end()) {
-	pushSRI(this->currentSRIs[streamID].first);
+	this->pushSRI(this->currentSRIs[streamID].first);
       }
     }
     SCOPED_LOCK lock(this->updatingPortsLock);   // don't want to process while command information is coming in

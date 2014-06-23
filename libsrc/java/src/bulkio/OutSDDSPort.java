@@ -176,7 +176,7 @@ public class OutSDDSPort extends BULKIO.UsesPortStatisticsProviderPOA {
         
         synchronized (this.updatingPortsLock) {
             for (String connId : this.outConnections.keySet()) {
-                portStats[i] = new UsesPortStatistics(connId, this.stats.get(connId).retrieve());
+                portStats[i++] = new UsesPortStatistics(connId, this.stats.get(connId).retrieve());
             }
         }
         

@@ -53,10 +53,16 @@ libbulkio_@BULKIO_API_VERSION@_la_CXXFLAGS = -Wall -I./cpp -DLOGGING $(BULKIO_IN
 ###############################################################################
 # Python
 
+# Mimic automake silent rules
+OSSIE_V_pysetup = $(ossie__v_pysetup_$(V))
+ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
+ossie__v_pysetup_0 = --quiet
+ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
+
 all-python: build-python
 
 build-python:
-	python setup.py build
+	python setup.py $(OSSIE_V_pysetup) build
 
 install-python:
 	test -n "$(DESTDIR)" && buildroot="--root=$(DESTDIR)"; \
@@ -146,7 +152,7 @@ $(JAVA_DIR)/java.files: $(JAVA_SRCS_ABS)
 
 # The jar depends on the file list, which depends on the .java files
 $(BINARY_JAR): $(JAVA_DIR)/java.files $(JAVA_DIR)/META-INF/MANIFEST.MF $(top_builddir)/BULKIOInterfaces.jar
-	mkdir -p $(JAVA_BINDIR)
+	@mkdir -p $(JAVA_BINDIR)
 	$(JAVAC) -cp $(CLASSPATH) -target 1.6 -source 1.6 -d $(JAVA_BINDIR) @$(JAVA_DIR)/java.files
 	$(JAR) cmf $(JAVA_DIR)/META-INF/MANIFEST.MF $(BINARY_JAR) -C $(JAVA_BINDIR) .
 

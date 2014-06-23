@@ -58,7 +58,8 @@ bio_dataUshort.idl \
 bio_dataLong.idl \
 bio_dataLongLong.idl \
 bio_dataUlongLong.idl \
-bio_dataSDDS.idl
+bio_dataSDDS.idl \
+bio_dataVITA49.idl
 
 # External IDL namespaces that your IDLs reference, comment this line
 # out if your IDL has no external references
@@ -115,29 +116,28 @@ libbulkioInterfaces_la_SOURCES = \
 	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLong.h \
 	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataLongLong.h \
 	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLongSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLongDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataUlongLong.h \
-	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDS.h
-
+	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDSDynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataSDDS.h \
+	src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49SK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49DynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_dataVITA49.h
 ####################################################
 # IDL Build Dependencies to help with parallel build
 ####################################################
 build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_data%.idl : $(IDL_SOURCE_PATH)/bio_data%.idl build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_runtimeStats.idl build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_updateSRI.idl
-	mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
-	cp $< $@
+	$(AM_V_at)mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
+	$(AM_V_at)cp $< $@
 
 build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_runtimeStats.idl: $(IDL_SOURCE_PATH)/bio_runtimeStats.idl build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bulkioDataTypes.idl
-	mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
-	cp $< $@
+	$(AM_V_at)mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
+	$(AM_V_at)cp $< $@
 
 build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_updateSRI.idl: $(IDL_SOURCE_PATH)/bio_updateSRI.idl build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/bio_runtimeStats.idl
-	mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
-	cp $< $@
+	$(AM_V_at)mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
+	$(AM_V_at)cp $< $@
 
 ###############################################################################
 # DO NOT MODIFY ANY LINES BELOW HERE
 ###############################################################################
 .PHONY: all-local all-python install-python clean-python all-java install-java clean-java compile-java zip-src 
 .INTERMEDIATE: build/java.files build/java.export setup.py 
-.NOTPARALLEL: $(PY_SRC_OUT_DIR)/__init__.py
 LOWER_CASE_IDL_MODULE :=$(shell echo $(IDL_MODULE) | tr A-Z a-z)
 
 idldir = $(datadir)/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
@@ -151,8 +151,8 @@ clean-local: clean-python clean-java clean-cpp
 	rm -rf build
 
 build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl: $(IDL_SOURCE_PATH)/%.idl
-	mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
-	cp $< $@
+	$(AM_V_at)mkdir -p build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)
+	$(AM_V_at)cp $< $@
 
 # Always build the current directory first (this is hack-ish, but the
 # alternative is to combine the Makefile.am's)
@@ -174,8 +174,8 @@ AM_CXXFLAGS = -Wall -I src/cpp -g $(OMNIORB_CFLAGS) $(OSSIE_CFLAGS)
 AM_LIBS = $(OSSIE_LIBS)
 
 src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%DynSK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%SK.cpp src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)/%.h: build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl
-	@mkdir -p "src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)"
-	$(IDL) -I build/idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
+	$(AM_V_at)mkdir -p "src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE)"
+	$(AM_V_GEN)$(IDL) -I build/idl $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/cpp/$(LIBRARY_NAME)/$(IDL_MODULE) -bcxx -Wba -Wbd=DynSK.cpp -Wbh=.h -Wbs=SK.cpp -Wbkeep_inc_path $<
 
 clean-cpp:
 	rm -rf src/cpp
@@ -206,16 +206,16 @@ PYTHON_MODULE_NAME := $(LOWER_CASE_IDL_MODULE)Interfaces
 PYTHON_PACKAGE := $(LOWER_CASE_IDL_MODULE).$(PYTHON_MODULE_NAME)
 PYTHON_BASE := $(subst .,/,$(PYTHON_PACKAGE))
 PY_SRC_OUT_DIR := $(addprefix src/python/, $(subst .,/, $(PYTHON_PACKAGE)))
-PY_SRCS := $(addprefix $(PY_SRC_OUT_DIR)/, $(subst .idl,_idl.py, $(IDL_FILES)))
+PY_IDL_SRCS := $(addprefix build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/, $(IDL_FILES))
 PY_BUILD_OUT_DIR := $(addprefix build/lib/, $(subst .,/, $(PYTHON_PACKAGE)))
 PY_BUILT_SRCS := $(addprefix $(PY_BUILD_OUT_DIR)/, $(subst .idl,_idl.py, $(IDL_FILES)))
 PY_IDL_EXTERNS := $(addprefix -Wbextern=, $(subst ,, $(PYTHON_EXTERNS)))
 
 PY_IDL_INCLUDES := -I build/idl
 
-$(PY_SRC_OUT_DIR)/%_idl.py: build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl
-	mkdir -p $(PY_SRC_OUT_DIR)
-	$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $<
+$(PY_SRC_OUT_DIR)/__init__.py: $(PY_IDL_SRCS)
+	$(AM_V_at)mkdir -p $(PY_SRC_OUT_DIR)
+	$(AM_V_GEN)$(IDL) $(PY_IDL_INCLUDES) $(OSSIE_CFLAGS) $(OSSIE_IDLFLAGS) -C src/python -bpython -Wbpackage=$(PYTHON_PACKAGE) $(PY_IDL_EXTERNS) $^
 
 setup.py: Makefile.am
 # Build up a setup.py line-by-line
@@ -245,9 +245,15 @@ setup.py: Makefile.am
 	@echo "      packages=_packages" >> $@
 	@echo ")" >> $@
 
-$(PY_BUILD_OUT_DIR): $(PY_SRCS) setup.py
-	python setup.py build --build-lib build/lib
-	touch $(PY_BUILD_OUT_DIR)
+# Mimic automake silent rules
+OSSIE_V_pysetup = $(ossie__v_pysetup_$(V))
+ossie__v_pysetup_ = $(ossie__v_pysetup__$(AM_DEFAULT_VERBOSITY))
+ossie__v_pysetup_0 = --quiet
+ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
+
+$(PY_BUILD_OUT_DIR): $(PY_SRC_OUT_DIR)/__init__.py setup.py
+	python setup.py $(OSSIE_V_pysetup) build --build-lib build/lib
+	$(AM_V_at)touch $(PY_BUILD_OUT_DIR)
 
 all-python: $(PY_BUILD_OUT_DIR)
 
@@ -317,13 +323,13 @@ src/java:
 	@mkdir -p src/java
 
 $(IDL_TO_JAVA_TARGETS): src/java/%.idlj: build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl | src/java
-	$(IDLJ) -fall -td $(IDLJ_SRC_DEST) $(IDLJ_INCLUDES) $<
-	$(IDLJ) -fallTie -td $(IDLJ_SRC_DEST) $(IDLJ_INCLUDES) $<
-	touch $@
+	$(AM_V_GEN)$(IDLJ) -fall -td $(IDLJ_SRC_DEST) $(IDLJ_INCLUDES) $<
+	$(AM_V_GEN)$(IDLJ) -fallTie -td $(IDLJ_SRC_DEST) $(IDLJ_INCLUDES) $<
+	$(AM_V_at)touch $@
 
 src/java/%.omnijni: build/idl/$(LIBRARY_NAME)/$(IDL_MODULE)/%.idl | src/java
-	$(IDL) -bossie.omnijni.idljava -Wblibname=bulkiojni $(IDLJNI_INCLUDES) -C src/java $<
-	touch $@
+	$(AM_V_GEN)$(IDL) -bossie.omnijni.idljava -Wblibname=bulkiojni $(IDLJNI_INCLUDES) -C src/java $<
+	$(AM_V_at)touch $@
 
 all-java: $(JAVA_OUTPUT_JAR) $(JAVA_SRC_JAR)
 
@@ -357,7 +363,7 @@ build/java/META-INF/MANIFEST.MF: Makefile.am build/java.export
 
 $(JAVA_OUTPUT_JAR): build/java.files build/java/META-INF/MANIFEST.MF
 	@mkdir -p build/java
-	${JAR} cMf $@ -C build/java META-INF/MANIFEST.MF -C build/java $(IDL_MODULE)
+	$(AM_V_GEN)$(JAR) cMf $@ -C build/java META-INF/MANIFEST.MF -C build/java $(IDL_MODULE)
 
 src/java/META-INF/MANIFEST.MF: Makefile.am
 	@mkdir -p src/java/META-INF
@@ -371,7 +377,7 @@ src/java/META-INF/MANIFEST.MF: Makefile.am
 	@echo "Eclipse-SourceBundle: $(BUNDLE_SYMBOLIC_NAME);version=$(BUNDLE_VERSION).$(BUNDLE_QUALIFIER)" >> $@
 
 $(JAVA_SRC_JAR): build/java.files src/java/META-INF/MANIFEST.MF
-	${JAR} cMf $@ -C $(IDLJ_SRC_DEST) .
+	$(AM_V_GEN)$(JAR) cMf $@ -C $(IDLJ_SRC_DEST) .
 
 install-java: $(JAVA_OUTPUT_JAR)
 	cp $< $(DESTDIR)$(prefix)/lib

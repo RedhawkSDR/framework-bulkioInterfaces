@@ -26,10 +26,10 @@ BULKIO_LIBS = $(top_builddir)/libbulkioInterfaces.la
 OSSIE_IDLDIR = $(OSSIEHOME)/share/idl
 
 ossie/BULKIO :
-	mkdir -p $@
+	@mkdir -p $@
 
 ossie/BULKIO/jni_%.cpp ossie/BULKIO/jni_%.h: $(BULKIO_IDLDIR)/ossie/BULKIO/%.idl | ossie/BULKIO
-	$(IDL) -bossie.omnijni.idljni -I $(BULKIO_IDLDIR) -I $(OSSIE_IDLDIR) -Wbincprefix=BULKIO -C ossie/BULKIO $<
+	$(AM_V_GEN)$(IDL) -bossie.omnijni.idljni -I $(BULKIO_IDLDIR) -I $(OSSIE_IDLDIR) -Wbincprefix=BULKIO -C ossie/BULKIO $<
 
 libbulkiojni_la_CPPFLAGS = -Iossie/BULKIO -I. $(BULKIO_CFLAGS) $(JNI_CPPFLAGS) $(OSSIE_CFLAGS)
 libbulkiojni_la_CXXFLAGS = -Wall
@@ -51,8 +51,8 @@ nodist_libbulkiojni_la_SOURCES = \
 	ossie/BULKIO/jni_bio_dataLong.cpp \
 	ossie/BULKIO/jni_bio_dataLongLong.cpp \
 	ossie/BULKIO/jni_bio_dataUlongLong.cpp \
-	ossie/BULKIO/jni_bio_dataSDDS.cpp
-
+	ossie/BULKIO/jni_bio_dataSDDS.cpp \
+        ossie/BULKIO/jni_bio_dataVITA49.cpp
 nobase_nodist_include_HEADERS = \
 	ossie/BULKIO/jni_bulkioDataTypes.h \
 	ossie/BULKIO/jni_bio_runtimeStats.h \
@@ -69,6 +69,6 @@ nobase_nodist_include_HEADERS = \
 	ossie/BULKIO/jni_bio_dataLong.h \
 	ossie/BULKIO/jni_bio_dataLongLong.h \
 	ossie/BULKIO/jni_bio_dataUlongLong.h \
-	ossie/BULKIO/jni_bio_dataSDDS.h
-
+	ossie/BULKIO/jni_bio_dataSDDS.h \
+	ossie/BULKIO/jni_bio_dataVITA49.h
 CLEANFILES = $(nodist_libbulkiojni_la_SOURCES) $(nobase_nodist_include_HEADERS)

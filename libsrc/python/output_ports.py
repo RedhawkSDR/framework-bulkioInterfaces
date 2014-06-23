@@ -37,6 +37,9 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         try:
            try:
               port = connection._narrow(self.PortType)
+              if port == None:
+                  raise Port.InvalidPort(1, "Invalid Port for Connection ID:" + str(connectionId) )
+
               self.outConnections[str(connectionId)] = port
               self.refreshSRI = True
 
@@ -211,9 +214,6 @@ class OutFilePort(OutPort):
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataFile, OutFilePort.TRANSFER_TYPE , logger )
 
-    def pushPacket(self, URL, EOS, streamID):
-        self.pushPacket( URL, timestamp.now(), EOS, streamID )
-
     def pushPacket(self, URL, T, EOS, streamID):
 
         if self.logger:
@@ -247,9 +247,6 @@ class OutXMLPort(OutPort):
     TRANSFER_TYPE = 'c'
     def __init__(self, name, logger=None ):
         OutPort.__init__(self, name, BULKIO.dataXML, OutXMLPort.TRANSFER_TYPE , logger )
-
-    def pushPacket(self, xml_string, T, EOS, streamID):
-        self.pushPacket( xml_string, EOS, streamID );
 
     def pushPacket(self, xml_string, EOS, streamID):
 

@@ -41,7 +41,7 @@ if test "$IDL" = no; then
   AC_MSG_ERROR([cannot find omniidl program])
 fi
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([OSSIE], [ossie >= 1.8.0])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 1.9.0])
 
 # Optionally include BULKIO base class libraries
 AC_ARG_ENABLE([base-classes], AS_HELP_STRING([--disable-base-classes], [Disable BULKIO base class libraries]))

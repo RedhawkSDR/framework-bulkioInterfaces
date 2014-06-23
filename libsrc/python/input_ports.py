@@ -416,7 +416,7 @@ class InSDDSPort(BULKIO__POA.dataSDDS):
         try:
             self._detach_cb = getattr(callback, "detach")
             if not callable(self._detach_cb):
-                self._attach_cb = None
+                self._detach_cb = None
         except AttributeError:
             self._detach_cb = None
 

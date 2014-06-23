@@ -25,7 +25,7 @@ public class DefaultComparator implements bulkio.sri.Comparator {
             return false;
         if (SRI_1.mode != SRI_2.mode)
             return false;
-        if (SRI_1.streamID != SRI_2.streamID)
+        if (!SRI_1.streamID.equals(SRI_2.streamID))
             return false;
         if (SRI_1.keywords.length != SRI_2.keywords.length)
             return false;

@@ -139,7 +139,7 @@ public class OutInt8Port extends BULKIO.UsesPortStatisticsProviderPOA {
 
         synchronized (this.updatingPortsLock) {
             for (String connId : this.outConnections.keySet()) {
-                portStats[i] = new UsesPortStatistics(connId, this.stats.get(connId).retrieve());
+                portStats[i++] = new UsesPortStatistics(connId, this.stats.get(connId).retrieve());
             }
         }
 
@@ -349,7 +349,7 @@ public class OutInt8Port extends BULKIO.UsesPortStatisticsProviderPOA {
         }
 
 	if ( callback != null ) {
-	    callback.connect(connectionId);
+	    callback.disconnect(connectionId);
 	}
 
 	if ( logger != null ) {

@@ -213,9 +213,16 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA {
      * @generated
      */
     public StreamSRI[] activeSRIs() {
+        StreamSRI[] sris = new StreamSRI[0];
         synchronized (this.sriUpdateLock) {
-            return this.currentHs.keySet().toArray(new StreamSRI[0]);
+            sris = new StreamSRI[this.currentHs.size()];
+            int idx = 0;
+
+            for (streamTimePair vals : this.currentHs.values()) {
+                sris[idx++] = vals.stream;
+            }
         }
+        return sris;
     }
 
 
@@ -231,8 +238,6 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA {
         synchronized (this.sriUpdateLock) {
             streamTimePair tmpH = this.currentHs.get(H.streamID);
             if (tmpH != null) {
-                tmpH.stream = H;
-                tmpH.time = T;
 		boolean s_same = false;
 		if ( this.sri_cmp != null )  {
 		    s_same = this.sri_cmp.compare(tmpH.stream, H);
@@ -336,16 +341,7 @@ public class InSDDSPort extends BULKIO.jni.dataSDDSPOA {
      * @generated
      */
     public StreamSRI[] attachedSRIs() {
-        StreamSRI[] sris = new StreamSRI[0];
-        synchronized (this.sriUpdateLock) {
-            sris = new StreamSRI[this.currentHs.size()];
-            int idx = 0;
-
-            for (streamTimePair vals : this.currentHs.values()) {
-                sris[idx++] = vals.stream;
-            }
-        }
-        return sris;
+        return this.activeSRIs();
     }
 
     /**
