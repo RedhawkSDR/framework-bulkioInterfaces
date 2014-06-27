@@ -93,16 +93,17 @@ int multiout_attachable_i::serviceFunction()
 {
     LOG_DEBUG(multiout_attachable_i, "serviceFunction() example log message");
 
-            bulkio::InFloatPort::dataTransfer *tmp = dataFloat_in->getPacket(bulkio::Const::BLOCKING);
-            if (not tmp) { // No data is available
-                return NOOP;
-            }
-            if (tmp->sriChanged) {
-                dataSDDS_out->pushSRI(tmp->SRI, bulkio::time::utils::now());
-                dataVITA49_out->pushSRI(tmp->SRI, bulkio::time::utils::now());
-            }
+    bulkio::InFloatPort::dataTransfer *tmp = dataFloat_in->getPacket(bulkio::Const::BLOCKING);
+    if (not tmp) { // No data is available
+        return NOOP;
+    }
+    if (tmp->sriChanged) {
+        dataSDDS_out->pushSRI(tmp->SRI, bulkio::time::utils::now());
+        dataVITA49_out->pushSRI(tmp->SRI, bulkio::time::utils::now());
+    }
 
-    return NOOP;
+    this->packets_ingested++;
+    return NORMAL;
 }
 
 void multiout_attachable_i::vita49StreamDefChanged(Vita49StreamDefs *oldValue,
@@ -216,6 +217,8 @@ void multiout_attachable_i::sddsStreamDefChanged(SddsStreamDefs *oldValue,
 
 void multiout_attachable_i::newSriCallback(const BULKIO::StreamSRI& sri) {
     BULKIO::StreamSRISequence* sriList;
+    //std::cout << "NewSRICallback-StreamID: " << sri.streamID << std::endl;
+    //std::cout << "NewSRICallback-xdelta: " << sri.xdelta << std::endl;
     
     // Query SRIs to ensure deadlock doesn't occur
     sriList = this->dataSDDS_in->activeSRIs();
@@ -230,6 +233,9 @@ void multiout_attachable_i::newSriCallback(const BULKIO::StreamSRI& sri) {
 
 void multiout_attachable_i::sriChangeCallback(const BULKIO::StreamSRI& sri) {
     BULKIO::StreamSRISequence* sriList;
+
+    //std::cout << "SRIChangeCallback-StreamID: " << sri.streamID << std::endl;
+    //std::cout << "SRIChangeCallback-xdelta: " << sri.xdelta << std::endl;
     
     // Query SRIs to ensure deadlock doesn't occur
     sriList = this->dataSDDS_in->activeSRIs();

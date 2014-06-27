@@ -28,9 +28,8 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 TestLargePush_SOURCES = $(redhawk_SOURCES_auto)
-TestLargePush_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
+TestLargePush_LDADD = -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs $(BIO_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
 #TestLargePush_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 TestLargePush_CXXFLAGS = -Wall -I$(bulkio_libsrc_top)/cpp -I$(bulkio_top)/src/cpp $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
-TestLargePush_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs
-TestLargePush_LDFLAGS += $(BIO_LIBS)
+TestLargePush_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) 
 

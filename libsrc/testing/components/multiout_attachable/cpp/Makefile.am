@@ -28,9 +28,8 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 multiout_attachable_SOURCES = $(redhawk_SOURCES_auto)
-multiout_attachable_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
+multiout_attachable_LDADD =  -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs $(BIO_LIBS) $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
 #multiout_attachable_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
 multiout_attachable_CXXFLAGS = -Wall -I$(bulkio_libsrc_top)/cpp -I$(bulkio_top)/src/cpp $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
-multiout_attachable_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) -L$(bulkio_libsrc_top)/.libs -L$(bulkio_top)/.libs
-multiout_attachable_LDFLAGS += $(BIO_LIBS)
+multiout_attachable_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
 

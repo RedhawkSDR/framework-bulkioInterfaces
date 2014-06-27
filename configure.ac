@@ -55,6 +55,7 @@ if test "$enable_base_classes" != "no"; then
 
   AX_BOOST_BASE([1.41])
   AX_BOOST_THREAD
+  AX_BOOST_SYSTEM
   OSSIE_ENABLE_LOG4CXX
   CHECK_VECTOR_IMPL
 

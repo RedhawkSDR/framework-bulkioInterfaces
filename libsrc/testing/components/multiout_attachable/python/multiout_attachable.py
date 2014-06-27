@@ -156,12 +156,16 @@ class multiout_attachable_i(multiout_attachable_base):
 
     def process(self):
         data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.port_dataFloat_in.getPacket()
+        if not data:
+            return NOOP
+
         if sriChanged:
             logging.debug("process() sri changed : " + str(sri) + " T: " + str(T))
             self.port_dataSDDS_out.pushSRI(sri,T)
             self.port_dataVITA49_out.pushSRI(sri,T)
 
-        return NOOP
+        self.packets_ingested += 1
+        return NORMAL
 
     def newSriCallback(self,sri):
         # Query SRIs to ensure deadlock doesn't occur

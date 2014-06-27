@@ -498,30 +498,38 @@ namespace  bulkio {
           for (; cSRIs!=currentSRIs.end(); cSRIs++) {
             std::string cSriSid(cSRIs->second.sri.streamID);
 
-	    // Check if we have sent out sri/data to the connection
-	    if ( cSRIs->second.connections.count( cid ) != 0 ) {
-	      if (portListed) {
-		for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
-		  if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == cid ) and (ftPtr->stream_id == cSriSid)) {
-                      try {
-                        outConnections[i].first->pushPacket(seq, tstamp, true, cSriSid.c_str());
-                      } catch(...) {}
-                    }
+            // Check if we have sent out sri/data to the connection
+            if ( cSRIs->second.connections.count( cid ) != 0 ) {
+              bool sendEOS = false;
+              if (portListed) {
+                for (ftPtr=this->filterTable.begin(); ftPtr != this->filterTable.end(); ftPtr++) {
+                  if ((ftPtr->port_name == this->name) and (ftPtr->connection_id == cid ) and (ftPtr->stream_id == cSriSid)) {
+                    sendEOS = true;
+                    break;
                   }
-	      } else {
+                }
+              } else {
+                sendEOS = true;
+              }
+              
+              if (sendEOS) {
+                try {
                   outConnections[i].first->pushPacket(seq, tstamp, true, cSriSid.c_str());
-	      }
-	    }
+                } catch (...) {
+                  // Ignore all exceptions; the receiver may be dead
+                }
+              }
+            }
 
-	    // remove connection id from sri connections list
-	    cSRIs->second.connections.erase( cid );
+            // remove connection id from sri connections list
+            cSRIs->second.connections.erase( cid );
 
-	  }
+          }
           LOG_DEBUG( logger, "DISCONNECT, PORT/CONNECTION: "  << name << "/" << connectionId );
           outConnections.erase(outConnections.begin() + i);
           stats.erase( outConnections[i].second );
           break;
-	}
+        }
       }
     
       if (outConnections.size() == 0) {

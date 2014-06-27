@@ -283,13 +283,17 @@ public class multiout_attachable extends multiout_attachable_base {
     protected int serviceFunction() {
 
         bulkio.InFloatPort.Packet data = this.port_dataFloat_in.getPacket(125);
+        if (data == null) {
+            return NOOP;
+        }
         if (data != null && data.sriChanged()) {
             logger.debug("serviceFunction() pushing out new SRI for streamId " + data.getSRI().streamID);
             this.port_dataSDDS_out.pushSRI(data.getSRI(), bulkio.time.utils.now());
             this.port_dataVITA49_out.pushSRI(data.getSRI(), bulkio.time.utils.now());
         }
 
-        return NOOP;
+        multiout_attachable.this.packets_ingested.setValue(multiout_attachable.this.packets_ingested.getValue()+1);
+        return NORMAL;
     }
 
     protected void vita49StreamDefChanged(List<VITA49StreamDefinition_struct> oldValue, List<VITA49StreamDefinition_struct> newValue)

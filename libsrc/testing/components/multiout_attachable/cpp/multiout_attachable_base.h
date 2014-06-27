@@ -5,9 +5,7 @@
 #include <ossie/Resource_impl.h>
 #include <ossie/ThreadedComponent.h>
 
-//Need to comment this out to build locally 
-//#include <bulkio/bulkio.h>
-#include "bulkio.h"
+#include <bulkio/bulkio.h>
 #include "struct_props.h"
 
 class multiout_attachable_base : public Resource_impl, protected ThreadedComponent
@@ -28,6 +26,7 @@ class multiout_attachable_base : public Resource_impl, protected ThreadedCompone
         void connectionTableChanged(const std::vector<connection_descriptor_struct>* oldValue, const std::vector<connection_descriptor_struct>* newValue);
 
         // Member variables exposed as properties
+        unsigned short packets_ingested;
         callback_stats_struct callback_stats;
         std::vector<connection_descriptor_struct> connectionTable;
         std::vector<SDDSStreamDefinition_struct> SDDSStreamDefinitions;

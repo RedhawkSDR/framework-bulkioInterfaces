@@ -7,9 +7,8 @@ bulkio_libsrc_java_dir=$(bulkio_libsrc_dir)/java
 OSSIE_HOME=$(shell echo $(OSSIEHOME))
 BULKIO_JARS=$(OSSIE_HOME)/lib/CFInterfaces.jar:$(OSSIE_HOME)/lib/log4j-1.2.15.jar:$(OSSIE_HOME)/lib/ossie.jar:$(bulkio_libsrc_dir)/bulkio.jar:$(bulkio_idl_java_dir)/BULKIOInterfaces.jar 
 
-JAVA = /usr/java/latest/bin/java
-JAVAC = /usr/java/latest/bin/javac
-JAVA_HOME = /usr/java/latest
+JAVA = $(JAVA_HOME)/bin/java
+JAVAC = $(JAVA_HOME)/bin/javac
 JAVA_CP=$(CLASSPATH):.:/usr/share/java/junit4.jar:$(BULKIO_JARS)
 
 .SUFFIXES:  .java .class

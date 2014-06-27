@@ -39,13 +39,13 @@ class multiout_attachable_base(CF__POA.Resource, Resource, ThreadedComponent):
             self.port_dataFloat_in = bulkio.InFloatPort("dataFloat_in", maxsize=self.DEFAULT_QUEUE_SIZE)
             self.port_dataSDDS_out = bulkio.OutSDDSPort("dataSDDS_out")
             self.port_dataVITA49_out = bulkio.OutVITA49Port("dataVITA49_out")
+            self.addPropertyChangeListener('connectionTable',self.updated_connectionTable)
 
         def start(self):
             Resource.start(self)
             ThreadedComponent.startThread(self, pause=self.PAUSE)
 
-        def onconfigure_prop_connectionTable(self, oldval, newval):
-            self.connectionTable = newval
+        def updated_connectionTable(self, id, oldval, newval):
             self.port_dataSDDS_out.updateConnectionFilter(newval)
             self.port_dataVITA49_out.updateConnectionFilter(newval)
 
@@ -92,6 +92,14 @@ class multiout_attachable_base(CF__POA.Resource, Resource, ThreadedComponent):
         # 
         # DO NOT ADD NEW PROPERTIES HERE.  You can add properties in your derived class, in the PRF xml file
         # or by using the IDE.
+        packets_ingested = simple_property(id_="packets_ingested",
+                                           name="packets_ingested",
+                                           type_="ushort",
+                                           defvalue=0,
+                                           mode="readwrite",
+                                           action="external",
+                                           kinds=("configure",))
+        
         class CallbackStats(object):
             num_sdds_attaches = simple_property(id_="num_sdds_attaches",
                                                 type_="ushort")

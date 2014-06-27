@@ -33,6 +33,22 @@ public abstract class multiout_attachable_base extends ThreadedResource {
     public final static Logger logger = Logger.getLogger(multiout_attachable_base.class.getName());
 
     /**
+     * The property packets_ingested
+     * If the meaning of this property isn't clear, a description should be added.
+     *
+     * @generated
+     */
+    public final UShortProperty packets_ingested =
+        new UShortProperty(
+            "packets_ingested", //id
+            "packets_ingested", //name
+            (short)0, //default value
+            Mode.READWRITE, //mode
+            Action.EXTERNAL, //action
+            new Kind[] {Kind.CONFIGURE} //kind
+            );
+    
+    /**
      * The property callback_stats
      * If the meaning of this property isn't clear, a description should be added.
      *
@@ -640,6 +656,7 @@ public abstract class multiout_attachable_base extends ThreadedResource {
         super();
 
         // Properties
+        addProperty(packets_ingested);
         addProperty(callback_stats);
         addProperty(connectionTable);
         addProperty(SDDSStreamDefinitions);

@@ -131,7 +131,7 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inFloatPort.pushSRI(sri)
         inFloatPort.pushPacket(range(1,100),T,False,streamId)
         # add sleep to make sure SRI is received by all connections
-        time.sleep(1)
+        #time.sleep(1)
     
     def assertNumNewSRICallbacks(self, num):
         self.assertEquals(self.sink1.callback_stats.num_new_sri_callbacks, num)
@@ -145,6 +145,37 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEquals(self.sink3.callback_stats.num_sri_change_callbacks, num)
         self.assertEquals(self.sink4.callback_stats.num_sri_change_callbacks, num)
 
+    def checkSRIReceived(self, ports, numSRIs=1, sriFields=None):
+        for port in ports:
+            timeout = 10
+            while len(port._get_attachedSRIs()) < numSRIs:
+                time.sleep(1)
+                timeout -= 1
+                if timeout == 0:
+                    self.assertTrue(False, "Timed-out waiting to receive new SRI")
+                    break
+            timeout = 10
+            if sriFields:
+                for key,val in sriFields.items():
+                    attachedSRIs = port._get_attachedSRIs()
+                    self.assertTrue(len(attachedSRIs)>0, "Unable to check SRI parameters...No SRIs received")
+                    while getattr(port._get_attachedSRIs()[0],key) != val:
+                        time.sleep(1)
+                        timeout -= 1
+                        if timeout == 0:
+                            break
+    
+    def waitForPacketIngestion(self, component, count, timeout=10, delay=0.5):
+        now = time.time()
+        endTime = now+timeout
+        while (now < endTime):
+            if (component.packets_ingested == count):
+                return
+            time.sleep(delay)
+            now = time.time()
+
+        self.assertTrue(component.packets_ingested == count, "Timed-out waiting for expected number of packet ingests")
+        
 
     # ##############
     #     Tests
@@ -744,6 +775,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort3 = self.sink3.getPort("dataSDDS_in")
         inPort4 = self.sink4.getPort("dataSDDS_in")
 
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4])
+
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
@@ -762,6 +795,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataSDDS_in")
         inPort3 = self.sink3.getPort("dataSDDS_in")
         inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],1,{"xstart":1234.0})
 
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
@@ -786,6 +821,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort3 = self.sink3.getPort("dataSDDS_in")
         inPort4 = self.sink4.getPort("dataSDDS_in")
 
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],1,{"xstart":1234.0})
+
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
         self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
@@ -808,6 +845,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
 
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4])
+
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream1')
@@ -825,6 +864,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataVITA49_in")
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4])
 
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort2._get_attachedSRIs()[0].streamID, 'Stream1')
@@ -844,6 +885,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataVITA49_in")
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],1,{"xstart":1234.0})
 
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
@@ -867,6 +910,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataVITA49_in")
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],1,{"xstart":1234.0})
 
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
@@ -898,6 +943,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort3 = self.sink3.getPort("dataSDDS_in")
         inPort4 = self.sink4.getPort("dataSDDS_in")
 
+        self.checkSRIReceived([inPort1,inPort3])
+
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort2._get_attachedSRIs(), [])
         self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
@@ -925,6 +972,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataSDDS_in")
         inPort3 = self.sink3.getPort("dataSDDS_in")
         inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.checkSRIReceived([inPort1,inPort3])
 
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort2._get_attachedSRIs(),[])
@@ -956,6 +1005,9 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataSDDS_in")
         inPort3 = self.sink3.getPort("dataSDDS_in")
         inPort4 = self.sink4.getPort("dataSDDS_in")
+
+        self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
+        self.checkSRIReceived([inPort3],1,{"xstart":987.0})
 
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
@@ -994,6 +1046,9 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort3 = self.sink3.getPort("dataSDDS_in")
         inPort4 = self.sink4.getPort("dataSDDS_in")
 
+        self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
+        self.checkSRIReceived([inPort3],1,{"xstart":987.0})
+
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
         self.assertEquals(inPort2._get_attachedSRIs(),[])
@@ -1028,6 +1083,9 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
 
+        self.checkSRIReceived([inPort1])
+        self.checkSRIReceived([inPort3])
+
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort2._get_attachedSRIs(), [])
         self.assertEquals(inPort3._get_attachedSRIs()[0].streamID, 'Stream3')
@@ -1055,6 +1113,9 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataVITA49_in")
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.checkSRIReceived([inPort1])
+        self.checkSRIReceived([inPort3])
 
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort2._get_attachedSRIs(),[])
@@ -1086,6 +1147,9 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataVITA49_in")
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
+        self.checkSRIReceived([inPort3],1,{"xstart":987.0})
 
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
@@ -1125,6 +1189,9 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
 
+        self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
+        self.checkSRIReceived([inPort3],1,{"xstart":987.0})
+
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
         self.assertEquals(inPort1._get_attachedSRIs()[0].xstart, 1234.0)
         self.assertEquals(inPort2._get_attachedSRIs(),[])
@@ -1146,12 +1213,14 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.addVitaStream("Stream1")
         self.pushSRI("Stream1")
         self.pushSRI("Stream1",xstart=1234.0)
-        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
 
+        # Wait for packets (containing new SRI) to be ingested
+        self.waitForPacketIngestion(self.source, 2)
+
+        # Add connection table (should receive latest SRI)
+        self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
         inPort1 = self.sink1.getPort("dataVITA49_in")
-        inPort2 = self.sink2.getPort("dataVITA49_in")
-        inPort3 = self.sink3.getPort("dataVITA49_in")
-        inPort4 = self.sink4.getPort("dataVITA49_in")
+        self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
 
         self.assertEquals(len(inPort1._get_attachedSRIs()),1)
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
@@ -1167,6 +1236,8 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         inPort2 = self.sink2.getPort("dataVITA49_in")
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        self.checkSRIReceived([inPort1],1,{"xstart":1234.0})
 
         self.assertEquals(len(inPort1._get_attachedSRIs()),1)
         self.assertEquals(inPort1._get_attachedSRIs()[0].streamID, 'Stream1')
@@ -1186,12 +1257,20 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.pushSRI("Stream3")
         self.pushSRI("UnusedStream")
         self.pushSRI("UnusedStream",xstart=777.0)
-        self.removeAllConnectionTableEntries()
 
         inPort1 = self.sink1.getPort("dataVITA49_in")
         inPort2 = self.sink2.getPort("dataVITA49_in")
         inPort3 = self.sink3.getPort("dataVITA49_in")
         inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        # Current connectionTable says ports 1+3 should get one SRI
+        self.checkSRIReceived([inPort1,inPort3],1)
+
+        # NOTE: once all connections table entries are removed,
+        #       all SRIs get pushed to all connections resulting 
+        #       in 3 SRIs for each port 
+        self.removeAllConnectionTableEntries()
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],3)
       
         self.assertEquals(len(inPort1._get_attachedSRIs()),3)
         self.assertEquals(len(inPort2._get_attachedSRIs()),3)
@@ -1221,17 +1300,26 @@ class ResourceTests(ossie.utils.testing.ScaComponentTestCase):
         self.pushSRI("UnusedStream")
         self.pushSRI("UnusedStream",xstart=777.0)
 
+        inPort1 = self.sink1.getPort("dataVITA49_in")
+        inPort2 = self.sink2.getPort("dataVITA49_in")
+        inPort3 = self.sink3.getPort("dataVITA49_in")
+        inPort4 = self.sink4.getPort("dataVITA49_in")
+
+        # Current connectionTable says ports 1+3 should get one SRI
+        self.checkSRIReceived([inPort1,inPort3],1)
+
+        # NOTE: once all connections table entries are removed,
+        #       all SRIs get pushed to all connections resulting 
+        #       in 3 SRIs for each port 
         self.removeAllConnectionTableEntries()
+        
         self.addConnectionTableEntry("vita1","Stream1","dataVITA49_out")
         self.addConnectionTableEntry("vita2","Stream2","dataVITA49_out")
         self.addConnectionTableEntry("vita3","Stream3","dataVITA49_out")
         self.addConnectionTableEntry("someconn","Stream5","dataVITA49_out")
         self.pushSRI("UnusedStream",xstart=888.0)
 
-        inPort1 = self.sink1.getPort("dataVITA49_in")
-        inPort2 = self.sink2.getPort("dataVITA49_in")
-        inPort3 = self.sink3.getPort("dataVITA49_in")
-        inPort4 = self.sink4.getPort("dataVITA49_in")
+        self.checkSRIReceived([inPort1,inPort2,inPort3,inPort4],3)
 
         self.assertEquals(len(inPort1._get_attachedSRIs()),3)
         self.assertEquals(len(inPort2._get_attachedSRIs()),3)

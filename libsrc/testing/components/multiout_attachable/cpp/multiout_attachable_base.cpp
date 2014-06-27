@@ -82,6 +82,15 @@ void multiout_attachable_base::connectionTableChanged(const std::vector<connecti
 
 void multiout_attachable_base::loadProperties()
 {
+    addProperty(packets_ingested,
+                0,
+                "packets_ingested",
+                "packets_ingested",
+                "readwrite",
+                "",
+                "external",
+                "configure");
+
     addProperty(callback_stats,
                 callback_stats_struct(),
                 "callback_stats",

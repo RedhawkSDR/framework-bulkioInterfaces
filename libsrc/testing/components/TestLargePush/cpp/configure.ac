@@ -19,6 +19,8 @@ OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([1.41])
 AX_BOOST_THREAD
 
+AX_BOOST_SYSTEM
+
 export PKG_CONFIG_PATH="../../../..:../../../../.."
 PKG_CHECK_MODULES([BIO], [bulkio >= 1.10])
 
