@@ -1,3 +1,22 @@
+/*
+ * This file is protected by Copyright. Please refer to the COPYRIGHT file
+ * distributed with this source distribution.
+ *
+ * This file is part of REDHAWK bulkioInterfaces.
+ *
+ * REDHAWK bulkioInterfaces is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * REDHAWK bulkioInterfaces is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
 #include "Bulkio_OutPort_Fixture.h"
 #include "bulkio.h"
 
@@ -59,7 +78,7 @@ void  Bulkio_OutPort_Fixture::test_port_api( T *port  ) {
   port->setNewDisconnectListener(&port_disconnected);
 
   {
-    CORBA::Object_ptr p;
+     CORBA::Object_ptr p = CORBA::Object::_nil();
     // narrowing exception expected here
     // set logging level to Fatal to ignore port Error message
     // and then set back to Info
