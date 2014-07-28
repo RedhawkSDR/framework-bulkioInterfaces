@@ -25,7 +25,7 @@
 # Source: multiout_attachable.spd.xml
 from ossie.resource import start_component
 import logging
-import uuid
+from ossie.utils import uuid
 
 from multiout_attachable_base import *
 

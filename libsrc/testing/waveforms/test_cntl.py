@@ -20,7 +20,7 @@
 
 import time
 import sys
-import uuid
+from ossie.utils import uuid
 import random
 from omniORB import any
 from ossie.utils import redhawk
