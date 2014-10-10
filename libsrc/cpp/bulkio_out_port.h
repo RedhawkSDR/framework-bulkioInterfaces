@@ -413,11 +413,13 @@ namespace bulkio {
     // Map of stream ids and statistic object
     typedef typename  std::map<std::string, linkStatistics  >    _StatsMap;
 
+  public:
     //
     // List of SRIs sent out by this port
     //
-    OutPortSriMap                            currentSRIs;
+    OutPortSriMap                            currentSRIs __attribute__ ((deprecated));
 
+  protected:
     //
     // List of Port connections and connection identifiers
     //

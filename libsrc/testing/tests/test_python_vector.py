@@ -58,5 +58,9 @@ if __name__ == '__main__':
     for x in [ Test_Python_Int8, Test_Python_Int16,  Test_Python_Int32, Test_Python_Int64, Test_Python_Float, Test_Python_Double ]:
         tests = unittest.TestLoader().loadTestsFromTestCase(x)
         suite.addTests(tests)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-
+    try:
+        import xmlrunner
+        runner = xmlrunner.XMLTestRunner(verbosity=2)
+    except ImportError:
+        runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)

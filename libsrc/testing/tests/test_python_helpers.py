@@ -66,7 +66,7 @@ class Test_PythonHelpers(unittest.TestCase):
         b_sri = bulkio.sri.create()
         c_sri = bulkio.sri.create()
         c_sri.streamID = "THIS_DOES_NOT_MATCH"
-        
+
         self.assertEqual( bulkio.sri.compare( a_sri, b_sri ), True, " bulkio.sri.compare method - same.")
         self.assertEqual( bulkio.sri.compare( a_sri, c_sri ), False, " bulkio.sri.compare method - different - StreamID .")
 
@@ -163,4 +163,10 @@ if __name__ == '__main__':
     for x in [ Test_PythonHelpers ]:
         tests = unittest.TestLoader().loadTestsFromTestCase(x)
         suite.addTests(tests)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    try:
+        import xmlrunner
+        runner = xmlrunner.XMLTestRunner(verbosity=2)
+    except ImportError:
+        runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)
+

@@ -161,7 +161,7 @@ class BaseMultiOut(unittest.TestCase):
         ## Push SRI for IP1
         ##
 
-        filter_stream_id =  "stream-1-1" 
+        filter_stream_id =  "stream-1-1"
         srate=11.0
         xdelta = 1.0/srate
         TS = bulkio.timestamp.now();
@@ -190,7 +190,7 @@ class BaseMultiOut(unittest.TestCase):
 
         self.port.updateConnectionFilter( None );
 
-        filter_stream_id =  "stream-1-1" 
+        filter_stream_id =  "stream-1-1"
         srate=11.0
         xdelta = 1.0/srate
         TS = bulkio.timestamp.now();
@@ -243,7 +243,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push SRI for IP1
         ##
-        filter_stream_id =  "stream-1-1" 
+        filter_stream_id =  "stream-1-1"
         srate=11.0
         xdelta = 1.0/srate
         TS = bulkio.timestamp.now();
@@ -272,7 +272,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push SRI for IP2
         ##
-        filter_stream_id =  "stream-2-1" 
+        filter_stream_id =  "stream-2-1"
         srate=22.0
         xdelta = 1.0/srate
         sri = bulkio.sri.create( filter_stream_id, srate)
@@ -304,7 +304,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push SRI for IP3
         ##
-        filter_stream_id =  "stream-3-1" 
+        filter_stream_id =  "stream-3-1"
         srate=33.0
         xdelta = 1.0/srate
         sri = bulkio.sri.create( filter_stream_id, srate)
@@ -339,7 +339,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push SRI for IP4
         ##
-        filter_stream_id =  "stream-4-1" 
+        filter_stream_id =  "stream-4-1"
         srate=44.0
         xdelta = 1.0/srate
         sri = bulkio.sri.create( filter_stream_id, srate)
@@ -378,7 +378,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push EOS downstream and check SRI Lists
         ##
-        filter_stream_id =  "stream-1-1" 
+        filter_stream_id =  "stream-1-1"
         self.logger.info( "Multiout SRI/EOS Filter - EOS sid:" + filter_stream_id )
         self.port.pushPacket( [], TS, True, filter_stream_id );
 
@@ -388,7 +388,7 @@ class BaseMultiOut(unittest.TestCase):
         self.assertEqual( pkt[bulkio.InPort.SRI].streamID == filter_stream_id, True, "getPacket - IP1 StreamID Mismatch" )
         self.assertEqual( pkt[bulkio.InPort.END_OF_STREAM], True, "getPacket - IP1 EOS Mismatch" )
 
-        filter_stream_id =  "stream-2-1" 
+        filter_stream_id =  "stream-2-1"
         self.logger.info( "Multiout SRI/EOS Filter - EOS sid:" + filter_stream_id )
         self.port.pushPacket( [], TS, True, filter_stream_id );
 
@@ -398,7 +398,7 @@ class BaseMultiOut(unittest.TestCase):
         self.assertEqual( pkt[bulkio.InPort.SRI].streamID == filter_stream_id, True, "getPacket - IP2 StreamID Mismatch" )
         self.assertEqual( pkt[bulkio.InPort.END_OF_STREAM], True, "getPacket - IP2 EOS Mismatch" )
 
-        filter_stream_id =  "stream-3-1" 
+        filter_stream_id =  "stream-3-1"
         self.logger.info( "Multiout SRI/EOS Filter - EOS sid:" + filter_stream_id )
         self.port.pushPacket( [], TS, True, filter_stream_id );
 
@@ -408,7 +408,7 @@ class BaseMultiOut(unittest.TestCase):
         self.assertEqual( pkt[bulkio.InPort.SRI].streamID == filter_stream_id, True, "getPacket - IP3 StreamID Mismatch" )
         self.assertEqual( pkt[bulkio.InPort.END_OF_STREAM], True, "getPacket - IP3 EOS Mismatch" )
 
-        filter_stream_id =  "stream-4-1" 
+        filter_stream_id =  "stream-4-1"
         self.logger.info( "Multiout SRI/EOS Filter - EOS sid:" + filter_stream_id )
         self.port.pushPacket( [], TS, True, filter_stream_id );
 
@@ -450,7 +450,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push SRI for IP1
         ##
-        filter_stream_id =  "stream-1-1" 
+        filter_stream_id =  "stream-1-1"
         srate=11.0
         xdelta = 1.0/srate
         TS = bulkio.timestamp.now();
@@ -480,7 +480,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push SRI for IP2
         ##
-        filter_stream_id =  "stream-2-1" 
+        filter_stream_id =  "stream-2-1"
         srate=22.0
         xdelta = 1.0/srate
         TS = bulkio.timestamp.now();
@@ -511,7 +511,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push SRI for IP3
         ##
-        filter_stream_id =  "stream-3-1" 
+        filter_stream_id =  "stream-3-1"
         srate=33.0
         xdelta = 1.0/srate
         TS = bulkio.timestamp.now();
@@ -541,7 +541,7 @@ class BaseMultiOut(unittest.TestCase):
         ##
         ## Push SRI for IP4
         ##
-        filter_stream_id = "stream-4-1" 
+        filter_stream_id = "stream-4-1"
         srate=44.0
         xdelta = 1.0/srate
         TS = bulkio.timestamp.now();
@@ -604,5 +604,9 @@ if __name__ == '__main__':
     for x in [ Test_Python_Int8, Test_Python_Int16, Test_Python_Int32, Test_Python_Int64, Test_Python_Float, Test_Python_Double ]:
         tests = unittest.TestLoader().loadTestsFromTestCase(x)
         suite.addTests(tests)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-
+    try:
+        import xmlrunner
+        runner = xmlrunner.XMLTestRunner(verbosity=2)
+    except ImportError:
+        runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)

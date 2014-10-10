@@ -17,12 +17,17 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+#include <iostream>
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
+#include <cppunit/TestResult.h>
+#include <cppunit/TestResultCollector.h>
+#include <cppunit/XmlOutputter.h>
 #include "log4cxx/logger.h"
 #include "log4cxx/basicconfigurator.h"
 #include "log4cxx/helpers/exception.h"
+using namespace std;
 
 
 int main(int argc, char* argv[])
@@ -34,16 +39,24 @@ int main(int argc, char* argv[])
   // Get the top level suite from the registry
   CppUnit::Test *suite = CppUnit::TestFactoryRegistry::getRegistry().makeTest();
 
-  // Adds the test to the list of test to run
-  CppUnit::TextUi::TestRunner runner;
-  runner.addTest( suite );
+  // Create the event manager and test controller
+  CppUnit::TestResult controller;
+  // Add a listener that collects test result
+  CppUnit::TestResultCollector result;
+  controller.addListener ( &result );
+  CppUnit::TextUi::TestRunner *runner = new CppUnit::TextUi::TestRunner;
 
-  // Change the default outputter to a compiler error format outputter
-  runner.setOutputter( new CppUnit::CompilerOutputter( &runner.result(),
-                                                       std::cerr ) );
+  ofstream xmlout ( "../cppunit-results.xml" );
+  CppUnit::XmlOutputter xmlOutputter ( &result, xmlout );
+  CppUnit::CompilerOutputter compilerOutputter ( &result, std::cerr );
+
   // Run the tests.
-  bool wasSucessful = runner.run();
+  runner->addTest( suite );
+  runner->run( controller );
+  xmlOutputter.write();
+  compilerOutputter.write();
 
   // Return error code 1 if the one of test failed.
-  return wasSucessful ? 0 : 1;
+  return result.wasSuccessful() ? 0 : 1;
 }
+

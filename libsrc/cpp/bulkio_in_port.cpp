@@ -53,8 +53,8 @@ namespace  bulkio {
 
   template < typename PortTraits >
   InPort< PortTraits >::InPort(std::string port_name, 
-			       bulkio::sri::Compare sriCmp,
-			       SriListener *newStreamCB):
+                               bulkio::sri::Compare sriCmp,
+                               SriListener *newStreamCB):
     Port_Provides_base_impl(port_name),
     sri_cmp(sriCmp),
     newStreamCallback(),
@@ -86,9 +86,9 @@ namespace  bulkio {
 
   template < typename PortTraits >
   InPort< PortTraits >::InPort(std::string port_name, 
-			       LOGGER_PTR  logger,
-			       bulkio::sri::Compare sriCmp,
-			       SriListener *newStreamCB):
+                               LOGGER_PTR  logger,
+                               bulkio::sri::Compare sriCmp,
+                               SriListener *newStreamCB):
     Port_Provides_base_impl(port_name),
     sri_cmp(sriCmp),
     newStreamCallback(),
@@ -121,8 +121,8 @@ namespace  bulkio {
     }
 
     LOG_DEBUG( logger, "bulkio::InPort CTOR port:" << name << 
-	       " Blocking/MaxInputQueueSize " << blocking << "/" << queueSem->getMaxValue() <<  
-	       " SriCompare/NewStreamCallback " << _cmpMsg << "/" << _sriMsg );
+               " Blocking/MaxInputQueueSize " << blocking << "/" << queueSem->getMaxValue() <<  
+               " SriCompare/NewStreamCallback " << _cmpMsg << "/" << _sriMsg );
   }
 
 
@@ -223,6 +223,13 @@ namespace  bulkio {
   void InPort< PortTraits >::pushSRI(const BULKIO::StreamSRI& H)
   {
     TRACE_ENTER( logger, "InPort::pushSRI"  );
+
+    if (H.blocking) {
+      SCOPED_LOCK lock(dataBufferLock);
+      blocking = true;
+      queueSem->setCurrValue(workQueue.size());
+    }
+
     SCOPED_LOCK lock(sriUpdateLock);
     BULKIO::StreamSRI tmpH = H;
     LOG_TRACE(logger,"pushSRI - FIND- PORT:" << name << " NEW SRI:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
@@ -231,20 +238,10 @@ namespace  bulkio {
       LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << H.streamID << " Mode:" << H.mode );
       if ( newStreamCallback ) (*newStreamCallback)(tmpH);
       currentHs[std::string(H.streamID)] = std::make_pair(tmpH, true);
-      if (H.blocking) {
-	SCOPED_LOCK lock(dataBufferLock);
-	blocking = true;
-	queueSem->setCurrValue(workQueue.size());
-      }
     } else {
       if ( sri_cmp && !sri_cmp(tmpH, currH->second.first)) {
-	LOG_DEBUG(logger,"pushSRI  PORT:" << name << " SAME SRI:" << H.streamID << " Mode:" << H.mode );
-	currentHs[std::string(H.streamID)] = std::make_pair(tmpH, true);
-	if (H.blocking) {
-	  SCOPED_LOCK lock(dataBufferLock);
-	  blocking = true;
-	  queueSem->setCurrValue(workQueue.size());
-	}
+        LOG_DEBUG(logger,"pushSRI  PORT:" << name << " SAME SRI:" << H.streamID << " Mode:" << H.mode );
+        currentHs[std::string(H.streamID)] = std::make_pair(tmpH, true);
       }
     }
     TRACE_EXIT( logger, "InPort::pushSRI"  );
@@ -270,9 +267,9 @@ namespace  bulkio {
 
       currH = currentHs.find(std::string(streamID));
       if (currH != currentHs.end()) {
-	tmpH = currH->second.first;
-	sriChanged = currH->second.second;
-	currentHs[streamID] = std::make_pair(currH->second.first, false);
+        tmpH = currH->second.first;
+        sriChanged = currH->second.second;
+        currentHs[streamID] = std::make_pair(currH->second.first, false);
       }
       portBlocking = blocking;
     }
@@ -292,20 +289,20 @@ namespace  bulkio {
       SCOPED_LOCK lock(dataBufferLock);
       bool sriChangedHappened = false;
       if (workQueue.size() == queueSem->getMaxValue()) { // reached maximum queue depth - flush the queue
-	LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
-	flushToReport = true;
-	DataTransferType *tmp;
-	while (workQueue.size() != 0) {
-	  tmp = workQueue.front();
-	  if (tmp->sriChanged == true) {
-	    sriChangedHappened = true;
-	  }
-	  workQueue.pop_front();
-	  delete tmp;
-	}
+        LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
+        flushToReport = true;
+        DataTransferType *tmp;
+        while (workQueue.size() != 0) {
+          tmp = workQueue.front();
+          if (tmp->sriChanged == true) {
+            sriChangedHappened = true;
+          }
+          workQueue.pop_front();
+          delete tmp;
+        }
       }
       if (sriChangedHappened)
-	sriChanged = true;
+        sriChanged = true;
 
       LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
       stats->update(data.length(), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
@@ -376,67 +373,74 @@ namespace  bulkio {
       TRACE_EXIT( logger, "InPort::getPacket"  );
       return NULL;
     }
-    if (workQueue.size() == 0) {
-      if (timeout == 0.0) {
-	TRACE_EXIT( logger, "InPort::getPacket"  );
-	return NULL;
-      } else if (timeout > 0){
 
-	uint64_t secs = (unsigned long)(trunc(timeout));
-	//uint64_t nsecs = (unsigned long)((timeout - secs) * 1e9);
-	uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
-	boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
-	LOG_DEBUG( logger, "bulkio.InPort getPacket PORT:" << name << " TIMED WAIT:" << timeout);
-	UNIQUE_LOCK lock(dataAvailableMutex);
-	if ( dataAvailable.timed_wait( lock, to_time) == false ) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
-	  return NULL;
-	}
+    DataTransferType *tmp = NULL;
+    {
+      SCOPED_LOCK lock(dataBufferLock);
+      if (workQueue.size() == 0) {
+        if (timeout == 0.0) {
+          TRACE_EXIT( logger, "InPort::getPacket"  );
+          return NULL;
+        } else if (timeout > 0){
 
-	if (breakBlock) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
-	  return NULL;
-	}
-      } else {
-	LOG_DEBUG( logger, "bulkio.InPort getPacket PORT:" << name << " Block until data arrives" );
-	UNIQUE_LOCK lock(dataAvailableMutex);
-	dataAvailable.wait(lock);
-	if (breakBlock) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
-	  return NULL;
-	}
+          uint64_t secs = (unsigned long)(trunc(timeout));
+          //uint64_t nsecs = (unsigned long)((timeout - secs) * 1e9);
+          uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
+          boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+          LOG_DEBUG( logger, "bulkio.InPort getPacket PORT:" << name << " TIMED WAIT:" << timeout);
+          if ( dataAvailable.timed_wait( lock, to_time) == false ) {
+            TRACE_EXIT( logger, "InPort::getPacket"  );
+            return NULL;
+          }
+
+          if (breakBlock) {
+            TRACE_EXIT( logger, "InPort::getPacket"  );
+            return NULL;
+          }
+        } else {
+          LOG_DEBUG( logger, "bulkio.InPort getPacket PORT:" << name << " Block until data arrives" );
+          dataAvailable.wait(lock);
+          if (breakBlock) {
+            TRACE_EXIT( logger, "InPort::getPacket"  );
+            return NULL;
+          }
+        }
       }
+      tmp = workQueue.front();
+      workQueue.pop_front();
+      LOG_TRACE( logger, "bulkio.InPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
     }
-    SCOPED_LOCK lock1(dataBufferLock);
-    DataTransferType *tmp = workQueue.front();
-    workQueue.pop_front();
-    LOG_TRACE( logger, "bulkio.InPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
-    SCOPED_LOCK lock2(sriUpdateLock);
-    if (tmp->EOS) {
+
+    bool turnOffBlocking = false;
+    if (tmp && tmp->EOS) {
+      SCOPED_LOCK lock2(sriUpdateLock);
       SriMap::iterator target = currentHs.find(std::string(tmp->streamID));
       if (target != currentHs.end()) {
-	bool sriBlocking = target->second.first.blocking;
-	currentHs.erase(target);
-	if (sriBlocking) {
-	  SriMap::iterator currH;
-	  bool keepBlocking = false;
-	  for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-	    if (currH->second.first.blocking) {
-	      keepBlocking = true;
-	      break;
-	    }
-	  }
-
-	  if (!keepBlocking) {
-	    queueSem->setCurrValue(0);
-	    blocking = false;
-	  }
-	}
+        bool sriBlocking = target->second.first.blocking;
+        currentHs.erase(target);
+        if (sriBlocking) {
+          turnOffBlocking = true;
+          SriMap::iterator currH;
+          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+            if (currH->second.first.blocking) {
+              turnOffBlocking = false;
+              break;
+            }
+          }
+        }
       }
     }
+   
+    {
+      SCOPED_LOCK lock(dataBufferLock);
+      if (turnOffBlocking) {
+        queueSem->setCurrValue(0);
+        blocking = false;
+      }
 
-    if (blocking) {
-      queueSem->decr();
+      if (blocking) {
+        queueSem->decr();
+      }
     }
 
     TRACE_EXIT( logger, "InPort::getPacket"  );
@@ -453,89 +457,94 @@ namespace  bulkio {
       return NULL;
     }
 
-    if ( (workQueue.size() == 0 ) or (( workQueue.size() != 0 ) and ( workQueue.size() == lastQueueSize )) ){
-
-      if (timeout == 0.0) {
-	lastQueueSize  = workQueue.size();
-	TRACE_EXIT( logger, "InPort::getPacket"  );
-	return NULL;
-      } else if (timeout > 0){
-
-	uint64_t secs = (unsigned long)(trunc(timeout));
-	//uint64_t nsecs = (unsigned long)((timeout - secs) * 1e9);
-	uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
-	boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
-	UNIQUE_LOCK lock(dataAvailableMutex);
-	if ( dataAvailable.timed_wait( lock, to_time) == false ) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
-	  return NULL;
-	}
-
-	if (breakBlock) {
-
-	  return NULL;
-	}
-      } else {
-	UNIQUE_LOCK lock(dataAvailableMutex);
-	dataAvailable.wait(lock);
-	if (breakBlock) {
-	  TRACE_EXIT( logger, "InPort::getPacket"  );
-	  return NULL;
-	}
-      }
-    }
-    SCOPED_LOCK lock1(dataBufferLock);
     DataTransferType *tmp=NULL;
-    if ( streamID == "" ) {
-      tmp = workQueue.front();
-      workQueue.pop_front();
-    }
-    else {
-      typename WorkQueue::iterator p = workQueue.begin();
-      while ( p != workQueue.end() ) {
-	if ( (*p)->streamID == streamID ) {
-	  tmp = *p;
-	  workQueue.erase(p);
-	  break;
-	}
-	p++;
+    {
+      SCOPED_LOCK lock(dataBufferLock);
+      if ( (workQueue.size() == 0 ) or (( workQueue.size() != 0 ) and ( workQueue.size() == lastQueueSize )) ){
+
+        if (timeout == 0.0) {
+          lastQueueSize  = workQueue.size();
+          TRACE_EXIT( logger, "InPort::getPacket"  );
+          return NULL;
+        } else if (timeout > 0){
+
+          uint64_t secs = (unsigned long)(trunc(timeout));
+          //uint64_t nsecs = (unsigned long)((timeout - secs) * 1e9);
+          uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
+          boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+          if ( dataAvailable.timed_wait( lock, to_time) == false ) {
+            TRACE_EXIT( logger, "InPort::getPacket"  );
+            return NULL;
+          }
+
+          if (breakBlock) {
+
+            return NULL;
+          }
+        } else {
+          dataAvailable.wait(lock);
+          if (breakBlock) {
+            TRACE_EXIT( logger, "InPort::getPacket"  );
+            return NULL;
+          }
+        }
+      }
+
+      if ( streamID == "" ) {
+        tmp = workQueue.front();
+        workQueue.pop_front();
+      }
+      else {
+        typename WorkQueue::iterator p = workQueue.begin();
+        while ( p != workQueue.end() ) {
+          if ( (*p)->streamID == streamID ) {
+            tmp = *p;
+            workQueue.erase(p);
+            break;
+          }
+          p++;
+        }
+      }
+      
+      LOG_TRACE( logger, "bulkio.InPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
+
+      if ( tmp == NULL ) {
+        TRACE_EXIT( logger, "InPort::getPacket"  );
+        lastQueueSize = workQueue.size();
+        return NULL;
       }
     }
 
-    LOG_TRACE( logger, "bulkio.InPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
-
-    if ( tmp == NULL ) {
-      TRACE_EXIT( logger, "InPort::getPacket"  );
-      lastQueueSize = workQueue.size();
-      return NULL;
-    }
-
-    SCOPED_LOCK lock2(sriUpdateLock);
-    if (tmp->EOS) {
+    bool turnOffBlocking = false;
+    if (tmp && tmp->EOS) {
+      SCOPED_LOCK lock2(sriUpdateLock);
       SriMap::iterator target = currentHs.find(std::string(tmp->streamID));
       if (target != currentHs.end()) {
-	bool sriBlocking = target->second.first.blocking;
-	currentHs.erase(target);
-	if (sriBlocking) {
-	  SriMap::iterator currH;
-	  bool keepBlocking = false;
-	  for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-	    if (currH->second.first.blocking) {
-	      keepBlocking = true;
-	      break;
-	    }
-	  }
-
-	  if (!keepBlocking) {
-	    queueSem->setCurrValue(0);
-	    blocking = false;
-	  }
-	}
+        bool sriBlocking = target->second.first.blocking;
+        currentHs.erase(target);
+        if (sriBlocking) {
+          turnOffBlocking = true;
+          SriMap::iterator currH;
+          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+            if (currH->second.first.blocking) {
+              turnOffBlocking = false;
+              break;
+            }
+          }
+        }
       }
     }
 
-    if (blocking) {
-      queueSem->decr();
+    {
+      SCOPED_LOCK lock(dataBufferLock);
+      if (turnOffBlocking) {
+        queueSem->setCurrValue(0);
+        blocking = false;
+      }
+       
+      if (blocking) {
+        queueSem->decr();
+      }
     }
 
     TRACE_EXIT( logger, "InPort::getPacket"  );
@@ -567,9 +576,9 @@ namespace  bulkio {
   // ----------------------------------------------------------------------------------------
   template < typename PortTraits >
   InStringPort< PortTraits >::InStringPort(std::string port_name, 
-					   LOGGER_PTR  logger,
-					   bulkio::sri::Compare compareSri,
-					   SriListener *newStreamCB ) :
+                                           LOGGER_PTR  logger,
+                                           bulkio::sri::Compare compareSri,
+                                           SriListener *newStreamCB ) :
     Port_Provides_base_impl(port_name),
     sri_cmp(compareSri),
     newStreamCallback(),
@@ -600,16 +609,16 @@ namespace  bulkio {
     }
 
     LOG_DEBUG( logger, "bulkio::CTOR port:" << name << 
-	       " Blocking/MaxInputQueueSize " << blocking << "/" << queueSem->getMaxValue() <<  
-	       " SriCompare/NewStreamCallback " << _cmpMsg << "/" << _sriMsg );
+               " Blocking/MaxInputQueueSize " << blocking << "/" << queueSem->getMaxValue() <<  
+               " SriCompare/NewStreamCallback " << _cmpMsg << "/" << _sriMsg );
 
   }
 
 
   template < typename PortTraits >
   InStringPort< PortTraits >::InStringPort(std::string port_name, 
-					   bulkio::sri::Compare compareSri,
-					   SriListener *newStreamCB ) :
+                                           bulkio::sri::Compare compareSri,
+                                           SriListener *newStreamCB ) :
     Port_Provides_base_impl(port_name),
     sri_cmp(compareSri),
     newStreamCallback(),
@@ -733,6 +742,12 @@ namespace  bulkio {
   void InStringPort< PortTraits >::pushSRI(const BULKIO::StreamSRI& H)
   {
     TRACE_ENTER( logger, "InStringPort::pushSRI"  );
+    
+    if (H.blocking) {
+      SCOPED_LOCK lock(dataBufferLock);
+      blocking = true;
+      queueSem->setCurrValue(workQueue.size());
+    }
 
     SCOPED_LOCK lock(sriUpdateLock);
     BULKIO::StreamSRI tmpH = H;
@@ -741,19 +756,9 @@ namespace  bulkio {
       if ( newStreamCallback ) (*newStreamCallback)(tmpH);
       LOG_DEBUG(logger,"pushSRI  PORT:" << name << " NEW SRI:" << H.streamID);
       currentHs[std::string(H.streamID)] = std::make_pair(tmpH, true);
-      if (H.blocking) {
-	SCOPED_LOCK lock(dataBufferLock);
-	blocking = true;
-	queueSem->setCurrValue(workQueue.size());
-      }
     } else {
       if ( sri_cmp && !sri_cmp(tmpH, currH->second.first)) {
-	currentHs[std::string(H.streamID)] = std::make_pair(tmpH, true);
-	if (H.blocking) {
-	  SCOPED_LOCK lock(dataBufferLock);
-	  blocking = true;
-	  queueSem->setCurrValue(workQueue.size());
-	}
+        currentHs[std::string(H.streamID)] = std::make_pair(tmpH, true);
       }
     }
 
@@ -779,9 +784,9 @@ namespace  bulkio {
 
       currH = currentHs.find(std::string(streamID));
       if (currH != currentHs.end()) {
-	tmpH = currH->second.first;
-	sriChanged = currH->second.second;
-	currentHs[streamID] = std::make_pair(currH->second.first, false);
+        tmpH = currH->second.first;
+        sriChanged = currH->second.second;
+        currentHs[streamID] = std::make_pair(currH->second.first, false);
       }
       portBlocking = blocking;
     }
@@ -800,20 +805,20 @@ namespace  bulkio {
       SCOPED_LOCK lock(dataBufferLock);
       bool sriChangedHappened = false;
       if (workQueue.size() == queueSem->getMaxValue()) { // reached maximum queue depth - flush the queue
-	LOG_DEBUG( logger, "bulkio::InStringPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
-	flushToReport = true;
-	DataTransferType *tmp;
-	while (workQueue.size() != 0) {
-	  tmp = workQueue.front();
-	  if (tmp->sriChanged == true) {
-	    sriChangedHappened = true;
-	  }
-	  workQueue.pop_front();
-	  delete tmp;
-	}
+        LOG_DEBUG( logger, "bulkio::InStringPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
+        flushToReport = true;
+        DataTransferType *tmp;
+        while (workQueue.size() != 0) {
+          tmp = workQueue.front();
+          if (tmp->sriChanged == true) {
+            sriChangedHappened = true;
+          }
+          workQueue.pop_front();
+          delete tmp;
+        }
       }
       if (sriChangedHappened)
-	sriChanged = true;
+        sriChanged = true;
       LOG_DEBUG( logger, "bulkio::InStringPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
       stats->update( _getElementLength(data), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
       DataTransferType *tmpIn = new DataTransferType(data, T, EOS, streamID, tmpH, sriChanged, flushToReport);
@@ -844,9 +849,9 @@ namespace  bulkio {
 
       currH = currentHs.find(std::string(streamID));
       if (currH != currentHs.end()) {
-	tmpH = currH->second.first;
-	sriChanged = currH->second.second;
-	currentHs[streamID] = std::make_pair(currH->second.first, false);
+        tmpH = currH->second.first;
+        sriChanged = currH->second.second;
+        currentHs[streamID] = std::make_pair(currH->second.first, false);
       }
       portBlocking = blocking;
     }
@@ -865,20 +870,20 @@ namespace  bulkio {
       SCOPED_LOCK lock(dataBufferLock);
       bool sriChangedHappened = false;
       if (workQueue.size() == queueSem->getMaxValue()) { // reached maximum queue depth - flush the queue
-	LOG_DEBUG( logger, "bulkio::InStringPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
-	flushToReport = true;
-	DataTransferType *tmp;
-	while (workQueue.size() != 0) {
-	  tmp = workQueue.front();
-	  if (tmp->sriChanged == true) {
-	    sriChangedHappened = true;
-	  }
-	  workQueue.pop_front();
-	  delete tmp;
-	}
+        LOG_DEBUG( logger, "bulkio::InStringPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
+        flushToReport = true;
+        DataTransferType *tmp;
+        while (workQueue.size() != 0) {
+          tmp = workQueue.front();
+          if (tmp->sriChanged == true) {
+            sriChangedHappened = true;
+          }
+          workQueue.pop_front();
+          delete tmp;
+        }
       }
       if (sriChangedHappened)
-	sriChanged = true;
+        sriChanged = true;
 
       LOG_DEBUG( logger, "bulkio::InStringPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
       stats->update( _getElementLength(data), (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
@@ -961,66 +966,73 @@ namespace  bulkio {
       TRACE_EXIT( logger, "InStringPort::getPacket"  );
       return NULL;
     }
-    if (workQueue.size() == 0) {
-      if (timeout == 0.0) {
-	TRACE_EXIT( logger, "InStringPort::getPacket"  );
-	return NULL;
-      } else if (timeout > 0){
 
-	uint64_t secs = (unsigned long)(trunc(timeout));
-	//uint64_t nsecs = (unsigned long)((timeout - secs) * 1e9);
-	uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
-	boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
-	UNIQUE_LOCK lock(dataAvailableMutex);
-	if ( dataAvailable.timed_wait( lock, to_time) == false ) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
-	  return NULL;
-	}
+    DataTransferType *tmp = NULL;
+    {
+      SCOPED_LOCK lock(dataBufferLock);
+      if (workQueue.size() == 0) {
+        if (timeout == 0.0) {
+          TRACE_EXIT( logger, "InStringPort::getPacket"  );
+          return NULL;
+        } else if (timeout > 0){
 
-	if (breakBlock) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
-	  return NULL;
-	}
-      } else {
-	UNIQUE_LOCK lock(dataAvailableMutex);
-	dataAvailable.wait(lock);
-	if (breakBlock) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
-	  return NULL;
-	}
+          uint64_t secs = (unsigned long)(trunc(timeout));
+          //uint64_t nsecs = (unsigned long)((timeout - secs) * 1e9);
+          uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
+          boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+          if ( dataAvailable.timed_wait( lock, to_time) == false ) {
+            TRACE_EXIT( logger, "InStringPort::getPacket"  );
+            return NULL;
+          }
+
+          if (breakBlock) {
+            TRACE_EXIT( logger, "InStringPort::getPacket"  );
+            return NULL;
+          }
+        } else {
+          dataAvailable.wait(lock);
+          if (breakBlock) {
+            TRACE_EXIT( logger, "InStringPort::getPacket"  );
+            return NULL;
+          }
+        }
       }
+      tmp = workQueue.front();
+      workQueue.pop_front();
+      LOG_TRACE( logger, "bulkio.InStringPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
     }
-    SCOPED_LOCK lock1(dataBufferLock);
-    DataTransferType *tmp = workQueue.front();
-    workQueue.pop_front();
-    LOG_TRACE( logger, "bulkio.InStringPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
 
-    SCOPED_LOCK lock2(sriUpdateLock);
-    if (tmp->EOS) {
+
+    bool turnOffBlocking = false;
+    if (tmp && tmp->EOS) {
+      SCOPED_LOCK lock2(sriUpdateLock);
       SriMap::iterator target = currentHs.find(std::string(tmp->streamID));
       if (target != currentHs.end()) {
-	bool sriBlocking = target->second.first.blocking;
-	currentHs.erase(target);
-	if (sriBlocking) {
-	  SriMap::iterator currH;
-	  bool keepBlocking = false;
-	  for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-	    if (currH->second.first.blocking) {
-	      keepBlocking = true;
-	      break;
-	    }
-	  }
-
-	  if (!keepBlocking) {
-	    queueSem->setCurrValue(0);
-	    blocking = false;
-	  }
-	}
+        bool sriBlocking = target->second.first.blocking;
+        currentHs.erase(target);
+        if (sriBlocking) {
+          turnOffBlocking = true;
+          SriMap::iterator currH;
+          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+            if (currH->second.first.blocking) {
+              turnOffBlocking = false;
+              break;
+            }
+          }
+        }
       }
     }
 
-    if (blocking) {
-      queueSem->decr();
+    {
+      SCOPED_LOCK lock(dataBufferLock);
+      if (turnOffBlocking) {
+        queueSem->setCurrValue(0);
+        blocking = false;
+      }
+
+      if (blocking) {
+        queueSem->decr();
+      }
     }
 
     TRACE_EXIT( logger, "InStringPort::getPacket"  );
@@ -1047,90 +1059,94 @@ namespace  bulkio {
       return NULL;
     }
 
-    if ( (workQueue.size() == 0 ) or (( workQueue.size() != 0 ) and 
-				      ( workQueue.size() == lastQueueSize )) ){
-
-      if (timeout == 0.0) {
-	lastQueueSize  = workQueue.size();
-	TRACE_EXIT( logger, "InStringPort::getPacket"  );
-	return NULL;
-      } else if (timeout > 0){
-
-	uint64_t secs = (unsigned long)(trunc(timeout));
-	//uint64_t nsecs = (unsigned long)((timeout - secs) * 1e9);
-	uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
-	boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
-	UNIQUE_LOCK lock(dataAvailableMutex);
-	if ( dataAvailable.timed_wait( lock, to_time) == false ) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
-	  return NULL;
-	}
-
-	if (breakBlock) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
-	  return NULL;
-	}
-      } else {
-	UNIQUE_LOCK lock(dataAvailableMutex);
-	dataAvailable.wait(lock);
-	if (breakBlock) {
-	  TRACE_EXIT( logger, "InStringPort::getPacket"  );
-	  return NULL;
-	}
-      }
-    }
-
-    SCOPED_LOCK lock1(dataBufferLock);
     DataTransferType *tmp=NULL;
-    if ( streamID == "" ) {
-      tmp = workQueue.front();
-      workQueue.pop_front();
-    }
-    else {
-      typename WorkQueue::iterator p = workQueue.begin();
-      while ( p != workQueue.end() ) {
-	if ( (*p)->streamID == streamID ) {
-	  tmp = *p;
-	  workQueue.erase(p);
-	  break;
-	}
-	p++;
+    {
+      SCOPED_LOCK lock(dataBufferLock);
+      if ( (workQueue.size() == 0 ) or (( workQueue.size() != 0 ) and 
+                                        ( workQueue.size() == lastQueueSize )) ){
+
+        if (timeout == 0.0) {
+          lastQueueSize  = workQueue.size();
+          TRACE_EXIT( logger, "InStringPort::getPacket"  );
+          return NULL;
+        } else if (timeout > 0){
+
+          uint64_t secs = (unsigned long)(trunc(timeout));
+          //uint64_t nsecs = (unsigned long)((timeout - secs) * 1e9);
+          uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
+          boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+          if ( dataAvailable.timed_wait( lock, to_time) == false ) {
+            TRACE_EXIT( logger, "InStringPort::getPacket"  );
+            return NULL;
+          }
+          if (breakBlock) {
+            TRACE_EXIT( logger, "InStringPort::getPacket"  );
+            return NULL;
+          }
+        } else {
+          dataAvailable.wait(lock);
+          if (breakBlock) {
+            TRACE_EXIT( logger, "InStringPort::getPacket"  );
+            return NULL;
+          }
+        }
+      }
+
+
+      if ( streamID == "" ) {
+        tmp = workQueue.front();
+        workQueue.pop_front();
+      }
+      else {
+        typename WorkQueue::iterator p = workQueue.begin();
+        while ( p != workQueue.end() ) {
+          if ( (*p)->streamID == streamID ) {
+            tmp = *p;
+            workQueue.erase(p);
+            break;
+          }
+          p++;
+        }
+      }
+
+      LOG_TRACE( logger, "bulkio.InStringPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
+      if ( tmp == NULL ) {
+        lastQueueSize = workQueue.size();
+        TRACE_EXIT( logger, "InStringPort::getPacket"  );
+        return NULL;
       }
     }
 
-    LOG_TRACE( logger, "bulkio.InStringPort getPacket PORT:" << name << " (QUEUE="<< workQueue.size() << ")" );
-    if ( tmp == NULL ) {
-      lastQueueSize = workQueue.size();
-      TRACE_EXIT( logger, "InStringPort::getPacket"  );
-      return NULL;
-    }
-
-    SCOPED_LOCK lock2(sriUpdateLock);
-    if (tmp->EOS) {
+    bool turnOffBlocking = false;
+    if (tmp && tmp->EOS) {
+      SCOPED_LOCK lock2(sriUpdateLock);
       SriMap::iterator target = currentHs.find(std::string(tmp->streamID));
       if (target != currentHs.end()) {
-	bool sriBlocking = target->second.first.blocking;
-	currentHs.erase(target);
-	if (sriBlocking) {
-	  SriMap::iterator currH;
-	  bool keepBlocking = false;
-	  for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
-	    if (currH->second.first.blocking) {
-	      keepBlocking = true;
-	      break;
-	    }
-	  }
-
-	  if (!keepBlocking) {
-	    queueSem->setCurrValue(0);
-	    blocking = false;
-	  }
-	}
+        bool sriBlocking = target->second.first.blocking;
+        currentHs.erase(target);
+        if (sriBlocking) {
+          turnOffBlocking = true;
+          SriMap::iterator currH;
+          for (currH = currentHs.begin(); currH != currentHs.end(); currH++) {
+            if (currH->second.first.blocking) {
+              turnOffBlocking = false;
+              break;
+            }
+          }
+        }
       }
     }
 
-    if (blocking) {
-      queueSem->decr();
+    {
+      SCOPED_LOCK lock(dataBufferLock);
+      if (turnOffBlocking) {
+        queueSem->setCurrValue(0);
+        blocking = false;
+      }
+
+      if (blocking) {
+        queueSem->decr();
+      }
     }
 
     TRACE_EXIT( logger, "InStringPort::getPacket"  );

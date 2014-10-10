@@ -9,6 +9,11 @@ bulkio_libsrc_top=$bulkio_top/libsrc
 export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:$bulkio_top/jni/.libs:${LD_LIBRARY_PATH}
 export PYTHONPATH=$bulkio_libsrc_top/build/lib:${PYTHONPATH}
 
+# Limit the number of threads Java uses for the garbage collector to avoid
+# misleading Java "out of memory" errors that in all actuality  appear to be
+# due to hitting the per-user process limit
+export _JAVA_OPTIONS="-XX:ParallelGCThreads=1"
+
 #
 #  Run Python based testing..
 #   test_xxx_vector.py -- uses sandbox to load components and test data flow
@@ -44,9 +49,14 @@ fi
 #   OutVector_Port - test vector based bulkio ports
 #   OutString_Port - test string based bulkio ports
 #   OutSDDS_Port - test SDDS based bulkio ports
-#   
 #
-make -C java
+#
+if command -v ant 2>/dev/null
+then
+    ant -f java/build.xml
+else
+    make -C java
+fi
 
 
 #
@@ -54,16 +64,16 @@ make -C java
 #   Bulkio_InPort_Fixture - test vector based bulkio ports
 #   Bulkio_OutPort_Fixture - test vector based bulkio ports
 #   Bulkio_Helper_Fixture - test bulkio helper api
-#   
+#
 #
 pushd cpp
 ./runtests
-popd 
+popd
 
 
 #
 #  Run Large Packet Size Test
-#   
+#
 #
 pushd ../components/TestLargePush/tests/
 ./test_TestLargePush.py
@@ -71,7 +81,7 @@ popd
 
 #
 #  Run Attachable/Multiout Test
-#   
+#
 #
 pushd ../components/multiout_attachable/tests/
 ./test_multiout_attachable.py

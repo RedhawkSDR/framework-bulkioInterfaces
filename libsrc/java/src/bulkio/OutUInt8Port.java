@@ -184,16 +184,13 @@ public class OutUInt8Port extends BULKIO.UsesPortStatisticsProviderPOA {
      * @generated
      */
     public UsesPortStatistics[] statistics() {
-        UsesPortStatistics[] portStats = new UsesPortStatistics[this.outConnections.size()];
-        int i = 0;
-
+        List<UsesPortStatistics> portStats = new ArrayList<UsesPortStatistics>();
         synchronized (this.updatingPortsLock) {
             for (String connId : this.outConnections.keySet()) {
-                portStats[i++] = new UsesPortStatistics(connId, this.stats.get(connId).retrieve());
+                portStats.add(new UsesPortStatistics(connId, this.stats.get(connId).retrieve()));
             }
         }
-
-        return portStats;
+        return portStats.toArray(new UsesPortStatistics[portStats.size()]);
     }
 
     /**
@@ -604,15 +601,13 @@ public class OutUInt8Port extends BULKIO.UsesPortStatisticsProviderPOA {
      * @generated
      */
     public UsesConnection[] connections() {
-        final UsesConnection[] connList = new UsesConnection[this.outConnections.size()];
-        int i = 0;
+        final List<UsesConnection> connList = new ArrayList<UsesConnection>();
         synchronized (this.updatingPortsLock) {
             for (Entry<String, dataOctetOperations> ent : this.outConnections.entrySet()) {
-                connList[i++] = new UsesConnection(ent.getKey(), (org.omg.CORBA.Object) ent.getValue());
+                connList.add(new UsesConnection(ent.getKey(), (org.omg.CORBA.Object) ent.getValue()));
             }
         }
-        return connList;
+        return connList.toArray(new UsesConnection[connList.size()]);
     }
 
 }
-

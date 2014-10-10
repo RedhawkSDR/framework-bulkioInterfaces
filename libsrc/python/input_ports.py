@@ -47,6 +47,7 @@ class InPort:
         self.logger = logger
         self.queue = Queue.Queue(maxsize)
         self.port_lock = threading.Lock()
+        self._not_full = threading.Condition(self.port_lock)
         self.stats =  InStats(name, PortTransferType)
         self.blocking = False
         self.sri_cmp = sriCompare
@@ -89,48 +90,42 @@ class InPort:
     def _get_statistics(self):
         self.port_lock.acquire()
         try:
-            recStat = self.stats.retrieve()
+            return self.stats.retrieve()
         finally:
             self.port_lock.release()
-        return recStat
 
     def _get_state(self):
         self.port_lock.acquire()
         try:
-            full = self.queue.full()
-            empty = self.queue.empty()
+            if self.queue.full():
+                return BULKIO.BUSY
+            elif self.queue.empty():
+                return BULKIO.IDLE
+            else:
+                return BULKIO.ACTIVE
         finally:
             self.port_lock.release()
-        if full:
-            return BULKIO.BUSY
-        elif empty:
-            return BULKIO.IDLE
-        else:
-            return BULKIO.ACTIVE
 
     def _get_activeSRIs(self):
         self.port_lock.acquire()
         try:
-            activeSRIs = [self.sriDict[entry][0] for entry in self.sriDict]
+            return [self.sriDict[entry][0] for entry in self.sriDict]
         finally:
             self.port_lock.release()
-        return activeSRIs
 
     def getCurrentQueueDepth(self):
         self.port_lock.acquire()
         try:
-            depth = self.queue.qsize()
+            return self.queue.qsize()
         finally:
             self.port_lock.release()
-        return depth
 
     def getMaxQueueDepth(self):
         self.port_lock.acquire()
         try:
-            depth = self.queue.maxsize
+            return self.queue.maxsize
         finally:
             self.port_lock.release()
-        return depth
         
     #set to -1 for infinite queue
     def setMaxQueueDepth(self, newDepth):
@@ -189,9 +184,12 @@ class InPort:
                 sri, sriChanged = self.sriDict[streamID]
                 self.sriDict[streamID] = (sri, False)
 
+            packetSize = self._packetSize(data)
             if self.blocking:
                 packet = (data, T, EOS, streamID, copy.deepcopy(sri), sriChanged, False)
-                self.stats.update(len(data), float(self.queue.qsize()) / float(self.queue.maxsize), streamID, False)
+                self.stats.update(packetSize, float(self.queue.qsize()) / float(self.queue.maxsize), EOS, streamID, False)
+                while self.queue.full():
+                    self._not_full.wait()
                 self.queue.put(packet)
             else:
                 sriChangedHappened = False
@@ -213,10 +211,10 @@ class InPort:
                     if sriChangedHappened:
                         sriChanged = True
                     packet = (data, T, EOS, streamID, copy.deepcopy(sri), sriChanged, True)
-                    self.stats.update(len(data), float(self.queue.qsize()) / float(self.queue.maxsize), EOS, streamID, True)
+                    self.stats.update(packetSize, float(self.queue.qsize()) / float(self.queue.maxsize), EOS, streamID, True)
                 else:
                     packet = (data, T, EOS, streamID, copy.deepcopy(sri), sriChanged, False)
-                    self.stats.update(len(data), float(self.queue.qsize()) / float(self.queue.maxsize), EOS, streamID, False)
+                    self.stats.update(packetSize, float(self.queue.qsize()) / float(self.queue.maxsize), EOS, streamID, False)
 
                 if self.logger:
                     self.logger.trace( "bulkio::InPort pushPacket NEW Packet (QUEUE=" + 
@@ -236,6 +234,11 @@ class InPort:
         try:
             data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.get(block=False)
             
+            # Let one waiting pushPacket call know there is space available
+            self.port_lock.acquire()
+            self._not_full.notify()
+            self.port_lock.release()
+
             if EOS: 
                 if self.sriDict.has_key(streamID):
                     (a,b) = self.sriDict.pop(streamID)
@@ -254,6 +257,8 @@ class InPort:
         if self.logger:
             self.logger.trace( "bulkio::InPort getPacket EXIT (port=" + str(self.name) +")" )
 
+    def _packetSize(self, data):
+        return len(data)
 
 
 class InCharPort(InPort, BULKIO__POA.dataChar):
@@ -310,69 +315,14 @@ class InDoublePort(InPort, BULKIO__POA.dataDouble):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InDoublePort._TYPE_ )
 
 
-
 class InFilePort(InPort, BULKIO__POA.dataFile):
     _TYPE_ = 'd'
     def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InFilePort._TYPE_ )
 
-
-    def pushPacket(self, URL, T, EOS, streamID):
-
-        if self.logger:
-            self.logger.trace( "bulkio::InFilePort pushPacket ENTER (port=" + str(self.name) +")" )
-
-        self.port_lock.acquire()
-        try:
-            if self.queue.maxsize == 0:
-                if self.logger:
-                    self.logger.trace( "bulkio::InFilePort pushPacket EXIT (port=" + str(self.name) +")" )
-                return
-            packet = None
-            sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
-            sriChanged = False
-            if self.sriDict.has_key(streamID):
-                sri, sriChanged = self.sriDict[streamID]
-                self.sriDict[streamID] = (sri, False)
-
-            if self.blocking:
-                packet = (URL, T, EOS, streamID, copy.deepcopy(sri), sriChanged, False)
-                self.stats.update(1, float(self.queue.qsize()) / float(self.queue.maxsize), EOS,streamID, False)
-                self.queue.put(packet)
-            else:
-                sriChangedHappened = False
-                if self.queue.full():
-                    try:
-                        if self.logger:
-                            self.logger.debug( "bulkio::InFilePort pushPacket PURGE INPUT QUEUE (SIZE=" + 
-                                          str(len(self.queue.queue)) + ")"  )
-
-                        self.queue.mutex.acquire()
-                        while len(self.queue.queue) != 0:
-                            URL, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.queue.pop()
-                            if sriChanged:
-                                sriChangedHappened = True
-                                self.queue.queue.clear()
-                        self.queue.mutex.release()
-                    except Queue.Empty:
-                        self.queue.mutex.release()
-                    if sriChangedHappened:
-                        sriChanged = True
-                    packet = (URL, T, EOS, streamID, copy.deepcopy(sri), sriChanged, True)
-                    self.stats.update(1, float(self.queue.qsize()) / float(self.queue.maxsize), EOS, streamID, True)
-                else:
-                    packet = (URL, T, EOS, streamID, copy.deepcopy(sri), sriChanged, False)
-                    self.stats.update(len(URL), float(self.queue.qsize()) / float(self.queue.maxsize), streamID, False)
-
-                if self.logger:
-                    self.logger.trace( "bulkio::InXMLPort pushPacket NEW Packet (QUEUE=" + 
-                                       str(len(self.queue.queue)) + ")" )
-                self.queue.put(packet)
-        finally:
-            self.port_lock.release()
-
-        if self.logger:
-            self.logger.trace( "bulkio::InFilePort pushPacket EXIT (port=" + str(self.name) +")" )
+    def _packetSize(self, data):
+        # For statistics, consider the entire URL a single element
+        return 1
 
 
 class InXMLPort(InPort, BULKIO__POA.dataXML):
@@ -380,62 +330,9 @@ class InXMLPort(InPort, BULKIO__POA.dataXML):
     def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100 ):
         InPort.__init__(self, name, logger, sriCompare, newSriCallback, sriChangeCallback, maxsize, InXMLPort._TYPE_ )
 
-
     def pushPacket(self, xml_string, EOS, streamID):
-
-        if self.logger:
-            self.logger.trace( "bulkio::InXMLPort pushPacket ENTER (port=" + str(self.name) +")" )
-            
-        self.port_lock.acquire()
-        try:
-            if self.queue.maxsize == 0:
-                if self.logger:
-                    self.logger.trace( "bulkio::InXMLPort pushPacket EXIT (port=" + str(self.name) +")" )
-                return
-            packet = None
-            sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
-            sriChanged = False
-            if self.sriDict.has_key(streamID):
-                sri, sriChanged = self.sriDict[streamID]
-                self.sriDict[streamID] = (sri, False)
-
-            if self.blocking:
-                packet = (xml_string, None, EOS, streamID, copy.deepcopy(sri), sriChanged, False)
-                self.stats.update(len(xml_string), float(self.queue.qsize()) / float(self.queue.maxsize), streamID, False)
-                self.queue.put(packet)
-            else:
-                sriChangedHappened = False
-                if self.queue.full():
-                    try: 
-                        if self.logger:
-                            self.logger.debug( "bulkio::InXMLPort pushPacket PURGE INPUT QUEUE (SIZE=" + 
-                                          str(len(self.queue.queue)) + ")"  )
-                        self.queue.mutex.acquire()
-                        while len(self.queue.queue) != 0:
-                            xml_string, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.queue.pop()
-                            if sriChanged:
-                                sriChangedHappened = True
-                                self.queue.queue.clear()
-                        self.queue.mutex.release()
-                    except Queue.Empty:
-                        self.queue.mutex.release()
-                    if sriChangedHappened:
-                        sriChanged = True
-                    packet = (xml_string, None, EOS, streamID, copy.deepcopy(sri), sriChanged, True)
-                    self.stats.update(len(xml_string), float(self.queue.qsize()) / float(self.queue.maxsize), EOS, streamID, True)
-                else:
-                    packet = (xml_string, None, EOS, streamID, copy.deepcopy(sri), sriChanged, False)
-                    self.stats.update(len(xml_string), float(self.queue.qsize()) / float(self.queue.maxsize), EOS, streamID, False)
-
-                if self.logger:
-                    self.logger.trace( "bulkio::InXMLPort pushPacket NEW Packet (QUEUE=" + 
-                                       str(len(self.queue.queue)) + ")" )
-                self.queue.put(packet)
-        finally:
-            self.port_lock.release()
-
-        if self.logger:
-            self.logger.trace( "bulkio::InXMLPort pushPacket EXIT (port=" + str(self.name) +")" )
+        # Insert a None for the timestamp and use parent implementation
+        InPort.pushPacket(self, xml_string, None, EOS, streamID)
     
 class InAttachablePort:
     _TYPE_='b'
