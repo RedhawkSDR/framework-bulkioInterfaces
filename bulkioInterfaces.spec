@@ -1,20 +1,20 @@
 #
-# This file is protected by Copyright. Please refer to the COPYRIGHT file 
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
-# 
+#
 # This file is part of REDHAWK core.
-# 
-# REDHAWK core is free software: you can redistribute it and/or modify it under 
-# the terms of the GNU Lesser General Public License as published by the Free 
-# Software Foundation, either version 3 of the License, or (at your option) any 
+#
+# REDHAWK core is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
 # later version.
-# 
-# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT 
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+#
+# REDHAWK core is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
-# You should have received a copy of the GNU Lesser General Public License 
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
@@ -28,8 +28,8 @@ Prefix:         %{_prefix}
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        1.8.6
-Release:        3%{?dist}
+Version:        1.8.8
+Release:        1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
 Group:          Applications/Engineering
@@ -45,7 +45,7 @@ BuildRequires: 	autoconf automake libtool
 BuildRequires: 	omniORB
 BuildRequires: 	python omniORBpy omniORBpy-devel
 BuildRequires: 	apache-log4cxx-devel
-%if "%{?rhel}" == "6"
+%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
 BuildRequires: 	libuuid-devel
 %else
 BuildRequires: 	e2fsprogs-devel
@@ -90,7 +90,7 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %{_libdir}/libbulkioInterfaces.*
 %{_libdir}/pkgconfig/bulkioInterfaces.pc
 %{_prefix}/lib/python/bulkio
-%if 0%{?rhel} >= 6
+%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
 %{_prefix}/lib/python/bulkioInterfaces-%{version}-py%{python_version}.egg-info
 %endif
 %if %{with java}
@@ -108,6 +108,9 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Mar 21 2014 1.8.7-1
+- Improve OS version detection for RHEL/CentOS/Fedora
+
 * Fri Mar 29 2013 1.8.4
 - Re-work java use
 - Remove unneeded defines
