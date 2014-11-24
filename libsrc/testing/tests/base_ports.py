@@ -22,6 +22,7 @@ import unittest
 import sys
 from ossie.utils import sb
 import time
+import os as _os
 from bulkio.bulkioInterfaces.BULKIO import *
 
 # remove when sandbox support for relative path works
@@ -33,6 +34,8 @@ from ossie.utils.idllib import IDLLibrary
 model._idllib = IDLLibrary()
 model._idllib.addSearchPath('../../../idl')
 model._idllib.addSearchPath('/usr/local/redhawk/core/share/idl')
+if 'OSSIEHOME' in _os.environ:
+    model._idllib.addSearchPath(_os.path.join(_os.environ['OSSIEHOME'], 'share/idl'))
 
 def str_to_class(s):
     if s in globals() and isinstance(globals()[s], types.ClassType):

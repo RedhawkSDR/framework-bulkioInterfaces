@@ -188,6 +188,17 @@ public class OutVectorPort_Test {
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
+
 	// push data
 	char []v = new char[] { (char)0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
@@ -276,6 +287,17 @@ public class OutVectorPort_Test {
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
+
 	// push data
 	short []v = new short[] { (short)0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
@@ -362,6 +384,17 @@ public class OutVectorPort_Test {
 	port.pushSRI( sri );
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
+
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
 
 	// push data
 	int []v = new int[] { 0 };
@@ -451,6 +484,17 @@ public class OutVectorPort_Test {
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
+
 	// push data
 	long []v = new long[] { 0L };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
@@ -538,6 +582,17 @@ public class OutVectorPort_Test {
 	port.pushSRI( sri );
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
+
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
 
 	// push data
 	byte []v = new byte[] { (byte)0 };
@@ -627,6 +682,17 @@ public class OutVectorPort_Test {
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
+
 	// push data
 	short []v = new short[] { (short)0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
@@ -713,6 +779,17 @@ public class OutVectorPort_Test {
 	port.pushSRI( sri );
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
+
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
 
 	// push data
 	int []v = new int[] { 0 };
@@ -801,6 +878,17 @@ public class OutVectorPort_Test {
 	port.pushSRI( sri );
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
+
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
 
 	// push data
 	long []v = new long[] { 0L };
@@ -891,6 +979,17 @@ public class OutVectorPort_Test {
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
+
 	// push data
 	double []v = new double[] { 0.0 };
 	BULKIO.PrecisionUTCTime TS = bulkio.time.utils.now();
@@ -977,6 +1076,17 @@ public class OutVectorPort_Test {
 	port.pushSRI( sri );
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
+
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
 
 	// push data
 	float []v = new float[] { 0.0f };

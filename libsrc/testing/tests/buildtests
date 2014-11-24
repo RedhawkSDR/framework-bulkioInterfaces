@@ -8,7 +8,11 @@ export LD_LIBRARY_PATH=$bulkio_libsrc_top/.libs:$bulkio_top/.libs:${LD_LIBRARY_P
 export PYTHONPATH=$bulkio_libsrc_top/build/lib:${PYTHONPATH}
 
 pushd ../components/CPP_Ports/cpp
-./reconf; ./configure; make
+./reconf; ./configure; make -j
+popd
+
+pushd ../components/sri_changed_cpp/cpp
+./reconf; ./configure; make -j
 popd
 
 pushd ../components/Java_Ports/java
@@ -21,7 +25,7 @@ popd
 
 
 pushd ../components/TestLargePush/cpp
-./reconf; ./configure; make
+./reconf; ./configure; make -j
 popd
 
 pushd ../components/TestLargePush/java
@@ -33,7 +37,7 @@ pushd ../components/TestLargePush/python
 popd
 
 pushd ../components/multiout_attachable/cpp
-./reconf; ./configure; make
+./reconf; ./configure; make -j
 popd
 
 pushd ../components/multiout_attachable/java

@@ -178,6 +178,17 @@ public class OutSDDSPort_Test {
 	StreamSRI []sris= port.activeSRIs();
 	assertTrue("Current SRIs Failed",  sris.length == 1 );
 
+        // Pushing an SRI with a null streamID should trigger an NPE
+        sri = new BULKIO.StreamSRI();
+        sri.streamID = null;
+        boolean received_npe = false;
+        try {
+            port.pushSRI(sri, TS);
+        } catch (NullPointerException npe) {
+            received_npe = true;
+        }
+        assertTrue("Did not raise NPE for null streamID", received_npe);
+
 	port.enableStats( true );
 	try {
 	    port.connectPort( p, ctx.cid );
