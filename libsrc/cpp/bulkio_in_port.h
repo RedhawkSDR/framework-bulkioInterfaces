@@ -146,8 +146,10 @@ namespace bulkio {
 	   SriListener *newStreamCB = NULL );
 
     InPort(std::string port_name, 
-	   bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
-	   SriListener *newStreamCB = NULL );
+       bulkio::sri::Compare sriCmp = bulkio::sri::DefaultComparator,
+       SriListener *newStreamCB = NULL );
+       
+    InPort(std::string port_name, void *);
 
     //
     // ~InPort - call the virtual destructor to remove all allocated memebers
@@ -458,8 +460,10 @@ namespace bulkio {
       SriListener *newStreamCB = NULL );
 
     InStringPort(std::string port_name, 
-		 bulkio::sri::Compare = bulkio::sri::DefaultComparator,
-		 SriListener *newStreamCB = NULL );
+         bulkio::sri::Compare = bulkio::sri::DefaultComparator,
+         SriListener *newStreamCB = NULL );
+
+    InStringPort(std::string port_name, void * );
 
     //
     // ~InStringPort - call the virtual destructor to remove all allocated memebers

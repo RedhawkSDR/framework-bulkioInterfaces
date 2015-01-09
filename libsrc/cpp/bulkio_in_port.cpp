@@ -82,6 +82,26 @@ namespace  bulkio {
 
   }
 
+  template < typename PortTraits >
+  InPort< PortTraits >::InPort(std::string port_name, void *):
+    Port_Provides_base_impl(port_name),
+    sri_cmp(bulkio::sri::DefaultComparator),
+    newStreamCallback(),
+    stats(NULL)
+  {
+    // create semaphore to track queue size
+    queueSem = new queueSemaphore(100);
+
+    // create stats object to track data ingest
+    stats = new linkStatistics(port_name, sizeof(TransportType) );
+
+    // set state to allow for back pressure to call if queue is full
+    blocking = false;
+
+    // controls the flow from getPacket... false will allow the flow
+    breakBlock = false;
+
+  }
 
 
   template < typename PortTraits >
@@ -643,6 +663,27 @@ namespace  bulkio {
     if ( sri_cmp == NULL ) {
       sri_cmp = bulkio::sri::DefaultComparator;
     }
+
+  }
+
+  template < typename PortTraits >
+  InStringPort< PortTraits >::InStringPort(std::string port_name, void * ) :
+    Port_Provides_base_impl(port_name),
+    sri_cmp(bulkio::sri::DefaultComparator),
+    newStreamCallback(),
+    stats(NULL)
+  {
+    // create semaphore to track queue size
+    queueSem = new queueSemaphore(100);
+
+    // create stats object to track data ingest
+    stats = new linkStatistics( port_name, sizeof(TransportType) );
+
+    // set state to allow for back pressure to call if queue is full
+    blocking = false;
+
+    // controls the flow from getPacket... false will allow the flow
+    breakBlock = false;
 
   }
 

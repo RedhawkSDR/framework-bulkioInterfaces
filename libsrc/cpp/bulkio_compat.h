@@ -36,15 +36,29 @@
 typedef bulkio::InCharPort      BULKIO_dataChar_In_i;
 typedef bulkio::InOctetPort     BULKIO_dataOctet_In_i;
 typedef bulkio::InShortPort     BULKIO_dataShort_In_i;
-typedef bulkio::InUShortPort    BULKIO_dataUShort_In_i;
+typedef bulkio::InUShortPort    BULKIO_dataUshort_In_i;
 typedef bulkio::InLongPort      BULKIO_dataLong_In_i;
-typedef bulkio::InULongPort     BULKIO_dataULong_In_i;
+typedef bulkio::InULongPort     BULKIO_dataUlong_In_i;
 typedef bulkio::InLongLongPort  BULKIO_dataLongLong_In_i;
-typedef bulkio::InULongLongPort BULKIO_dataULongLong_In_i;
+typedef bulkio::InULongLongPort BULKIO_dataUlongLong_In_i;
 typedef bulkio::InFloatPort     BULKIO_dataFloat_In_i;
 typedef bulkio::InDoublePort    BULKIO_dataDouble_In_i;
 typedef bulkio::InFilePort      BULKIO_dataFile_In_i;
 typedef bulkio::InXMLPort       BULKIO_dataXML_In_i;
 typedef bulkio::InSDDSPort      BULKIO_dataSDDS_In_i;
+
+typedef bulkio::OutCharPort      BULKIO_dataChar_Out_i;
+typedef bulkio::OutOctetPort     BULKIO_dataOctet_Out_i;
+typedef bulkio::OutShortPort     BULKIO_dataShort_Out_i;
+typedef bulkio::OutUShortPort    BULKIO_dataUShort_Out_i;
+typedef bulkio::OutLongPort      BULKIO_dataLong_Out_i;
+typedef bulkio::OutULongPort     BULKIO_dataULong_Out_i;
+typedef bulkio::OutLongLongPort  BULKIO_dataLongLong_Out_i;
+typedef bulkio::OutULongLongPort BULKIO_dataULongLong_Out_i;
+typedef bulkio::OutFloatPort     BULKIO_dataFloat_Out_i;
+typedef bulkio::OutDoublePort    BULKIO_dataDouble_Out_i;
+typedef bulkio::OutFilePort      BULKIO_dataFile_Out_i;
+typedef bulkio::OutXMLPort       BULKIO_dataXML_Out_i;
+typedef bulkio::OutSDDSPort      BULKIO_dataSDDS_Out_i;
 
 #endif
