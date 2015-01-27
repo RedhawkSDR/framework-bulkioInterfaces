@@ -249,7 +249,7 @@ namespace bulkio {
       {
         // Upgrade lock to unique - Blocks all reads
         boost::upgrade_to_unique_lock< boost::shared_mutex > uniqueLock(lock);
-        currentHs.insert(std::make_pair(CORBA::string_dup(H.streamID), std::make_pair(H, T)));
+        currentHs.insert(std::make_pair(ossie::corba::returnString(H.streamID), std::make_pair(H, T)));
         sriChanged = true;
       }
 
@@ -1627,8 +1627,7 @@ namespace bulkio {
 
       if (!portListed) {
          for (ConnectionsIter i = outConnections.begin(); i != outConnections.end(); ++i) {
-            std::string connectionId = CORBA::string_dup(i->second.c_str());
-            LOG_DEBUG(logger,"pushSRI -2- PORT:" << this->name << " CONNECTION:" << connectionId << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
+            LOG_DEBUG(logger,"pushSRI -2- PORT:" << this->name << " CONNECTION:" << i->second << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );
             try {
                i->first->pushSRI(H, T);
                sri_iter->second.connections.insert( i->second );

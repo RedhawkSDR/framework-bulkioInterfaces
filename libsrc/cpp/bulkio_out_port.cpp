@@ -167,8 +167,7 @@ namespace  bulkio {
 
       if (!portListed) {
 	for (i = outConnections.begin(); i != outConnections.end(); ++i) {
-          std::string connectionId = CORBA::string_dup(i->second.c_str());
-	  LOG_DEBUG(logger,"pushSRI -2- PORT:" << name << " CONNECTION:" << connectionId << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
+	  LOG_DEBUG(logger,"pushSRI -2- PORT:" << name << " CONNECTION:" << i->second << " SRI streamID:" << H.streamID << " Mode:" << H.mode << " XDELTA:" << 1.0/H.xdelta );  
 	  try {
 	    i->first->pushSRI(H);
 	    sri_iter->second.connections.insert( i->second );
