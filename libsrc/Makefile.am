@@ -126,6 +126,7 @@ InUShortPort.java \
 InXMLPort.java \
 linkStatistics.java \
 OutCharPort.java \
+OutDataPort.java \
 OutDoublePort.java \
 OutFilePort.java \
 OutFloatPort.java \
@@ -136,6 +137,7 @@ OutInt8Port.java \
 OutLongLongPort.java \
 OutLongPort.java \
 OutOctetPort.java \
+OutPortBase.java \
 OutSDDSPort.java \
 OutVITA49Port.java \
 OutShortPort.java \

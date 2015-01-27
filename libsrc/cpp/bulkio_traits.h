@@ -27,6 +27,8 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 
+#include <ossie/PropertyMap.h>
+
 #include "bulkio_base.h"
 
 namespace bulkio {
@@ -110,6 +112,15 @@ struct DataTransfer {
     bool sriChanged;
     bool inputQueueFlushed;
 
+    redhawk::PropertyMap& getKeywords()
+    {
+        return redhawk::PropertyMap::cast(SRI.keywords);
+    }
+
+    const redhawk::PropertyMap& getKeywords() const
+    {
+        return redhawk::PropertyMap::cast(SRI.keywords);
+    }
 };
 
 
