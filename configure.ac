@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(bulkioInterfaces, 1.10.2)
+AC_INIT(bulkioInterfaces, 1.10.3)
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [3:0:1])
 
 AM_INIT_AUTOMAKE(nostdinc)
