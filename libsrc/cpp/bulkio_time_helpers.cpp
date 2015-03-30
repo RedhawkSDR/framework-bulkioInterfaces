@@ -22,7 +22,12 @@
 
 
 *******************************************************************************************/
-#include <bulkio_p.h>
+#include <sys/time.h>
+#include <cmath>
+
+#include <BULKIO/bulkioDataTypes.h>
+
+#include "bulkio_base.h"
 
 namespace  bulkio {
 
@@ -76,7 +81,25 @@ namespace  bulkio {
         }
         return tstamp;
       }
-    };
+
+      void normalize(BULKIO::PrecisionUTCTime& time)
+      {
+        // Get fractional adjustment from whole seconds
+        double fadj = std::modf(time.twsec, &time.twsec);
+
+        // Adjust fractional seconds and get whole seconds adjustment
+        double wadj = 0;
+        time.tfsec = std::modf(time.tfsec + fadj, &wadj);
+
+        // If fractional seconds are negative, borrow a second from the whole
+        // seconds to make it positive, normalizing to [0,1)
+        if (time.tfsec < 0.0) {
+          time.tfsec += 1.0;
+          wadj -= 1.0;
+        }
+        time.twsec += wadj;
+      }
+    }
 
     bool DefaultComparator( const BULKIO::PrecisionUTCTime &T1, const BULKIO::PrecisionUTCTime &T2  ){
       if (T1.tcmode != T2.tcmode)

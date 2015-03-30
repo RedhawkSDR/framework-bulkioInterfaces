@@ -43,6 +43,11 @@ class InPort:
     SRI_CHG=5
     QUEUE_FLUSH=6
     _TYPE_ = 'c'
+
+    # Backwards-compatible DataTransfer type can still be unpacked like a tuple
+    # but also supports named fields
+    DataTransfer = collections.namedtuple('DataTransfer', 'dataBuffer T EOS streamID SRI sriChanged inputQueueFlushed')
+
     def __init__(self, name, logger=None, sriCompare=sri.compare, newSriCallback=None, sriChangeCallback=None,  maxsize=100, PortTransferType=_TYPE_ ):
         self.name = name
         self.logger = logger
@@ -261,7 +266,7 @@ class InPort:
                     self._not_empty.wait(remain)
 
             if not self.queue:
-                return None, None, None, None, None, None, None
+                return InPort.DataTransfer(None, None, None, None, None, None, None)
 
             data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed = self.queue.popleft()
             
@@ -279,12 +284,12 @@ class InPort:
                                 break
                         if not stillBlock:
                             self.blocking = False
-            return (data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed)
+            return InPort.DataTransfer(data, T, EOS, streamID, sri, sriChanged, inputQueueFlushed)
         finally:
             self.port_lock.release()
 
-        if self.logger:
-            self.logger.trace( "bulkio::InPort getPacket EXIT (port=" + str(self.name) +")" )
+            if self.logger:
+                self.logger.trace( "bulkio::InPort getPacket EXIT (port=" + str(self.name) +")" )
 
     def _packetSize(self, data):
         return len(data)

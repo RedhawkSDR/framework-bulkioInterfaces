@@ -22,27 +22,6 @@
 
 namespace bulkio {
   
-  /**
-   * Wrap Callback functions as SriListerer objects
-   */
-  class StaticSriCallback : public SriListener
-  {
-  public:
-    virtual void operator() ( BULKIO::StreamSRI& sri)
-    {
-      (*func_)(sri);
-    }
-
-    StaticSriCallback ( SriListenerCallbackFn func) :
-      func_(func)
-    {
-    }
-
-  private:
-
-    SriListenerCallbackFn func_;
-  };
-  
   template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
   InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::InAttachablePort(std::string port_name, 
                                      InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::Callback *attach_detach_cb,

@@ -24,6 +24,7 @@
 #include <queue>
 #include <list>
 #include <vector>
+#include <set>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/locks.hpp>
@@ -70,6 +71,40 @@ namespace bulkio {
   typedef std::map< std::string, std::pair< BULKIO::StreamSRI, bool > >  SriMap;
 
   typedef std::vector< BULKIO::StreamSRI >                               SriList;
+
+  //
+  // Tracks an SRI and which connections have the most recent version
+  //
+  struct SriMapStruct {
+    BULKIO::StreamSRI        sri;
+    std::set<std::string>    connections;
+
+    SriMapStruct( const BULKIO::StreamSRI &in_sri ) {
+      sri = in_sri;
+    };
+
+    SriMapStruct( const SriMapStruct &src ) {
+      sri = src.sri;
+      connections = src.connections;
+    };
+  };
+
+
+  // Standard struct property for multi-out support
+  struct connection_descriptor_struct {
+    connection_descriptor_struct ()
+    {
+    };
+
+    static std::string getId() {
+      return std::string("connection_descriptor");
+    };
+
+    std::string connection_id;
+    std::string stream_id;
+    std::string port_name;
+  };
+
 
   //
   // Listing of Stream IDs for searching
@@ -270,6 +305,11 @@ namespace bulkio {
       //
       BULKIO::PrecisionUTCTime addSampleOffset( const BULKIO::PrecisionUTCTime &T, const size_t numSamples, const double xdelta  );
 
+      //
+      // Adjust the whole and fractional portions of a time stamp object to
+      // ensure there is no fraction in the whole seconds, and vice-versa
+      //
+      void normalize(BULKIO::PrecisionUTCTime& time);
     };
 
 
@@ -319,6 +359,25 @@ namespace bulkio {
     //  Comparator method to search for matching SRI information if "a" matches "b"
     //
     typedef bool  (*Compare)( const BULKIO::StreamSRI &a, const BULKIO::StreamSRI &b);
+
+    // Bit flags for SRI fields
+    enum {
+      NONE     = 0,
+      HVERSION = (1<<0),
+      XSTART   = (1<<1),
+      XDELTA   = (1<<2),
+      XUNITS   = (1<<3),
+      SUBSIZE  = (1<<4),
+      YSTART   = (1<<5),
+      YDELTA   = (1<<6),
+      YUNITS   = (1<<7),
+      MODE     = (1<<8),
+      STREAMID = (1<<9),
+      BLOCKING = (1<<10),
+      KEYWORDS = (1<<11)
+    };
+
+    int compareFields(const BULKIO::StreamSRI& lhs, const BULKIO::StreamSRI& rhs);
 
     //
     // Default comparator method when comparing SRI objects

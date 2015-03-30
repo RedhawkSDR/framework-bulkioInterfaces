@@ -24,7 +24,7 @@
 #include <ossie/Resource_impl.h>
 #include <ossie/ThreadedComponent.h>
 
-#include <bulkio/bulkio.h>
+#include <bulkio.h>
 
 class sri_changed_cpp_base : public Resource_impl, protected ThreadedComponent
 {

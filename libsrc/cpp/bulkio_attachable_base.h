@@ -30,11 +30,11 @@
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
+#include <ossie/ossieSupport.h>
+
 #include "bulkio_base.h"
 #include "bulkio_traits.h"
-#include "ossie/ossieSupport.h"
-
-#include "bulkio_in_port.h" // For SriListener Definition
+#include "bulkio_callbacks.h"
 
 namespace bulkio {
   
