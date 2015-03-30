@@ -456,7 +456,13 @@ public class OutInt32Port extends BULKIO.UsesPortStatisticsProviderPOA {
                 logger.trace("bulkio.OutPort pushOversizedPacket() calling pushPacket with pushSize " + pushSize + " and packetTime twsec: " + packetTime.twsec + " tfsec: " + packetTime.tfsec);
             }
             this._pushPacket(subPacket, packetTime, packetEOS, streamID);
-            packetTime = bulkio.time.utils.addSampleOffset(packetTime, pushSize, xdelta);
+            int data_xfer_len = pushSize;
+            if (sriMap != null){
+                if (sriMap.sri.mode == 1) {
+                    data_xfer_len = data_xfer_len / 2;
+                }
+            }
+            packetTime = bulkio.time.utils.addSampleOffset(packetTime, data_xfer_len, xdelta);
         }
     }
 

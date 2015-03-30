@@ -295,7 +295,11 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
             if self.logger:
                 self.logger.trace("_pushOversizedPacket() calling pushPacket with pushSize " + str(len(data[start:end])) + " and packetTime twsec: " + str(packetTime.twsec) + " tfsec: " + str(packetTime.tfsec))
             self._pushPacket(data[start:end], packetTime, packetEOS, streamID);
-            packetTime = timestamp.addSampleOffset(packetTime, len(data[start:end]), xdelta)
+            data_xfer_len = len(data[start:end])
+            if self.sriDict.has_key(streamID):
+                if self.sriDict[streamID].sri.mode == 1:
+                    data_xfer_len = data_xfer_len / 2
+            packetTime = timestamp.addSampleOffset(packetTime, data_xfer_len, xdelta)
 
     def _pushPacket(self, data, T, EOS, streamID):
         

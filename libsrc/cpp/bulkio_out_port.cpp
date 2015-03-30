@@ -257,7 +257,12 @@ namespace  bulkio {
           const PortSequenceType subPacket(pushSize, pushSize, const_cast<TransportType*>(buffer), false);
           LOG_TRACE(logger,"_pushOversizedPacket calling pushPacket with pushSize " << pushSize << " and packetTime twsec: " << packetTime.twsec << " tfsec: " << packetTime.tfsec)
           _pushPacket(subPacket, packetTime, packetEOS, streamID );
-          packetTime = bulkio::time::utils::addSampleOffset(packetTime, pushSize, xdelta);
+          size_t data_xfer_len = pushSize;
+          if ( sri_iter != currentSRIs.end() ) {
+              if (sri_iter->second.sri.mode == 1)
+                  data_xfer_len = data_xfer_len / 2;
+          }
+          packetTime = bulkio::time::utils::addSampleOffset(packetTime, data_xfer_len, xdelta);
 
           // Advance buffer to next sub-packet boundary
           buffer += pushSize;
