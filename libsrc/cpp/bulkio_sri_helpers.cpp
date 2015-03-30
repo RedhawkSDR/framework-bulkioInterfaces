@@ -37,7 +37,9 @@ bool DefaultComparator( const BULKIO::StreamSRI &SRI_1, const BULKIO::StreamSRI 
         if (strcmp(SRI_1.keywords[i].id, SRI_2.keywords[i].id)) {
             return false;
         }
-        if (!SRI_1.keywords[i].value.type()->equivalent(SRI_2.keywords[i].value.type())) {
+        CORBA::TypeCode_var SRI_1_type = SRI_1.keywords[i].value.type();
+        CORBA::TypeCode_var SRI_2_type = SRI_2.keywords[i].value.type();
+        if (!SRI_1_type->equivalent(SRI_2_type)) {
             return false;
         }
         if (!ossie::compare_anys(SRI_1.keywords[i].value, SRI_2.keywords[i].value, action)) {
