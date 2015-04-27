@@ -507,6 +507,11 @@ namespace  bulkio {
   }
 
   template < typename PortTraits >
+  std::string   InPortBase< PortTraits >::getRepid() const {
+	return PortType::_PD_repoId;
+  }
+
+  template < typename PortTraits >
   int InPortBase< PortTraits >::_getElementLength(const PushArgumentType data)
   {
     return data.length();

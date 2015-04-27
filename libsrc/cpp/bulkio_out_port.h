@@ -257,6 +257,8 @@ namespace bulkio {
 
     void setLogger( LOGGER_PTR newLogger );
 
+	std::string getRepid () const;
+
   protected:
 
 

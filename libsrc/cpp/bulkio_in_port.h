@@ -67,6 +67,8 @@ namespace bulkio {
     //
     typedef typename Traits::PushType PushArgumentType;
 
+	typedef typename Traits::PortType PortType;
+
     //
     // Declaration of DataTransfer class from TransportType trait and DataBuffer type trait
     //
@@ -228,6 +230,8 @@ namespace bulkio {
     void setNewStreamListener( SriListenerCallbackFn  newListener );
 
     void setLogger( LOGGER_PTR logger );
+
+	std::string getRepid () const;
 
   protected:
     //

@@ -252,6 +252,8 @@ namespace bulkio {
     // @return   typename PortType::InputUsageState return the current state of the port base on how many attach requests have been received
     //            
     virtual typename PortType::InputUsageState usageState();
+
+	std::string getRepid() const;
  
 
   protected:
@@ -697,6 +699,8 @@ namespace bulkio {
     // remove 
     //
     virtual void removeStream(const std::string& streamId);
+
+	std::string getRepid() const;
 
 
   protected:

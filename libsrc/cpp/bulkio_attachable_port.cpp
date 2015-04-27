@@ -507,6 +507,12 @@ namespace bulkio {
     }
   }
 
+  template <typename StreamDefinition, typename PortType, typename StreamSequence, typename POAType>
+  std::string InAttachablePort<StreamDefinition,PortType,StreamSequence,POAType>::getRepid() const
+  {
+	return PortType::_PD_repoId;
+  }
+
   //
   // class StreamAttachment
   //
@@ -1930,6 +1936,12 @@ namespace bulkio {
       }
     }
     return PortType::_nil();
+  }
+
+  template <typename StreamDefinition, typename PortType, typename StreamSequence>
+  std::string OutAttachablePort<StreamDefinition,PortType,StreamSequence>::getRepid() const
+  {
+  	return PortType::_PD_repoId;
   }
 
   template class InAttachablePort<BULKIO::VITA49StreamDefinition, 

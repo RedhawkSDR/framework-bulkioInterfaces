@@ -488,6 +488,12 @@ namespace  bulkio {
     logger = newLogger;
   }
 
+  template < typename PortTraits >
+  std::string   OutPortBase< PortTraits >::getRepid() const {
+	return PortType::_PD_repoId;
+    //return "IDL:CORBA/Object:1.0";
+  }
+
 
   /**
    * Specializations of base class methods for dataXML ports
