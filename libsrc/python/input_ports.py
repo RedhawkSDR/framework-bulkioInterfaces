@@ -143,6 +143,7 @@ class InPort:
         self.port_lock.acquire()
         try:
             if H.streamID not in self.sriDict:
+                sriChanged = True
                 if self.logger:
                     self.logger.debug( "pushSRI PORT:" + str(self.name) + " NEW SRI:" + str(H.streamID) )
                 if self.newSriCallback:
@@ -182,7 +183,10 @@ class InPort:
             sriChanged = False
             if self.sriDict.has_key(streamID):
                 sri, sriChanged = self.sriDict[streamID]
-                self.sriDict[streamID] = (sri, False)
+                if EOS:
+                    self.sriDict[streamID] = (sri, True)
+                else:
+                    self.sriDict[streamID] = (sri, False)
 
             packetSize = self._packetSize(data)
             if self.blocking:
