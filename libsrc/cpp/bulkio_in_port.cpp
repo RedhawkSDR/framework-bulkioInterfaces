@@ -254,6 +254,7 @@ namespace  bulkio {
     } else {
       SCOPED_LOCK lock(dataBufferLock);
       bool sriChangedHappened = false;
+      bool flagEOS = false;
       if (workQueue.size() == queueSem->getMaxValue()) { // reached maximum queue depth - flush the queue
         LOG_DEBUG( logger, "bulkio::InPort pushPacket PURGE INPUT QUEUE (SIZE" << workQueue.size() << ")" );
         flushToReport = true;
@@ -263,12 +264,17 @@ namespace  bulkio {
           if (tmp->sriChanged == true) {
             sriChangedHappened = true;
           }
+          if (tmp->EOS == true) {
+              flagEOS = true;
+          }
           workQueue.pop_front();
           delete tmp;
         }
       }
       if (sriChangedHappened)
         sriChanged = true;
+      if (flagEOS)
+          EOS = true;
 
       LOG_DEBUG( logger, "bulkio::InPort pushPacket NEW Packet (QUEUE=" << workQueue.size()+1 << ")");
       stats->update(length, (float)(workQueue.size()+1)/(float)queueSem->getMaxValue(), EOS, streamID, flushToReport);
@@ -614,7 +620,7 @@ namespace  bulkio {
   template < typename PortTraits >
   void InPort< PortTraits >::pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
-    queuePacket(data, T, EOS, streamID);
+    this->queuePacket(data, T, EOS, streamID);
   }
 
   template < typename PortTraits >

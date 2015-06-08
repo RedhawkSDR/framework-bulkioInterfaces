@@ -641,7 +641,7 @@ namespace  bulkio {
           // the buffer on destruction) around this sub-packet's data
           const PortSequenceType subPacket(pushSize, pushSize, const_cast<TransportType*>(buffer), false);
           LOG_TRACE(logger,"_pushOversizedPacket calling pushPacket with pushSize " << pushSize << " and packetTime twsec: " << packetTime.twsec << " tfsec: " << packetTime.tfsec)
-          _pushPacketLocked(subPacket, packetTime, packetEOS, streamID);
+          this->_pushPacketLocked(subPacket, packetTime, packetEOS, streamID);
 
           // Synthesize the next packet timestamp
           if (packetTime.tcstatus == BULKIO::TCS_VALID) {

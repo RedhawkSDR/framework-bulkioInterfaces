@@ -45,11 +45,15 @@ namespace bulkio {
     const std::string& streamID() const;
     const BULKIO::StreamSRI& sri() const;
 
-    bool eos() const;
+    bool eos();
 
     DataBlockType read();
     DataBlockType read(size_t count);
     DataBlockType read(size_t count, size_t consume);
+
+    DataBlockType tryread();
+    DataBlockType tryread(size_t count);
+    DataBlockType tryread(size_t count, size_t consume);
 
     size_t skip(size_t count);
 

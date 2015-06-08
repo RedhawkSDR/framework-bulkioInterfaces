@@ -376,8 +376,6 @@ namespace bulkio {
     //
     typedef typename Traits::PortType         PortType;
 
-    typedef typename Traits::PortTraits       UsesPortType;
-
     //
     // Sequence container used during actual pushPacket call
     //
@@ -556,8 +554,6 @@ namespace bulkio {
     //
     typedef Traits::PortType         PortType;
 
-    typedef Traits::PortTraits       UsesPortType;
-
     //
     // Sequence container used during actual pushPacket call
     //
@@ -655,8 +651,6 @@ namespace bulkio {
     // BULKIO Interface Type
     //
     typedef Traits::PortType         PortType;
-
-    typedef Traits::PortTraits       UsesPortType;
 
     //
     // Sequence container used during actual pushPacket call

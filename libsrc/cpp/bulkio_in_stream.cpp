@@ -89,35 +89,47 @@ public:
     return _sri;
   }
 
-  bool eos() const {
+  bool eos()
+  {
+    if (_queue.empty()) {
+      // Try a non-blocking fetch to see if there's an empty end-of-stream
+      // packet waiting; this helps with the case where the last read consumes
+      // exactly the remaining data, and the stream will never report a ready
+      // state again
+      _fetchPacket(false);
+    }
     return _eosReached;
   }
 
   size_t samplesAvailable()
   {
-    // Peek at the next SRI, which may move a pending packet into the read
-    // queue, but will not try to fetch a packet from the port
-    int item_size = _peekSRI().mode?2:1;
-
-    // If the queue is empty, this is the first read of a segment (i.e., search
-    // can go past the first packet if the SRI change or queue flush flag is
-    // set)
-    bool first = _queue.empty();
-    size_t queued = _samplesQueued / item_size;
-    if (_pending) {
-      // There is an SRI change or input queue flush; the stream queue cannot
-      // be empty, because the peek would have moved the pending packet onto
-      // the read queue, so just return what is queued
-      return queued;
+    // Start with the samples already in the queue
+    size_t queued = _samplesQueued;
+    if (queued > 0) {
+      // Adjust number of samples to account for complex data, if necessary
+      const BULKIO::StreamSRI& sri = _queue.front()->SRI;
+      if (sri.mode) {
+        queued /= 2;
+      }
     }
 
-    return queued + _port->samplesAvailable(_streamID, first);
+    // Only search the port's queue if there is no SRI change or input queue
+    // flush pending
+    if (!_pending) {
+      // If the queue is empty, this is the first read of a segment (i.e.,
+      // search can go past the first packet if the SRI change or queue flush
+      // flag is set)
+      bool first = _queue.empty();
+      queued += _port->samplesAvailable(_streamID, first);
+    }
+
+    return queued;
   }
 
-  DataBlockType readPacket()
+  DataBlockType readPacket(bool blocking)
   {
     if (_samplesQueued == 0) {
-      _fetchPacket();
+      _fetchPacket(blocking);
     }
 
     if (_samplesQueued == 0) {
@@ -127,12 +139,21 @@ public:
     return _readData(samples, samples);
   }
 
-  DataBlockType read(size_t count, size_t consume)
+  DataBlockType read(size_t count, size_t consume, bool blocking)
   {
+    // Try to get the SRI for the upcoming block of data, fetching it from the
+    // port's input queue if necessary
+    const BULKIO::StreamSRI* sri = _nextSRI(blocking);
+    if (!sri) {
+      // No SRI retreived implies no data will be retrieved, either due to end-
+      // of-stream or because it would block
+      return DataBlockType();
+    }
+
     // If the next block of data is complex, double the read and consume size
     // (which the lower-level I/O handles in terms of scalars) so that the
     // returned block has the right number of samples
-    if (_nextSRI().mode == 1) {
+    if (sri->mode == 1) {
       count *= 2;
       consume *= 2;
     }
@@ -140,7 +161,7 @@ public:
     // Queue up packets from the port until we have enough data to satisfy the
     // requested read amount
     while (_samplesQueued < count) {
-      if (!_fetchPacket()) {
+      if (!_fetchPacket(blocking)) {
         break;
       }
     }
@@ -153,9 +174,17 @@ public:
     // or the stream reached the end)
     const size_t samples = std::min(count, _samplesQueued);
 
-    // If the read pointer has reached the end of a segment (new SRI, queue
-    // flush or end-of-stream), consume all remaining data
+    // Handle a partial read, which could mean that there's not enough data at
+    // present (non-blocking), or that the read pointer has reached the end of
+    // a segment (new SRI, queue flush, end-of-stream)
     if (samples < count) {
+      // Non-blocking: return a null block if there's not currently a break in
+      // the data, under the assumption that a future read might return the
+      // full amount
+      if (!blocking && !_pending && !_eosReceived) {
+        return DataBlockType();
+      }
+      // Otherwise, consume all remaining data
       consume = samples;
     }
 
@@ -167,13 +196,18 @@ public:
     // If the next block of data is complex, double the skip size (which the
     // lower-level I/O handles in terms of scalars) so that the right number of
     // samples is skipped
-    size_t item_size = _nextSRI().mode?2:1;
+    const BULKIO::StreamSRI* sri = _nextSRI(true);
+    if (!sri) {
+      return 0;
+    }
+
+    size_t item_size = sri->mode?2:1;
     count *= item_size;
 
     // Queue up packets from the port until we have enough data to satisfy the
     // requested read amount
     while (_samplesQueued < count) {
-      if (!_fetchPacket()) {
+      if (!_fetchPacket(true)) {
         break;
       }
     }
@@ -243,6 +277,12 @@ private:
     delete[] steal_buffer(packet->dataBuffer);
     delete packet;
     _queue.erase(_queue.begin());
+
+    // If the queue is empty, move the pending packet onto the queue
+    if (_queue.empty() && _pending) {
+      _queuePacket(_pending);
+      _pending = 0;
+    }
   }
 
   DataBlockType _readData(size_t count, size_t consume)
@@ -334,44 +374,22 @@ private:
     return data;
   }
 
-  const BULKIO::StreamSRI& _nextSRI()
+  const BULKIO::StreamSRI* _nextSRI(bool blocking)
   {
     if (_queue.empty()) {
-      if (!_fetchPacket()) {
-        // The last packet has been consumed, return the cached SRI
-        return _sri;
+      if (!_fetchPacket(blocking)) {
+        return 0;
       }
     }
 
-    return _queue.front()->SRI;
+    return &(_queue.front()->SRI);
   }
 
-  const BULKIO::StreamSRI& _peekSRI()
-  {
-    if (_queue.empty()) {
-      if (_pending) {
-        _queuePacket(_pending);
-        _pending = 0;
-      } else {
-        return _sri;
-      }
-    }
-    return _queue.front()->SRI;
-  }
-
-  bool _fetchPacket()
+  bool _fetchPacket(bool blocking)
   {
     if (_pending) {
-      if (_queue.empty()) {
-        // There are no packets currently queued, move pending packet onto the
-        // read queue
-        _queuePacket(_pending);
-        _pending = 0;
-        return true;
-      } else {
-        // Cannot read another packet until non-bridging packet is acknowledged
-        return false;
-      }
+      // Cannot read another packet until non-bridging packet is acknowledged
+      return false;
     }
 
     // Any future packets with this stream ID belong to another InputStream
@@ -379,7 +397,8 @@ private:
       return false;
     }
 
-    DataTransferType* packet = _port->getPacket(bulkio::Const::BLOCKING, _streamID);
+    float timeout = blocking?bulkio::Const::BLOCKING:bulkio::Const::NON_BLOCKING;
+    DataTransferType* packet = _port->getPacket(timeout, _streamID);
     if (!packet) {
       return false;
     }
@@ -396,8 +415,22 @@ private:
 
   void _queuePacket(DataTransferType* packet)
   {
-    _samplesQueued += packet->dataBuffer.size();
-    _queue.push_back(packet);
+    if (packet->EOS && packet->dataBuffer.empty()) {
+      // Handle end-of-stream packet with no data (assuming that timestamps,
+      // SRI changes, and queue flushes are irrelevant at this point)
+      if (_queue.empty()) {
+        // No queued packets, read pointer has reached end-of-stream
+        _eosReached = true;
+      } else {
+        // Assign the end-of-stream flag to the last packet in the queue so
+        // that it is handled on read
+        _queue.back()->EOS = true;
+      }
+      delete packet;
+    } else {
+      _samplesQueued += packet->dataBuffer.size();
+      _queue.push_back(packet);
+    }
   }
 
   bool _canBridge(DataTransferType* packet) const
@@ -443,7 +476,7 @@ const BULKIO::StreamSRI& InputStream<PortTraits>::sri() const
 }
 
 template <class PortTraits>
-bool InputStream<PortTraits>::eos() const
+bool InputStream<PortTraits>::eos()
 {
   return _impl->eos();
 }
@@ -451,19 +484,37 @@ bool InputStream<PortTraits>::eos() const
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::read()
 {
-  return _impl->readPacket();
+  return _impl->readPacket(true);
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::read(size_t count)
 {
-  return _impl->read(count, count);
+  return _impl->read(count, count, true);
 }
 
 template <class PortTraits>
 typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::read(size_t count, size_t consume)
 {
-  return _impl->read(count, consume);
+  return _impl->read(count, consume, true);
+}
+
+template <class PortTraits>
+typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::tryread()
+{
+  return _impl->readPacket(false);
+}
+
+template <class PortTraits>
+typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::tryread(size_t count)
+{
+  return _impl->read(count, count, false);
+}
+
+template <class PortTraits>
+typename InputStream<PortTraits>::DataBlockType InputStream<PortTraits>::tryread(size_t count, size_t consume)
+{
+  return _impl->read(count, consume, false);
 }
 
 template <class PortTraits>

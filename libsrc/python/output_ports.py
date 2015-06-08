@@ -158,6 +158,7 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
                     self.outConnections[connId].pushPacket(self.noData, empty_timestamp, True, sid)
 
             self.outConnections.pop(connId, None)
+            self.stats.remove(connectionId)
             for key in self.sriDict.keys():
                 # if connID exist in set, remove it, otherwise do nothing (that is what discard does)
                 self.sriDict[key].connections.discard(connId)
