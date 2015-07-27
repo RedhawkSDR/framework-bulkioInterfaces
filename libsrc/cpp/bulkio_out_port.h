@@ -47,11 +47,14 @@ namespace bulkio {
   //
   //
   template < typename PortTraits >
-  class OutPortBase : public Port_Uses_base_impl, public virtual POA_BULKIO::UsesPortStatisticsProvider
+  class OutPortBase : public Port_Uses_base_impl
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+  , public virtual POA_BULKIO::UsesPortStatisticsProvider
+#endif
   {
 
   public:
-
+ 
     typedef PortTraits                        Traits;
 
     //
@@ -401,7 +404,6 @@ namespace bulkio {
     //
     typedef typename Traits::DataBufferType   DataBufferType;
 
-
     //
     // ConnectionList Definition
     //
@@ -454,9 +456,9 @@ namespace bulkio {
      */
     void pushPacket( NativeSequenceType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
     
-    /*
+    /**
      * pushPacket
-     *     maps to data<Type> BULKIO method call for passing vectors of data
+     *     maps to data<Type> BULKIO method call for passing a limited amount of data from a source vector
      *
      *  data: pointer to a buffer of data
      *  size: number of data points in the buffer
@@ -471,9 +473,9 @@ namespace bulkio {
      */
     void pushPacket( const TransportType* data, size_t size, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
-    /*
+    /**
      * pushPacket
-     *     maps to data<Type> BULKIO method call for passing vectors of data
+     *     maps to data<Type> BULKIO method call for passing an entire vector of data
      *
      *  data: The sequence structure from an input port containing the payload to send out
      *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
@@ -487,11 +489,13 @@ namespace bulkio {
      */
     void pushPacket( const DataBufferType & data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
+    /// Create a new stream based on a stream ID
     StreamType createStream(const std::string& streamID);
+    /// Create a new stream based on an SRI instance
     StreamType createStream(const BULKIO::StreamSRI& sri);
+    using OutPortBase<PortTraits>::currentSRIs;
 
   protected:
-    using OutPortBase<PortTraits>::currentSRIs;
     using OutPortBase<PortTraits>::logger;
 
     void _pushOversizedPacket(
@@ -507,6 +511,7 @@ namespace bulkio {
   //
   // This class overrides the pushPacket method to support Int8 and char data types
   //
+  /// Output port for Int8 and char data types
   class OutCharPort : public OutPort < CharPortTraits > {
   public:
     OutCharPort(std::string port_name,
@@ -521,12 +526,16 @@ namespace bulkio {
 
     virtual ~OutCharPort() {};
 
+    /// Push a vector of Int8 data
     void pushPacket(const std::vector< Int8 >& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
+    /// Push a vector of Char data
     void pushPacket(const std::vector< Char >& data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
     
+    /// Push a subset of a vector of Int8 data
     void pushPacket(const Int8* buffer, size_t size, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
+    /// Push a subset of a vector of Char data
     void pushPacket(const Char* buffer, size_t size, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
    
   };
@@ -589,9 +598,9 @@ namespace bulkio {
 
     virtual ~OutFilePort() {};
 
-    /*
+    /**
      * pushPacket
-     *     maps to dataFile BULKIO method call for passing strings of data 
+     *     maps to dataFile BULKIO method call for passing the URL of a file
      *
      *  data: char string containing the file URL to send out
      *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
@@ -604,9 +613,9 @@ namespace bulkio {
      *  streamID: stream identifier
      */
     void pushPacket(const char *URL, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
-    /*
+    /**
      * pushPacket
-     *     maps to dataFile BULKIO method call for passing strings of data 
+     *     maps to dataFile BULKIO method call for passing the URL of a file
      *
      *  data: string containing the file URL to send out
      *  T: constant of type BULKIO::PrecisionUTCTime containing the timestamp for the outgoing data.
@@ -692,9 +701,9 @@ namespace bulkio {
      */
     void pushPacket(const char *data, const BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamID);
 
-    /*
+    /**
      * pushPacket
-     *     maps to dataXML BULKIO method call for passing strings of data
+     *     maps to dataXML BULKIO method call for passing an XML-formatted string
      *
      *  data: character string containing the XML data to send out
      *  EOS: end-of-stream flag
@@ -702,9 +711,9 @@ namespace bulkio {
      */
     void pushPacket(const char *data, bool EOS, const std::string& streamID);
 
-    /*
+    /**
      * pushPacket
-     *     maps to dataXML BULKIO method call for passing strings of data
+     *     maps to dataXML BULKIO method call for passing an XML-formatted string
      *
      *  data: string containing the XML data to send out
      *  EOS: end-of-stream flag
@@ -719,22 +728,39 @@ namespace bulkio {
      Uses Port Definitions for All Bulk IO port definitions
      *
      */
+  /// Bulkio octet (UInt8) output
   typedef OutPort< OctetPortTraits >         OutOctetPort;
+  /// Bulkio UInt8 output
   typedef OutOctetPort                       OutUInt8Port;
+  /// Bulkio short output
   typedef OutPort<  ShortPortTraits >        OutShortPort;
+  /// Bulkio unsigned short output
   typedef OutPort<  UShortPortTraits >       OutUShortPort;
+  /// Bulkio Int16 output
   typedef OutShortPort                       OutInt16Port;
+  /// Bulkio UInt16 output
   typedef OutUShortPort                      OutUInt16Port;
+  /// Bulkio long output
   typedef OutPort<  LongPortTraits >         OutLongPort;
+  /// Bulkio unsigned long output
   typedef OutPort< ULongPortTraits >         OutULongPort;
+  /// Bulkio Int32 output
   typedef OutLongPort                        OutInt32Port;
+  /// Bulkio UInt32 output
   typedef OutULongPort                       OutUInt32Port;
+  /// Bulkio long long output
   typedef OutPort<  LongLongPortTraits >     OutLongLongPort;
+  /// Bulkio unsigned long long output
   typedef OutPort<  ULongLongPortTraits >    OutULongLongPort;
+  /// Bulkio Int64 output
   typedef OutLongLongPort                    OutInt64Port;
+  /// Bulkio UInt64 output
   typedef OutULongLongPort                   OutUInt64Port;
+  /// Bulkio float output
   typedef OutPort<  FloatPortTraits >        OutFloatPort;
+  /// Bulkio double output
   typedef OutPort<  DoublePortTraits >       OutDoublePort;
+  /// Bulkio URL output
   typedef OutFilePort                        OutURLPort;
 
 }  // end of bulkio namespace
