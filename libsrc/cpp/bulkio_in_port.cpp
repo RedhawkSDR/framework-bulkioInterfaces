@@ -23,7 +23,7 @@
 
 namespace  bulkio {
 
-  /**
+  /*
    * Wrap Callback functions as SriListerer objects
    */
   class StaticSriCallback : public SriListener
@@ -570,7 +570,7 @@ namespace  bulkio {
     }
   }
 
-  /**
+  /*
    * Specializations of base class methods for dataXML ports
    */
 
@@ -580,7 +580,7 @@ namespace  bulkio {
     return 1;
   }
 
-  /**
+  /*
    * Specializations of base class methods for dataFile ports
    */
 

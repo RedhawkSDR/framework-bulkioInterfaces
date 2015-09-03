@@ -249,14 +249,14 @@ namespace bulkio {
   };
 
 
-  /**
+  /*
    *
    * Time Stamp Helpers
    *
    */
   namespace time {
 
-    /**
+    /*
      * PrecisionUTCTime object as defined by bulkio_dataTypes.idl, definition provided for information only
      *
      * Time code modes
@@ -283,27 +283,27 @@ namespace bulkio {
 
     namespace utils {
 
-      /**
+      /*
        * Create a time stamp object from the provided input... 
        */
       BULKIO::PrecisionUTCTime create( const double wholeSecs=-1.0, const double fractionalSecs=-1.0, const Int16 tsrc= BULKIO::TCM_CPU  );
 
-      /**
+      /*
        * Create a time stamp object from the current time of day reported by the system
        */
       BULKIO::PrecisionUTCTime now();
       
-      /**
+      /*
        * Create a time stamp object from the current time of day reported by the system
        */
       BULKIO::PrecisionUTCTime notSet();
 
-      /**
+      /*
        * Return a new time stamp object which increments a given time stamp by numSamples*xdelta seconds
        */
       BULKIO::PrecisionUTCTime addSampleOffset( const BULKIO::PrecisionUTCTime &T, const size_t numSamples, const double xdelta  );
 
-      /**
+      /*
        * Adjust the whole and fractional portions of a time stamp object to
        * ensure there is no fraction in the whole seconds, and vice-versa
        */
@@ -311,12 +311,12 @@ namespace bulkio {
     };
 
 
-    /**
+    /*
      * A default time stamp comparison method 
      */
     bool           DefaultComparator( const BULKIO::PrecisionUTCTime &a, const BULKIO::PrecisionUTCTime &b);
 
-    /**
+    /*
      * Method signature for comparing time stamp objects
      */
     typedef bool  (*Compare)( const BULKIO::PrecisionUTCTime &a, const BULKIO::PrecisionUTCTime &b);
@@ -324,7 +324,7 @@ namespace bulkio {
   };
 
 
-  /**
+  /*
    * StreamSRI
    *
    * Convenience routines for building and working with StreamSRI objects
@@ -332,7 +332,7 @@ namespace bulkio {
    */
   namespace sri {
 
-    /**
+    /*
        StreamSRI object as defined by bulkio_dataTypes.idl, definition provided for information only
 
     struct StreamSRI {
@@ -351,12 +351,12 @@ namespace bulkio {
     };
     */
  
-    /**
+    /*
      *  Comparator method to search for matching SRI information if "a" matches "b"
      */
     typedef bool  (*Compare)( const BULKIO::StreamSRI &a, const BULKIO::StreamSRI &b);
 
-    /// Bit flags for SRI fields
+    // Bit flags for SRI fields
     enum {
       NONE     = 0,
       HVERSION = (1<<0),
@@ -373,12 +373,12 @@ namespace bulkio {
       KEYWORDS = (1<<11)
     };
 
-    /**
+    /*
      * Do a field-by-field comparison of two SRI streams
      */
     int compareFields(const BULKIO::StreamSRI& lhs, const BULKIO::StreamSRI& rhs);
 
-    /**
+    /*
      * Default comparator method when comparing SRI objects
      *
      * Performs a member wise comparision of a StreamSRI object. In addition to performing
@@ -388,7 +388,7 @@ namespace bulkio {
      */
     bool           DefaultComparator( const BULKIO::StreamSRI &a, const BULKIO::StreamSRI &b);
     
-    /**
+    /*
      * Zeroize an SRI stream
      */
     inline void zeroSRI(BULKIO::StreamSRI &sri) {
@@ -405,7 +405,7 @@ namespace bulkio {
         sri.keywords.length(0);
     };
     
-    /**
+    /*
      * Zeroize a PrecisionUTCTime timestamp
      */
     inline void zeroTime(BULKIO::PrecisionUTCTime &timeTag) {
@@ -413,7 +413,7 @@ namespace bulkio {
         timeTag.tcmode = BULKIO::TCM_CPU;
     };
     
-    /**
+    /*
      * Create a SRI object with default parameters
      */
     BULKIO::StreamSRI create( std::string sid="defStream", const double srate = 1.0, const Int16 xunits = BULKIO::UNITS_TIME, const bool blocking=false );

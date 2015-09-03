@@ -31,7 +31,7 @@
 
 namespace  bulkio {
 
-  /**
+  /*
      OutPort Constructor
 
      Accepts connect/disconnect interfaces for notification when these events occur
@@ -495,7 +495,7 @@ namespace  bulkio {
   }
 
 
-  /**
+  /*
    * Specializations of base class methods for dataXML ports
    */
 
@@ -530,7 +530,7 @@ namespace  bulkio {
   }
 
 
-  /**
+  /*
    * Specializations of base class methods for dataFile ports
    */
 
@@ -550,7 +550,7 @@ namespace  bulkio {
   }
 
 
-  /**
+  /*
      OutPort Constructor
 
      Accepts connect/disconnect interfaces for notification when these events occur
@@ -581,7 +581,7 @@ namespace  bulkio {
   }
 
 
-  /**
+  /*
    * Push a packet whose payload cannot fit within the CORBA limit.
    * The packet is broken down into sub-packets and sent via multiple pushPacket
    * calls.  The EOS is set to false for all of the sub-packets, except for

@@ -82,7 +82,7 @@ namespace bulkio {
     //
     virtual ~InPortBase();
 
-    /**
+    /*
      * getPacket - interface used by components to grab data from the port's internal queue object for processing.  The timeout parameter allows
      * the calling component to perform blocking and non-blocking retrievals.
      *
@@ -94,7 +94,7 @@ namespace bulkio {
      */
     virtual DataTransferType *getPacket(float timeout);
 
-    /**
+    /*
      * getPacket - interface used by components to grab data from the port's internal queue object for a specified streamID
      *
      * @param timeout - timeout == bulkio::Const::NON_BLOCKING (0.0) non-blocking io
@@ -110,7 +110,7 @@ namespace bulkio {
     // BULKIO IDL interface for pushing Floating Point vectors between components
     //
 
-    /**
+    /*
      * pushSRI - called by the source component when SRI data about the stream changes, the data flow policy is this activity
      *           will occurr first before any data flows to the component.
      *
@@ -122,7 +122,7 @@ namespace bulkio {
     //  Port Statistics Interface
     //
 
-    /**
+    /*
      * turn on/off the port monitoring capability
      */
     virtual void enableStats(bool enable);
@@ -162,21 +162,21 @@ namespace bulkio {
     //
     virtual BULKIO::StreamSRISequence* activeSRIs();
 
-    /**
+    /*
      * getCurrentQueueDepth - returns the current number of elements in the queue
      *
      * @return int  - number of items in the queue
      */
     virtual int getCurrentQueueDepth();
 
-    /**
+    /*
      *  getMaxQueueDepth - returns the maximum size of the queue , if this water mark is reached the queue will be purged, and the
      *                     component of the port will be notified in getPacket method
      * @return int - maximum size the queue can reach before purging occurs
      */
     virtual int getMaxQueueDepth();
 
-    /**
+    /*
      * setMaxQueueDepth - allow users of this port to modify the maximum number of allowable vectors on the queue.
      */
     virtual void setMaxQueueDepth(int newDepth);
@@ -203,14 +203,14 @@ namespace bulkio {
     //
     virtual void stopPort();
 
-    /**
+    /*
      * blocked
      *
      * @return bool returns state of breakBlock variable used to release any upstream blocking pushPacket calls
      */
     virtual bool blocked();
     
-    /**
+    /*
      * Assign a callback for notification when a new SRI StreamId is received
      */
     template< typename T > inline
@@ -218,7 +218,7 @@ namespace bulkio {
       newStreamCallback =  boost::make_shared< MemberSriListener< T > >( boost::ref(target), func );
     };
 
-    /**
+    /*
      * Assign a callback for notification when a new SRI StreamId is received
      */
     template< typename T > inline
@@ -233,7 +233,7 @@ namespace bulkio {
 
     void setLogger( LOGGER_PTR logger );
 
-	/// Return the interface that this Port supports
+	// Return the interface that this Port supports
     std::string getRepid () const;
 
   protected:
@@ -567,51 +567,51 @@ namespace bulkio {
   };
 
 
-  /**
+  /*
      Provides Port Definitions for All Bulk IO pushPacket Port definitions
      *
      */
-  /// Bulkio char (Int8) input
+  // Bulkio char (Int8) input
   typedef InPort< CharPortTraits >                 InCharPort;
-  /// Bulkio octet (UInt8) input
+  // Bulkio octet (UInt8) input
   typedef InPort< OctetPortTraits >                InOctetPort;
-  /// Bulkio Int8 input
+  // Bulkio Int8 input
   typedef InCharPort                               InInt8Port;
-  /// Bulkio UInt8 input
+  // Bulkio UInt8 input
   typedef InOctetPort                              InUInt8Port;
-  /// Bulkio short (Int16) input
+  // Bulkio short (Int16) input
   typedef InPort< ShortPortTraits >                InShortPort;
-  /// Bulkio unsigned short (UInt16) input
+  // Bulkio unsigned short (UInt16) input
   typedef InPort< UShortPortTraits >               InUShortPort;
-  /// Bulkio Int16 input
+  // Bulkio Int16 input
   typedef InShortPort                              InInt16Port;
-  /// Bulkio UInt16 input
+  // Bulkio UInt16 input
   typedef InUShortPort                             InUInt16Port;
-  /// Bulkio long (Int32) input
+  // Bulkio long (Int32) input
   typedef InPort< LongPortTraits >                 InLongPort;
-  /// Bulkio unsigned long (UInt32) input
+  // Bulkio unsigned long (UInt32) input
   typedef InPort< ULongPortTraits >                InULongPort;
-  /// Bulkio Int32 input
+  // Bulkio Int32 input
   typedef InLongPort                               InInt32Port;
-  /// Bulkio UInt32 input
+  // Bulkio UInt32 input
   typedef InULongPort                              InUInt32Port;
-  /// Bulkio long long (Int64) input
+  // Bulkio long long (Int64) input
   typedef InPort< LongLongPortTraits >             InLongLongPort;
-  /// Bulkio unsigned long long (UInt64) input
+  // Bulkio unsigned long long (UInt64) input
   typedef InPort< ULongLongPortTraits >            InULongLongPort;
-  /// Bulkio Int64 input
+  // Bulkio Int64 input
   typedef InLongLongPort                           InInt64Port;
-  /// Bulkio UInt64 input
+  // Bulkio UInt64 input
   typedef InULongLongPort                          InUInt64Port;
-  /// Bulkio float input
+  // Bulkio float input
   typedef InPort< FloatPortTraits >                InFloatPort;
-  /// Bulkio double input
+  // Bulkio double input
   typedef InPort< DoublePortTraits >               InDoublePort;
-  /// Bulkio URL input
+  // Bulkio URL input
   typedef InStringPort< URLPortTraits >            InURLPort;
-  /// Bulkio File (URL) input
+  // Bulkio File (URL) input
   typedef InStringPort< FilePortTraits >           InFilePort;
-  /// Bulkio XML input
+  // Bulkio XML input
   typedef InStringPort< XMLPortTraits >            InXMLPort;
 
 

@@ -41,7 +41,7 @@ namespace bulkio {
 
   };
 
-  /**
+  /*
    * Allow for member functions to receive connect/disconnect notifications
    */
   template <class T>
@@ -72,7 +72,7 @@ namespace bulkio {
     MemberFn func_;
   };
 
-  /**
+  /*
    * Wrap Callback functions as ConnectionEventListener objects
    */
   class StaticConnectionListener : public ConnectionEventListener
@@ -110,7 +110,7 @@ namespace bulkio {
 
   };
 
-  /**
+  /*
    * Allow for member functions to be used as SRI notifications
    */
   template <class T>
