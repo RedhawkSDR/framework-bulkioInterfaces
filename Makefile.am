@@ -93,6 +93,7 @@ BUNDLE_REQUIRED_EXECUTION_ENVIRONMENT := J2SE-$(JAVA_TARGET_VERSION)
 #            src/cpp/some_fileSK.cpp src/cpp/some_fileDynSK.cpp src/cpp/some_file.h
 lib_LTLIBRARIES = libbulkioInterfaces.la
 libbulkioInterfaces_la_LDFLAGS = -version-info $(LIBBULKIOINTERFACES_VERSION_INFO)
+libbulkioInterfaces_la_LIBADD = $(OSSIE_LIBS)
 
 # Again, we don't use the auto variable because order is important to us
 libbulkioInterfaces_la_SOURCES = \
