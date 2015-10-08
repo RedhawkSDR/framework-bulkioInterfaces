@@ -73,19 +73,26 @@ class TestPythonAPI(BaseVectorPort):
         port.startPort()
 
         # If non-blocking takes more than a millisecond, something is wrong
-        start = time.time()
+        import timeit
+        def fn_getPacket(fn, timeout):
+            def _foo():
+                fn(timeout)
+            return _foo
+        
+        timer_fn = timeit.Timer(fn_getPacket(port.getPacket, const.NON_BLOCKING))
+        rettime = timer_fn.timeit(number=100)
+        self.assert_(rettime < 100e-3)
         packet = port.getPacket(const.NON_BLOCKING)
-        end = time.time()
         self.assertEqual(packet[port.DATA_BUFFER], None)
-        self.assert_(end-start < 1e-3)
 
         # Check that (at least) the timeout period elapses
         timeout = 0.125
-        start = time.time()
+        number_iterations = 10
+        timer_fn = timeit.Timer(fn_getPacket(port.getPacket, timeout))
+        rettime = timer_fn.timeit(number=number_iterations)
+        self.assert_(rettime > timeout * number_iterations)
         packet = port.getPacket(timeout)
-        end = time.time()
         self.assertEqual(packet[port.DATA_BUFFER], None)
-        self.assert_(end-start >= timeout)
 
         # Try a blocking getPacket() on another thread
         results = []
