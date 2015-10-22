@@ -326,6 +326,12 @@ namespace bulkio {
     //
     void queuePacket(PushArgumentType data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID);
 
+    //
+    // Returns a pointer to the first packet in the queue, blocking for up to
+    // timeout seconds for one to be available
+    //
+    DataTransferType* peekPacket(float timeout);
+
     virtual void createStream(const std::string& streamID, const BULKIO::StreamSRI& sri);
     virtual void removeStream(const std::string& streamID);
 
@@ -422,6 +428,13 @@ namespace bulkio {
     //
     // Stream-based input API
     //
+
+    // Returns the stream that should be used for the next basic read
+    StreamType getCurrentStream(float timeout=bulkio::Const::BLOCKING);
+
+    // Returns the current stream with the given stream ID, if available
+    StreamType getStream(const std::string& streamID);
+
     StreamList getStreams();
 
     StreamList pollStreams(float timeout);
@@ -444,6 +457,10 @@ namespace bulkio {
     typedef InPortBase<PortTraits> super;
     using super::packetWaiters;
     using super::logger;
+
+    // Allow the input stream type friend access so it can call removeStream()
+    // when it acknowledges an end-of-stream
+    friend class InputStream<PortTraits>;
 
     //
     // Notification for new stream creation

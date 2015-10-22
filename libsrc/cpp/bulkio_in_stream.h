@@ -72,6 +72,8 @@ namespace bulkio {
     friend class InPort<PortTraits>;
     InputStream(const BULKIO::StreamSRI&, InPort<PortTraits>*);
 
+    bool hasBufferedData();
+
     class Impl;
     boost::shared_ptr<Impl> _impl;
   };

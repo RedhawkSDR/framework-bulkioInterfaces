@@ -246,6 +246,11 @@ public:
     // TODO: purge queue
   }
 
+  bool hasBufferedData() const
+  {
+    return !_queue.empty() || _pending;
+  }
+
 private:
   void _consumeData(size_t count)
   {
@@ -272,6 +277,10 @@ private:
     // Acknowledge any end-of-stream flag and delete the packet
     DataTransferType* packet = _queue.front();
     _eosReached = packet->EOS;
+    if (_eosReached) {
+      _port->removeStream(_streamID);
+    }
+
     // The packet buffer was allocated with new[] by the CORBA layer, while
     // vector will use non-array delete, so explicitly delete the buffer
     delete[] steal_buffer(packet->dataBuffer);
@@ -421,6 +430,7 @@ private:
       if (_queue.empty()) {
         // No queued packets, read pointer has reached end-of-stream
         _eosReached = true;
+        _port->removeStream(_streamID);
       } else {
         // Assign the end-of-stream flag to the last packet in the queue so
         // that it is handled on read
@@ -563,6 +573,12 @@ template <class PortTraits>
 bool InputStream<PortTraits>::ready()
 {
   return _impl->ready();
+}
+
+template <class PortTraits>
+bool InputStream<PortTraits>::hasBufferedData()
+{
+  return _impl->hasBufferedData();
 }
 
 template class InputStream<bulkio::CharPortTraits>;

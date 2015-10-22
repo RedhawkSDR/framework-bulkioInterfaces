@@ -290,6 +290,32 @@ namespace  bulkio {
 
 
   template < typename PortTraits >
+  typename InPortBase< PortTraits >::DataTransferType* InPortBase< PortTraits >::peekPacket(float timeout)
+  {
+    uint64_t secs = (unsigned long)(trunc(timeout));
+    uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
+    boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+    boost::mutex::scoped_lock lock(this->dataBufferLock);
+    while (!breakBlock && workQueue.empty()) {
+      if (timeout == 0) {
+        break;
+      } else if (timeout > 0) {
+        if (!dataAvailable.timed_wait(lock, to_time)) {
+          break;
+        }
+      } else {
+        dataAvailable.wait(lock);
+      }
+    }
+
+    if (breakBlock || workQueue.empty()) {
+      return 0;
+    } else {
+      return workQueue.front();
+    }
+  }
+
+  template < typename PortTraits >
   bool InPortBase< PortTraits >::isStreamActive(const std::string& streamID)
   {
     return true;
@@ -414,8 +440,6 @@ namespace  bulkio {
 
     bool turnOffBlocking = false;
     if (tmp->EOS) {
-      removeStream(tmp->streamID);
-
       SCOPED_LOCK lock2(sriUpdateLock);
       SriMap::iterator target = currentHs.find(std::string(tmp->streamID));
       if (target != currentHs.end()) {
@@ -621,6 +645,42 @@ namespace  bulkio {
   void InPort< PortTraits >::pushPacket(const PortSequenceType& data, const BULKIO::PrecisionUTCTime& T, CORBA::Boolean EOS, const char* streamID)
   {
     this->queuePacket(data, T, EOS, streamID);
+  }
+
+  template < typename PortTraits >
+  typename InPort< PortTraits >::StreamType InPort< PortTraits >::getCurrentStream(float timeout)
+  {
+    // Prefer a stream that already has buffered data
+    {
+      boost::mutex::scoped_lock lock(streamsMutex);
+      for (typename StreamMap::iterator stream = streams.begin(); stream != streams.end(); ++stream) {
+        if (stream->second.hasBufferedData()) {
+          return stream->second;
+        }
+      }
+    }
+
+    // Otherwise, return the stream that owns the next packet on the queue,
+    // potentially waiting for one to be received
+    DataTransferType* packet = this->peekPacket(timeout);
+    if (packet) {
+      const std::string& streamID = packet->streamID;
+      return getStream(streamID);
+    }
+
+    return StreamType();
+  }
+
+  template < typename PortTraits >
+  typename InPort< PortTraits >::StreamType InPort< PortTraits >::getStream(const std::string& streamID)
+  {
+    boost::mutex::scoped_lock lock(streamsMutex);
+    typename StreamMap::iterator stream = streams.find(streamID);
+    if (stream != streams.end()) {
+      return stream->second;
+    } else {
+      return StreamType();
+    }
   }
 
   template < typename PortTraits >
