@@ -36,6 +36,8 @@ namespace BULKIO {
 
   BULKIO::PrecisionUTCTime& operator-=(BULKIO::PrecisionUTCTime& lhs, double seconds);
 
+  bool operator==(const BULKIO::PrecisionUTCTime& lhs, const BULKIO::PrecisionUTCTime& rhs);
+  bool operator!=(const BULKIO::PrecisionUTCTime& lhs, const BULKIO::PrecisionUTCTime& rhs);
   bool operator<(const BULKIO::PrecisionUTCTime& lhs, const BULKIO::PrecisionUTCTime& rhs);
   bool operator<=(const BULKIO::PrecisionUTCTime& lhs, const BULKIO::PrecisionUTCTime& rhs);
   bool operator>(const BULKIO::PrecisionUTCTime& lhs, const BULKIO::PrecisionUTCTime& rhs);

@@ -236,6 +236,18 @@ namespace  bulkio {
         tmpH = currH->second.first;
         sriChanged = currH->second.second;
         currentHs[streamID] = std::make_pair(currH->second.first, false);
+      } else {
+        // Unknown stream ID, register a new default SRI following the logic in pushSRI,
+        // and set the SRI changed flag
+        LOG_WARN(logger, "InPort::pushPacket received data for stream '" << streamID << "' with no SRI");
+        sriChanged = true;
+        if (newStreamCallback) {
+          (*newStreamCallback)(tmpH);
+        }
+        currentHs[streamID] = std::make_pair(tmpH, false);
+        lock.unlock();
+
+        createStream(streamID, tmpH);
       }
       portBlocking = blocking;
     }

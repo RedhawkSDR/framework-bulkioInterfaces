@@ -214,8 +214,13 @@ class InPort:
                     self.sriDict[streamID] = (sri, False)
             else:
                 # Create a default SRI for the stream ID
+                if self.logger:
+                    self.logger.warn("bulkio::InPort pushPacket received data for stream '%s' with no SRI", streamID)
                 sri = BULKIO.StreamSRI(1, 0.0, 1.0, 1, 0, 0.0, 0.0, 0, 0, streamID, False, [])
-                sriChanged = False
+                if self.newSriCallback:
+                    self.newSriCallback(sri)
+                self.sriDict[streamID] = (sri, False)
+                sriChanged = True
 
             queueFlushed = False
             flagEOS = False

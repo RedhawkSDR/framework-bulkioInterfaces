@@ -23,6 +23,16 @@ from bulkio import *
 import time
 import threading
 
+class SriListener(object):
+    def __init__(self):
+        self.sri = None
+
+    def __call__(self, sri):
+        self.sri = sri
+
+    def reset(self):
+        self.sri = None
+
 class TestPythonAPI(BaseVectorPort):
     def test_inport_sri_changed(self):
         """
@@ -64,6 +74,23 @@ class TestPythonAPI(BaseVectorPort):
         self.assertNotEqual(packet[port.DATA_BUFFER], None)
         self.assertEqual(packet[port.QUEUE_FLUSH], True)
         self.assertEqual(packet[port.SRI_CHG], True)
+
+        # Push data without an SRI to check that the sriChanged flag is still
+        # set and the SRI callback gets called
+        listener = SriListener()
+        port.setNewSriListener(listener)
+        port.pushPacket([0], timestamp.now(), False, 'invalid_stream')
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.assertTrue(packet.sriChanged)
+        self.assertFalse(listener.sri is None)
+
+        # Push again to the same stream ID; sriChanged should now be false and
+        # the SRI callback should not get called
+        listener.reset()
+        port.pushPacket([0], timestamp.now(), False, 'invalid_stream')
+        packet = port.getPacket(const.NON_BLOCKING)
+        self.assertFalse(packet.sriChanged)
+        self.assertTrue(listener.sri is None)
 
     def test_inport_getPacket_timeout(self):
         """

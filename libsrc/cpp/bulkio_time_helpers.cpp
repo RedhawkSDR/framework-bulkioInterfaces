@@ -28,6 +28,7 @@
 #include <BULKIO/bulkioDataTypes.h>
 
 #include "bulkio_base.h"
+#include "bulkio_time_operators.h"
 
 namespace  bulkio {
 
@@ -102,17 +103,7 @@ namespace  bulkio {
     }
 
     bool DefaultComparator( const BULKIO::PrecisionUTCTime &T1, const BULKIO::PrecisionUTCTime &T2  ){
-      if (T1.tcmode != T2.tcmode)
-	return false;
-      if (T1.tcstatus != T2.tcstatus)
-	return false;
-      if (T1.tfsec != T2.tfsec)
-	return false;
-      if (T1.toff != T2.toff)
-	return false;
-      if (T1.twsec != T2.twsec)
-	return false;
-      return true;
+      return (T1 == T2);
     }
 
   }  // end of timestamp namespace

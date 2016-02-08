@@ -64,6 +64,38 @@ namespace BULKIO {
     return lhs;
   }
 
+  bool operator==(const BULKIO::PrecisionUTCTime& lhs, const BULKIO::PrecisionUTCTime& rhs)
+  {
+    if (lhs.tcmode != rhs.tcmode) {
+      return false;
+    } else if (lhs.tcstatus != rhs.tcstatus) {
+      return false;
+    } else if (lhs.toff != rhs.toff) {
+      return false;
+    } else if (lhs.twsec != rhs.twsec) {
+      return false;
+    } else if (lhs.tfsec != rhs.tfsec) {
+      return false;
+    }
+    return true;
+  }
+
+  bool operator!=(const BULKIO::PrecisionUTCTime& lhs, const BULKIO::PrecisionUTCTime& rhs)
+  {
+    if (lhs.tcmode != rhs.tcmode) {
+      return true;
+    } else if (lhs.tcstatus != rhs.tcstatus) {
+      return true;
+    } else if (lhs.toff != rhs.toff) {
+      return true;
+    } else if (lhs.twsec != rhs.twsec) {
+      return true;
+    } else if (lhs.tfsec != rhs.tfsec) {
+      return true;
+    }
+    return false;
+  }
+
   bool operator<(const BULKIO::PrecisionUTCTime& lhs, const BULKIO::PrecisionUTCTime& rhs)
   {
     if (lhs.twsec == rhs.twsec) {
