@@ -242,6 +242,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -363,6 +368,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -484,6 +494,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
     @Test
@@ -604,6 +619,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -725,6 +745,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -846,6 +871,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -967,6 +997,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
     @Test
@@ -1087,6 +1122,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -1208,6 +1248,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
 
@@ -1329,6 +1374,11 @@ public class InVectorPort_Test {
         assertFalse("Receive second packet without SRI, sriChanged", pkt.sriChanged);
         assertEquals("Receive second packet without SRI, new SRI callback", new_calls, ctx.new_calls);
         assertEquals("Receive second packet without SRI, SRI change callback", changed_calls, ctx.changed_calls);
+
+        // Push to an invalid stream with no logger, ensure that nothing fails
+        ctx.sid = "null_logger";
+        port.setLogger(null);
+        port.pushPacket(v, TS, false, "null_logger");
     }
 
 }

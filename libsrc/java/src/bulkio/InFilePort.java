@@ -372,7 +372,9 @@ public class InFilePort extends BULKIO.jni.dataFilePOA implements PortBase {
 		}
                 portBlocking = blocking;
             } else {
-                logger.warn("bulkio.InPort pushPacket received data from stream '" + streamID + "' with no SRI");
+                if (logger != null) {
+                    logger.warn("bulkio.InPort pushPacket received data from stream '" + streamID + "' with no SRI");
+                }
                 tmpH = new StreamSRI(1, 0.0, 1.0, (short)1, 0, 0.0, 0.0, (short)0, (short)0, streamID, false, new DataType[0]);
                 if (sriCallback != null) {
                     sriCallback.newSRI(tmpH);
