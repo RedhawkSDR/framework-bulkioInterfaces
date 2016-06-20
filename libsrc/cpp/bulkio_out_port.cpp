@@ -602,19 +602,34 @@ namespace  bulkio {
       const size_t maxPayloadSize    = (size_t) (bulkio::Const::MaxTransferBytes() * .9);
 
       size_t maxSamplesPerPush = maxPayloadSize/sizeof(TransportType);
-      // make sure maxSamplesPerPush is even so that complex data case is handled properly
-      if (maxSamplesPerPush%2 != 0){
-          maxSamplesPerPush--;
-      }
-      
-      // Determine xdelta for this streamID to be used for time increment for subpackets
       typename OutPortSriMap::iterator sri_iter;
       sri_iter = currentSRIs.find( streamID );
+      // Determine xdelta for this streamID to be used for time increment for subpackets
       double xdelta = 0.0;
       size_t itemSize = 1;
       if ( sri_iter != currentSRIs.end() ) {
           xdelta = sri_iter->second.sri.xdelta;
           itemSize = sri_iter->second.sri.mode?2:1;
+      }
+
+      if ( sri_iter != currentSRIs.end() ) {
+        if (sri_iter->second.sri.subsize == 0) {
+            // make sure maxSamplesPerPush is even so that complex data case is handled properly
+            if (maxSamplesPerPush%2 != 0){
+              maxSamplesPerPush--;
+            }
+          } else { // this is framed data, so it must be consistent with both subsize and complex
+            while (maxSamplesPerPush%sri_iter->second.sri.subsize != 0) {
+                maxSamplesPerPush -= maxSamplesPerPush%(sri_iter->second.sri.subsize);
+                if (maxSamplesPerPush%2 != 0){
+                    maxSamplesPerPush--;
+                }
+            }
+        }
+      } else {
+        if (maxSamplesPerPush%2 != 0){
+            maxSamplesPerPush--;
+        }
       }
 
       // Always do at least one push (may be empty), ensuring that all samples

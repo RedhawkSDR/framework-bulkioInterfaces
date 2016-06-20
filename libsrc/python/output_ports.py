@@ -93,11 +93,11 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
         self.noData = noData
 
         # Determine maximum transfer size in advance
-        byteSize = 1
+        self.byteSize = 1
         if self.PortTransferType:
-            byteSize = struct.calcsize(PortTransferType)
+            self.byteSize = struct.calcsize(PortTransferType)
         # Multiply by some number < 1 to leave some margin for the CORBA header
-        self.maxSamplesPerPush = int(MAX_TRANSFER_BYTES*.9)/byteSize
+        self.maxSamplesPerPush = int(MAX_TRANSFER_BYTES*.9)/self.byteSize
         # Make sure maxSamplesPerPush is even so that complex data case is handled properly
         if self.maxSamplesPerPush%2 != 0:
             self.maxSamplesPerPush = self.maxSamplesPerPush - 1
@@ -266,6 +266,18 @@ class OutPort (BULKIO__POA.UsesPortStatisticsProvider ):
     def _pushOversizedPacket(self, data, T, EOS, streamID):
         # If there is no need to break data into smaller packets, skip straight
         # to the pushPacket call and return.
+        subsize = 0
+        if self.sriDict.has_key(streamID):
+            subsize = self.sriDict[streamID].sri.subsize
+        if subsize != 0:
+            if self.maxSamplesPerPush%subsize != 0:
+                self.maxSamplesPerPush = int(MAX_TRANSFER_BYTES*.9)/self.byteSize
+                while (self.maxSamplesPerPush%subsize != 0):
+                    self.maxSamplesPerPush -= self.maxSamplesPerPush%subsize
+                    # Make sure maxSamplesPerPush is even so that complex data case is handled properly
+                    if self.maxSamplesPerPush%2 != 0:
+                        self.maxSamplesPerPush -= 1
+        
         if len(data) <= self.maxSamplesPerPush:
             self._pushPacket(data, T, EOS, streamID);
             return
